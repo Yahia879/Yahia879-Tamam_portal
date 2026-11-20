@@ -71,7 +71,9 @@ import {
   Truck,
   Coins,
   MoreVertical,
+  Calendar,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -209,22 +211,22 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
 
   const content = (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={`w-full min-w-0 space-y-5 sm:space-y-6 overflow-x-hidden text-right font-sans ${isEmbedded ? "" : "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8"}`} dir="rtl">
       {/* العنوان والإجراءات العلوية */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 shrink-0">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               {requestId ? "أوامر الشراء الخاصة بالطلب" : (isEmbedded ? "أوامر الشراء" : "أوامر الشراء الداخلية")}
             </h1>
-            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
+            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs shrink-0">
               برنامج سدانة
             </Badge>
             {requestId && (
-              <Badge variant="secondary" className="font-mono text-xs">
+              <Badge variant="secondary" className="font-mono text-xs shrink-0">
                 طلب #{requestId}
               </Badge>
             )}
@@ -253,7 +255,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
                 navigate(`/purchase-orders/new${qStr}`);
               }}
-              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer min-h-9 max-lg:min-h-10"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة أمر شراء جديد</span>
@@ -397,8 +399,230 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table className="text-xs text-right">
+              <>
+                {/* عرض البطاقات للشاشات الصغيرة والمتوسطة (موبايل وآيباد عمودي) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 lg:hidden">
+                  {orders.map((order) => {
+                    const statusInfo = STATUS_MAP[order.status] || STATUS_MAP.approved;
+                    const isPendingMyAction = order.status !== "approved" && showGreenHighlight;
+
+                    return (
+                      <Card
+                        key={`po-card-${order.id}`}
+                        className={cn(
+                          "p-3.5 sm:p-4 rounded-xl border transition-all space-y-3",
+                          isPendingMyAction
+                            ? "bg-emerald-50/75 dark:bg-emerald-950/40 border-2 border-emerald-500/60 shadow-xs"
+                            : "bg-card border-border/80 hover:border-sky-300 dark:hover:border-sky-800 shadow-2xs"
+                        )}
+                      >
+                        {/* رأس البطاقة: رقم أمر الشراء + مؤشر الاعتماد المعلق + بادج الحالة */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {isPendingMyAction && (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={50}>
+                                  <TooltipTrigger asChild>
+                                    <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                      <div className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                        <Clock className="w-3 h-3 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60">
+                                    <span>{isExecutiveDirectorCeo ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي"}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <span className="font-mono font-bold text-xs text-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+                              {order.orderNumber}
+                            </span>
+                          </div>
+
+                          <div>
+                            {order.status !== "approved" ? (
+                              <Badge variant="outline" className="border-orange-500 text-orange-700 bg-orange-50 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-bold text-[10px] px-2 py-0.5 flex items-center gap-1 whitespace-nowrap">
+                                <Clock className="w-3 h-3 text-orange-600 animate-pulse" />
+                                <span>{isExec ? "بانتظار اعتمادك" : "بانتظار الاعتماد"}</span>
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* جسم البطاقة: المسجد والطلب والمورد */}
+                        <div className="space-y-1.5 text-xs">
+                          <p className="font-bold text-foreground flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span className="truncate">{order.mosqueName || order.descriptiveName || `طلب #${order.requestNumber}`}</span>
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-mono mr-5">
+                            طلب #{order.requestNumber} {order.mosqueCity ? `• ${order.mosqueCity}` : ""}
+                          </p>
+
+                          {(order.supplierName || order.directedTo) && (
+                            <div className="flex items-center gap-1.5 pt-1 text-muted-foreground">
+                              <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span className="font-medium text-foreground truncate">
+                                {order.supplierName || order.directedTo}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* خيارات البنود وأمر الصرف */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 flex-wrap">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedOrderForItems(order)}
+                            className="h-7 text-xs font-bold gap-1 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 px-2"
+                          >
+                            <Package className="w-3.5 h-3.5" />
+                            <span>{order.itemsCount} أصناف مشمولة</span>
+                          </Button>
+
+                          {order.disbursementOrder ? (
+                            <div className="flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] font-bold px-2 py-0.5 ${
+                                  order.disbursementOrder.status === "executed"
+                                    ? "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40"
+                                    : order.disbursementOrder.status === "approved"
+                                    ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/40"
+                                    : "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/40"
+                                }`}
+                              >
+                                {order.disbursementOrder.status === "executed" ? "صرف منفّذ" : "صرف معتمد"}
+                              </Badge>
+                            </div>
+                          ) : order.status === "approved" && canCreateDisbursement ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const returnUrlParam = isEmbedded && requestId
+                                  ? `&returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`
+                                  : `&returnUrl=${encodeURIComponent("/purchase-orders")}`;
+                                navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}${returnUrlParam}`);
+                              }}
+                              className="h-6.5 text-[10px] px-2 gap-1 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border-amber-300 font-bold"
+                            >
+                              <Coins className="w-3 h-3 text-amber-600" />
+                              <span>تحويل لصرف</span>
+                            </Button>
+                          ) : null}
+                        </div>
+
+                        {/* تذييل البطاقة: التاريخ والإجراءات */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs">
+                          <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {order.orderDate || "-"}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {order.status !== "approved" && canApprove && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  approveOrderMutation.mutate({
+                                    requestId: order.requestId,
+                                    orderNumber: order.orderNumber,
+                                  });
+                                }}
+                                disabled={approveOrderMutation.isPending}
+                                className="h-7 text-xs font-bold gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 shrink-0 cursor-pointer shadow-2xs"
+                                title="اعتماد أمر الشراء الآن"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>اعتماد</span>
+                              </Button>
+                            )}
+
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full hover:bg-muted shrink-0"
+                                  title="خيارات إضافية"
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 text-right font-sans">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/requests/${order.requestId}/purchase-order?orderNumber=${encodeURIComponent(order.orderNumber)}`)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                  <span>معاينة وطباعة أمر الشراء</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => setSelectedOrderForItems(order)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Package className="w-4 h-4 text-indigo-600 shrink-0" />
+                                  <span>عرض البنود المشمولة ({order.itemsCount})</span>
+                                </DropdownMenuItem>
+
+                                {order.status !== "approved" && canApprove && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        approveOrderMutation.mutate({
+                                          requestId: order.requestId,
+                                          orderNumber: order.orderNumber,
+                                        });
+                                      }}
+                                      disabled={approveOrderMutation.isPending}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                      <span>اعتماد أمر الشراء فورياً</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {order.status === "approved" && !order.disbursementOrder && canCreateDisbursement && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        const returnUrlParam = isEmbedded && requestId
+                                          ? `&returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`
+                                          : "";
+                                        navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}${returnUrlParam}`);
+                                      }}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400"
+                                    >
+                                      <Coins className="w-4 h-4 text-amber-600 shrink-0" />
+                                      <span>تحويل لأمر صرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* عرض الجدول للشاشات الكبيرة والآيباد الأفقي */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table className="text-xs text-right">
                   <TableHeader className="bg-muted/30">
                     <TableRow className="hover:bg-transparent border-b">
                       <th className="p-3 w-12 text-center font-bold">#</th>
@@ -666,6 +890,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
 
             {/* عناصر التنقل بين الصفحات */}
@@ -687,7 +912,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
         {/* نافذة عرض تفاصيل الأصناف المشمولة */}
         <Dialog open={!!selectedOrderForItems} onOpenChange={() => setSelectedOrderForItems(null)}>
-          <DialogContent className="max-w-lg text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader className="text-right sm:text-right pb-2 border-b">
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                 <Package className="w-5 h-5 text-sky-600" />
@@ -698,8 +923,8 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-2">
-              <table className="w-full text-xs text-right border-collapse border border-border">
+            <div className="py-2 overflow-x-auto">
+              <table className="w-full text-xs text-right border-collapse border border-border min-w-[340px]">
                 <thead className="bg-muted/40 font-bold border-b border-border">
                   <tr>
                     <th className="p-2 w-10 text-center">#</th>
@@ -739,7 +964,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
     return content;
   }
 
-  return <DashboardLayout>{content}</DashboardLayout>;
+  return <DashboardLayout tabletNavigation>{content}</DashboardLayout>;
 }
 
 export default function PurchaseOrdersList() {

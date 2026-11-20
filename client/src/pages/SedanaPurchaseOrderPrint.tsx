@@ -293,64 +293,66 @@ export default function SedanaPurchaseOrderPrint() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
+    <div className="min-h-screen bg-gray-100 dark:bg-slate-950 pb-6 sm:py-8 print:py-0 print:bg-white text-right font-sans overflow-x-hidden" dir="rtl">
       {/* شريط التحكم العلوي المقاوم للطباعة */}
-      <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
+      <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs mb-3 sm:mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 max-w-[210mm] mx-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={handleBack}
-            className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
+            className="h-9 max-lg:min-h-10 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
           >
             <ArrowRight className="h-4 w-4" />
-            <span>رجوع إلى جدول التوريد</span>
+            <span>رجوع لجدول التوريد</span>
           </Button>
 
-          {activePo?.status !== "approved" && canApprove && (
+          <div className="flex flex-wrap items-center gap-2">
+            {activePo?.status !== "approved" && canApprove && (
+              <Button
+                size="sm"
+                onClick={() => approveMutation.mutate({ requestId, orderNumber: activePo?.orderNumber })}
+                disabled={approveMutation.isPending}
+                className="h-9 max-lg:min-h-10 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>{approveMutation.isPending ? "جاري الاعتماد..." : "اعتماد أمر الشراء"}</span>
+              </Button>
+            )}
+
             <Button
               size="sm"
-              onClick={() => approveMutation.mutate({ requestId, orderNumber: activePo?.orderNumber })}
-              disabled={approveMutation.isPending}
-              className="h-8 sm:h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+              onClick={handlePrint}
+              className="h-9 max-lg:min-h-10 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>{approveMutation.isPending ? "جاري الاعتماد..." : "اعتماد أمر الشراء الآن"}</span>
+              <Printer className="h-4 w-4" />
+              <span>تنزيل PDF / طباعة</span>
             </Button>
-          )}
-
-          <Button
-            size="sm"
-            onClick={handlePrint}
-            className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
-          >
-            <Printer className="h-4 w-4" />
-            <span>تنزيل PDF / طباعة</span>
-          </Button>
+          </div>
         </div>
       </div>
 
       {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
-      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] print:min-h-0 relative flex flex-col justify-between overflow-hidden print:overflow-visible">
-        <div className="print-inner p-4 sm:p-8 print:p-0 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] print:min-h-0 leading-relaxed">
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-3 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] print:min-h-0 relative flex flex-col justify-between overflow-hidden print:overflow-visible">
+        <div className="print-inner p-2 sm:p-8 print:p-0 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] print:min-h-0 leading-relaxed">
           <div className="relative z-10 space-y-4 sm:space-y-6 print:space-y-3 flex-1">
             {/* الترويسة العلوية الرسمية */}
-            <div className="flex justify-between items-start border-b border-slate-300 pb-3 sm:pb-4 print:pb-2">
+            <div className="flex flex-col sm:flex-row print:flex-row justify-between items-start gap-3 border-b border-slate-300 pb-3 sm:pb-4 print:pb-2">
               <div className="flex items-center gap-3">
                 {orgSettings?.logoUrl ? (
-                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-20 print:h-14 w-auto object-contain" />
+                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 sm:h-20 print:h-14 w-auto object-contain shrink-0" />
                 ) : (
-                  <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-lg sm:text-xl shrink-0">
                     سدانة
                   </div>
                 )}
-                <div>
-                  <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
-                  <p className="text-xs text-slate-500 font-medium">إدارة المشاريع والمشتريات • برنامج سدانة</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm sm:text-lg text-sky-900 break-words">{orgName}</h3>
+                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium">إدارة المشاريع والمشتريات • برنامج سدانة</p>
                 </div>
               </div>
 
-              <div className="text-xs space-y-1 text-left font-mono">
+              <div className="text-xs space-y-1 text-right sm:text-left print:text-left font-mono w-full sm:w-auto print:w-auto bg-slate-50/70 sm:bg-transparent print:bg-transparent p-2 sm:p-0 print:p-0 rounded border border-slate-200/60 sm:border-0 print:border-0">
                 <div><span className="text-slate-500">رقم الأمر: </span><strong>{poData.orderNumber}</strong></div>
                 <div><span className="text-slate-500">التاريخ: </span><strong>{poData.orderDate}</strong></div>
                 <div><span className="text-slate-500">رقم الطلب: </span><strong>#{request?.requestNumber || requestId}</strong></div>
@@ -363,14 +365,14 @@ export default function SedanaPurchaseOrderPrint() {
             </div>
 
             {/* سطر الموجه إليه والمسجد */}
-            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
-              <div>
+            <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded text-xs flex flex-col sm:flex-row print:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
                 <span className="text-slate-500">موجه إلى: </span>
-                <strong className="text-slate-900">{poSupplierName}</strong>
+                <strong className="text-slate-900 break-words">{poSupplierName}</strong>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-slate-500">المشروع / المسجد: </span>
-                <strong className="text-slate-900">{mosqueName} {request?.mosque?.city ? `(${request.mosque.city})` : ""}</strong>
+                <strong className="text-slate-900 break-words">{mosqueName} {request?.mosque?.city ? `(${request.mosque.city})` : ""}</strong>
               </div>
             </div>
 
@@ -380,39 +382,41 @@ export default function SedanaPurchaseOrderPrint() {
                 نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
               </p>
 
-              <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                  <tr>
-                    <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                    <th className="p-2 border-l border-slate-300">الصنف المطلوب</th>
-                    <th className="p-2 border-l border-slate-300 text-center w-28">الكمية</th>
-                    <th className="p-2 text-center w-28">الوحدة</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-300">
-                  {poItems.length > 0 ? (
-                    poItems.map((it: any, idx: number) => (
-                      <tr key={it.id} className="h-9">
-                        <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                        <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                        <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                        <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                      </tr>
-                    ))
-                  ) : (
+              <div className="overflow-x-auto print:overflow-visible">
+                <table className="w-full border-collapse border border-slate-300 text-xs text-right min-w-[360px] print:min-w-0">
+                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-slate-500 font-medium">
-                        لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التوريد وتحديد البنود المطلوبة.
-                      </td>
+                      <th className="p-2 border-l border-slate-300 text-center w-10 sm:w-12">م</th>
+                      <th className="p-2 border-l border-slate-300">الصنف المطلوب</th>
+                      <th className="p-2 border-l border-slate-300 text-center w-20 sm:w-28">الكمية</th>
+                      <th className="p-2 text-center w-20 sm:w-28">الوحدة</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300">
+                    {poItems.length > 0 ? (
+                      poItems.map((it: any, idx: number) => (
+                        <tr key={it.id} className="h-9">
+                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-slate-500 font-medium">
+                          لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التوريد وتحديد البنود المطلوبة.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* جدول التوقيعات والاعتماد */}
-            <div className="pt-3 sm:pt-4 break-inside-avoid">
-              <table className="w-full border-collapse border border-slate-300 text-xs text-center">
+            <div className="pt-3 sm:pt-4 break-inside-avoid overflow-x-auto print:overflow-visible">
+              <table className="w-full border-collapse border border-slate-300 text-xs text-center min-w-[360px] print:min-w-0">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
                     <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>

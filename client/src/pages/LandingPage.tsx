@@ -51,45 +51,45 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background" dir="rtl">
+    <div className="min-h-[100dvh] flex flex-col bg-background overflow-x-hidden" dir="rtl">
 
       {/* ═══════════════ الهيدر ═══════════════ */}
       <header 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
             ? "bg-background/95 backdrop-blur border-b border-border shadow-sm py-2" 
-            : "bg-transparent border-transparent py-4"
+            : "bg-transparent border-transparent py-3 sm:py-4"
         }`}
       >
         <div className="container mx-auto px-3 sm:px-6">
-          <div className="flex items-center justify-between h-16 gap-2">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
             {/* الشعار */}
-            <div className="flex items-center gap-1.5 xs:gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img 
                 src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
                 alt="شعار بوابة منارة" 
-                className="w-12 h-12 xs:w-14 xs:h-14 shrink-0 object-contain transition-all duration-300" 
+                className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 shrink-0 object-contain transition-all duration-300" 
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = isScrolled ? "/logo.svg" : "/logo-white.svg";
                 }}
               />
               <div className="min-w-0">
-                <h1 className={`font-bold text-xs xs:text-sm sm:text-base leading-tight transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-foreground" : "text-white"}`}>
+                <h1 className={`font-bold text-xs sm:text-sm md:text-base leading-tight transition-colors duration-300 truncate max-w-[110px] min-[380px]:max-w-[140px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-foreground" : "text-white"}`}>
                   {orgSettings?.organizationName || "بوابة منارة"}
                 </h1>
-                <p className={`text-[9px] xs:text-xs transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-muted-foreground" : "text-white/80"}`}>
+                <p className={`text-[10px] sm:text-xs transition-colors duration-300 truncate max-w-[110px] min-[380px]:max-w-[140px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-muted-foreground" : "text-white/80"}`}>
                   {orgSettings?.organizationNameShort || "لإدارة طلبات المساجد"}
                 </p>
               </div>
             </div>
 
             {/* أزرار الدخول */}
-            <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <Link href="/register">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`px-1.5 sm:px-3 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
+                  className={`h-8 sm:h-9 px-2 sm:px-3 text-[11px] sm:text-sm transition-all duration-300 cursor-pointer ${
                     isScrolled 
                       ? "text-muted-foreground hover:text-foreground" 
                       : "text-white/90 hover:text-white hover:bg-white/10"
@@ -101,7 +101,7 @@ export default function LandingPage() {
               <Link href="/admin/login">
                 <Button 
                   size="sm" 
-                  className={`shadow-sm px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm border-0 transition-all duration-300 cursor-pointer ${
+                  className={`h-8 sm:h-9 shadow-sm px-2.5 sm:px-4 text-[11px] sm:text-sm border-0 transition-all duration-300 cursor-pointer ${
                     isScrolled ? "text-white" : ""
                   }`}
                   style={
@@ -155,15 +155,15 @@ export default function LandingPage() {
         />
         <div className="absolute inset-0 opacity-5 pointer-events-none islamic-pattern" />
 
-        <div className="container relative z-10 mx-auto px-4 xs:px-6 pt-24 pb-12 md:pt-36 md:pb-28">
-          <div className="max-w-3xl mx-auto text-center px-4 py-2">
+        <div className="container relative z-10 mx-auto px-4 xs:px-6 pt-24 pb-14 sm:pt-28 sm:pb-20 md:pt-36 md:pb-28">
+          <div className="max-w-3xl mx-auto text-center px-2 sm:px-4 py-2">
             {/* الشعار الكبير */}
-            <div className="flex justify-center mb-6 md:mb-8">
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
+            <div className="flex justify-center mb-5 sm:mb-6 md:mb-8">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
                 <img 
                   src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || "/logo-white.svg"} 
                   alt="شعار بوابة منارة" 
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain" 
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain" 
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/logo-white.svg";
                   }}
@@ -171,34 +171,34 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight drop-shadow-md">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight drop-shadow-md">
               {orgSettings?.organizationName || "بوابة منارة"}
-              <span className="block text-white/80 text-xl sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
+              <span className="block text-white/80 text-lg sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
                 {orgSettings?.organizationNameShort || "لإدارة طلبات المساجد"}
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto drop-shadow-sm">
+            <p className="text-sm sm:text-lg md:text-xl text-white/90 mb-7 sm:mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto drop-shadow-sm">
               يمكنكم من خلال هذه البوابة رفع طلبات الخدمات المتعلقة بمساجدكم، وسنعمل جاهدين بإذن الله على دراستها والعمل على تلبيتها قدر المستطاع، بما يخدم بيوت الله ويحقق الأثر المأمول.
             </p>
 
             {/* الأزرار الرئيسية */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
-              <Link href="/register">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-2 sm:px-0">
+              <Link href="/register" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer"
+                  className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 h-12 sm:h-14 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer"
                   style={{ color: primaryColor }}
                 >
                   <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
                   طلب خدمة جديدة
                 </Button>
               </Link>
-              <Link href="/login">
+              <Link href="/login" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto cursor-pointer"
+                  className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 h-12 sm:h-14 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto cursor-pointer"
                 >
                   لديك حساب؟ سجّل دخولك
                   <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
@@ -215,28 +215,28 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════ دعوة للعمل ═══════════════ */}
-      <section className="py-12 md:py-16 bg-background">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+      <section className="py-10 sm:py-12 md:py-16 bg-background">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 max-w-4xl mx-auto">
             {/* بطاقة المستفيد */}
-            <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
+            <div className="bg-card rounded-2xl border border-border p-5 sm:p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
               <div>
-                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6">
-                  <FileText className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl gradient-primary flex items-center justify-center mb-4 sm:mb-6">
+                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">طلب خدمة لمسجدك</h3>
-                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3">طلب خدمة لمسجدك</h3>
+                <p className="text-muted-foreground mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
                   سجّل حساباً جديداً أو قدّم تبرعك واستفسارك لمسجدك من خلال البرامج المتاحة. تابع حالة طلبك بشكل مباشر.
                 </p>
               </div>
               <div className="flex flex-col gap-2.5 mt-auto">
                 <Link href="/register">
-                  <Button className="w-full gradient-primary text-white font-semibold py-5 cursor-pointer">
+                  <Button className="w-full gradient-primary text-white font-semibold h-11 cursor-pointer">
                     تسجيل حساب / تقديم طلب
                   </Button>
                 </Link>
                 <Link href="/login">
-                  <Button variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary/5 font-medium cursor-pointer">
+                  <Button variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary/5 font-medium h-11 cursor-pointer">
                     لديك حساب؟ سجّل دخولك
                   </Button>
                 </Link>
@@ -245,19 +245,19 @@ export default function LandingPage() {
 
 
             {/* بطاقة الموظف */}
-            <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
+            <div className="bg-card rounded-2xl border border-border p-5 sm:p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
               <div>
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-6 shadow-sm">
-                  <Users className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-4 sm:mb-6 shadow-sm">
+                  <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">بوابة الموظفين</h3>
-                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3">بوابة الموظفين</h3>
+                <p className="text-muted-foreground mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
                   للموظفين والمسؤولين لإدارة الطلبات والمشاريع ومتابعة سير العمل واعتماد عروض الأسعار والموردين.
                 </p>
               </div>
               <div className="flex flex-col gap-2.5 mt-auto">
                 <Link href="/admin/login">
-                  <Button className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-5 cursor-pointer">
+                  <Button className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold h-11 cursor-pointer">
                     دخول الموظفين
                   </Button>
                 </Link>
@@ -269,16 +269,16 @@ export default function LandingPage() {
 
       {/* ═══════════════ الفوتر ═══════════════ */}
       <footer className="border-t border-border bg-card mt-auto">
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-center sm:text-right">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة منارة" className="w-8 h-8 object-contain" />
               <div>
-                <span className="font-bold text-foreground">{orgSettings?.organizationName || "بوابة منارة"}</span>
-                <span className="text-muted-foreground text-sm mr-2">{orgSettings?.organizationNameShort || "لإدارة طلبات المساجد"}</span>
+                <span className="font-bold text-sm sm:text-base text-foreground">{orgSettings?.organizationName || "بوابة منارة"}</span>
+                <span className="text-muted-foreground text-xs sm:text-sm mr-2">{orgSettings?.organizationNameShort || "لإدارة طلبات المساجد"}</span>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               © {new Date().getFullYear()} جميع الحقوق محفوظة
             </p>
           </div>

@@ -606,7 +606,7 @@ export default function Register() {
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="min-h-[85px] sm:min-h-[110px] rounded-xl border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3 sm:p-3.5 text-xs sm:text-sm"
+            className="min-h-[85px] sm:min-h-[110px] rounded-xl border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3 sm:p-3.5 text-xs sm:text-sm max-md:text-base"
           />
           {field.helpText && (
             <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
@@ -626,13 +626,14 @@ export default function Register() {
           <Input
             id={field.id}
             type="tel"
+            inputMode="tel"
             dir="ltr"
             maxLength={10}
             placeholder={field.placeholder || "05XXXXXXXX"}
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
+            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm max-md:text-base px-3 sm:px-3.5"
           />
           <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
         </div>
@@ -651,12 +652,13 @@ export default function Register() {
           <Input
             id={field.id}
             type="email"
+            inputMode="email"
             dir="ltr"
             placeholder={field.placeholder || "name@example.com"}
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
+            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm max-md:text-base px-3 sm:px-3.5"
           />
           {field.helpText && (
             <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
@@ -676,7 +678,7 @@ export default function Register() {
             value={value || ""}
             onValueChange={(val) => handleDynamicChange(field.id, val)}
           >
-            <SelectTrigger className="h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5">
+            <SelectTrigger className="h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm max-md:text-base px-3 sm:px-3.5">
               <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
             </SelectTrigger>
             <SelectContent dir="rtl">
@@ -704,7 +706,7 @@ export default function Register() {
           <RadioGroup
             value={value || ""}
             onValueChange={(val) => handleDynamicChange(field.id, val)}
-            className="grid grid-cols-2 gap-2 sm:gap-3 pt-1"
+            className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 pt-1"
             dir="rtl"
           >
             {field.options?.map((opt: any, idx: number) => (
@@ -734,7 +736,7 @@ export default function Register() {
                 : "bg-slate-50/60 border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/50"
             }`}
           >
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
               {field.id === "inKindDeliveryAvailable" && (
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                   value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 text-slate-500"
@@ -743,7 +745,7 @@ export default function Register() {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-snug break-words">
                   {field.label}
                 </p>
                 {field.helpText && (
@@ -806,11 +808,12 @@ export default function Register() {
           <Input
             id={field.id}
             type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+            inputMode={field.type === "number" ? "decimal" : undefined}
             placeholder={field.placeholder || ""}
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className={`h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5 ${unitSuffix ? "pl-11" : ""}`}
+            className={`h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm max-md:text-base px-3 sm:px-3.5 ${unitSuffix ? "pl-11" : ""}`}
           />
           {unitSuffix && (
             <span className="absolute left-2.5 text-[11px] sm:text-xs px-2 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded-md select-none pointer-events-none">
@@ -917,7 +920,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 p-2.5 sm:p-6 md:p-8" dir="rtl">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-slate-50/70 p-2.5 sm:p-6 md:p-8 overflow-x-hidden" dir="rtl">
       <div className="w-full max-w-2xl transition-all duration-300">
         {/* الترويسة والشعار */}
         <Link href="/" className="flex flex-col items-center mb-4 sm:mb-8 text-center group cursor-pointer">
@@ -1183,7 +1186,7 @@ export default function Register() {
                       value={formData.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       required
-                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      className="h-11 max-md:text-base rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                     />
                   </div>
 
@@ -1198,12 +1201,13 @@ export default function Register() {
                       <Input
                         id="phone"
                         type="tel"
+                        inputMode="tel"
                         placeholder="05XXXXXXXX"
                         value={formData.phone}
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 max-md:text-base rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
@@ -1215,11 +1219,12 @@ export default function Register() {
                       </Label>
                       <Input
                         id="nationalId"
+                        inputMode="numeric"
                         placeholder="1XXXXXXXXX"
                         value={formData.nationalId}
                         onChange={(e) => handleChange("nationalId", e.target.value)}
                         maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 max-md:text-base rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
@@ -1236,11 +1241,12 @@ export default function Register() {
                       <Input
                         id="email"
                         type="email"
+                        inputMode="email"
                         placeholder="name@example.com"
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
                         required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 max-md:text-base rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
@@ -1251,7 +1257,7 @@ export default function Register() {
                         <span>المدينة</span>
                       </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
+                        <SelectTrigger className="h-11 max-md:text-base rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1335,7 +1341,7 @@ export default function Register() {
                           onChange={(e) => handleChange("password", e.target.value)}
                           required
                           minLength={8}
-                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                          className="pl-10 h-11 max-md:text-base rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
@@ -1360,7 +1366,7 @@ export default function Register() {
                           value={formData.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
                           required
-                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                          className="pl-10 h-11 max-md:text-base rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
@@ -1541,18 +1547,18 @@ export default function Register() {
                 {/* الخيار الأول: الحساب البنكي الرسمي مع الـ QR */}
                 <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-7 shadow-sm space-y-5">
                   {/* ترويسة الحساب البنكي */}
-                  <div className="flex items-center justify-between border-b pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20 shrink-0">
                         <CreditCard className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-base">الخيار الأول: التحويل البنكي (مصرف الراجحي)</h4>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-slate-900 text-sm sm:text-base">الخيار الأول: التحويل البنكي (مصرف الراجحي)</h4>
                         <p className="text-xs text-slate-500">الحساب البنكي الرسمي المعتمد للتبرعات</p>
                       </div>
                     </div>
 
-                    <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-lg border border-primary/20">
+                    <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-lg border border-primary/20 self-start sm:self-center shrink-0">
                       معتمد رسمياً
                     </span>
                   </div>
@@ -1567,7 +1573,7 @@ export default function Register() {
 
                   {/* رمز الـ QR للتحويل السريع */}
                   <div className="text-center space-y-2.5 py-1">
-                    <div className="w-48 h-48 sm:w-52 sm:h-52 mx-auto p-3 bg-white rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-center group hover:border-primary transition-all">
+                    <div className="w-44 h-44 sm:w-52 sm:h-52 mx-auto p-3 bg-white rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-center group hover:border-primary transition-all">
                       <img
                         src="/bank-qr-code.png"
                         alt="رمز QR للتحويل السريع - مصرف الراجحي"
@@ -1582,10 +1588,10 @@ export default function Register() {
                   {/* حقول النسخ السريع: رقم الحساب والآيبان */}
                   <div className="space-y-3 pt-1">
                     {/* رقم الآيبان */}
-                    <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between gap-2 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
-                      <div className="text-right overflow-hidden">
+                    <div className="p-3.5 bg-slate-50 rounded-xl flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
+                      <div className="text-right overflow-hidden min-w-0">
                         <span className="text-[11px] font-bold text-slate-500 block mb-0.5">رقم الآيبان (IBAN):</span>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider truncate block" dir="ltr">
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider break-all block" dir="ltr">
                           {rawIban}
                         </span>
                       </div>
@@ -1594,7 +1600,7 @@ export default function Register() {
                         size="sm"
                         variant="secondary"
                         onClick={() => copyToClipboard(rawIban, "رقم الآيبان")}
-                        className="shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
+                        className="w-full xs:w-auto shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
                       >
                         {copiedField === "رقم الآيبان" ? (
                           <>
@@ -1611,10 +1617,10 @@ export default function Register() {
                     </div>
 
                     {/* رقم الحساب */}
-                    <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between gap-2 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
-                      <div className="text-right overflow-hidden">
+                    <div className="p-3.5 bg-slate-50 rounded-xl flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
+                      <div className="text-right overflow-hidden min-w-0">
                         <span className="text-[11px] font-bold text-slate-500 block mb-0.5">رقم الحساب:</span>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider truncate block" dir="ltr">
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider break-all block" dir="ltr">
                           {bankAccountNumber}
                         </span>
                       </div>
@@ -1623,7 +1629,7 @@ export default function Register() {
                         size="sm"
                         variant="secondary"
                         onClick={() => copyToClipboard(bankAccountNumber, "رقم الحساب")}
-                        className="shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
+                        className="w-full xs:w-auto shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
                       >
                         {copiedField === "رقم الحساب" ? (
                           <>

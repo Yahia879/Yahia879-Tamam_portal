@@ -202,12 +202,12 @@ export default function AdminLogin() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-2 sm:p-4 md:p-6"
+      className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
       style={{
         background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
       }}
     >
-      <Card className="w-full max-w-[95%] sm:max-w-md p-5 sm:p-8 bg-white/95 shadow-2xl rounded-2xl sm:rounded-3xl transition-all duration-300" dir="rtl">
+      <Card className="w-full max-w-md p-5 sm:p-8 bg-white/95 shadow-2xl rounded-2xl sm:rounded-3xl transition-all duration-300 my-auto" dir="rtl">
         {/* الشعار */}
         <div className="text-center mb-6 sm:mb-8 text-right">
           <div 
@@ -259,17 +259,19 @@ export default function AdminLogin() {
               <Input
                 id="email"
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@tamam.sa"
                 required
-                className="text-right"
+                className="text-right h-11 max-md:text-base"
               />
             </div>
 
             {/* كلمة المرور */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   كلمة المرور
@@ -281,7 +283,7 @@ export default function AdminLogin() {
                     setMode("forgot");
                     setForgotStep(1);
                   }}
-                  className="text-xs hover:underline focus:outline-none"
+                  className="text-xs sm:text-sm py-1 hover:underline focus:outline-none"
                   style={{ color: primaryColor }}
                 >
                   نسيت كلمة المرور؟
@@ -291,16 +293,17 @@ export default function AdminLogin() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="text-right pl-10"
+                  className="text-right pl-11 h-11 max-md:text-base"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -329,11 +332,12 @@ export default function AdminLogin() {
                   <Input
                     id="forgot-email"
                     type="email"
+                    inputMode="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="example@tamam.sa"
                     required
-                    className="text-right"
+                    className="text-right h-11 max-md:text-base"
                   />
                 </div>
                 <Button
@@ -371,12 +375,13 @@ export default function AdminLogin() {
                         key={idx}
                         id={`digit-${idx}`}
                         type="text"
+                        inputMode="numeric"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleDigitChange(e.target.value, idx)}
                         onKeyDown={(e) => handleDigitKeyDown(e, idx)}
                         required
-                        className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-400 dark:border-slate-600 rounded-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-background text-foreground"
+                        className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 border-slate-400 dark:border-slate-600 rounded-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-background text-foreground"
                       />
                     ))}
                   </div>
@@ -429,12 +434,12 @@ export default function AdminLogin() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="أدخل كلمة المرور الجديدة"
                       required
-                      className="text-right pl-10"
+                      className="text-right pl-11 h-11 max-md:text-base"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                     >
                       {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -454,12 +459,12 @@ export default function AdminLogin() {
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="أعد إدخال كلمة المرور لتأكيدها"
                       required
-                      className="text-right pl-10"
+                      className="text-right pl-11 h-11 max-md:text-base"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                     >
                       {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

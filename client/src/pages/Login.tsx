@@ -217,12 +217,12 @@ export default function Login() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6"
+      className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
       style={{
         background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
       }}
     >
-      <Card className="w-full max-w-md p-6 sm:p-8 bg-white/95 shadow-xl rounded-2xl sm:rounded-3xl" dir="rtl">
+      <Card className="w-full max-w-md p-5 sm:p-8 bg-white/95 shadow-xl rounded-2xl sm:rounded-3xl my-auto" dir="rtl">
         {/* الشعار */}
         <div className="text-center mb-6 sm:mb-8">
           <img 
@@ -266,12 +266,14 @@ export default function Login() {
               <Input
                 id="phone"
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="05XXXXXXXX"
                 required
                 maxLength={10}
-                className="text-right"
+                className="text-right h-11 max-md:text-base"
               />
               <p className="text-xs text-gray-500">
                 أدخل رقم الجوال بصيغة 05XXXXXXXX (10 أرقام)
@@ -280,7 +282,7 @@ export default function Login() {
 
             {/* كلمة المرور */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   كلمة المرور
@@ -291,7 +293,7 @@ export default function Login() {
                     setMode("forgot");
                     setForgotStep(1);
                   }}
-                  className="text-xs hover:underline focus:outline-none cursor-pointer"
+                  className="text-xs sm:text-sm py-1 hover:underline focus:outline-none cursor-pointer"
                   style={{ color: primaryColor }}
                 >
                   نسيت كلمة المرور؟
@@ -301,16 +303,17 @@ export default function Login() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="text-right pl-10"
+                  className="text-right pl-11 h-11 max-md:text-base"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -345,11 +348,12 @@ export default function Login() {
                   <Input
                     id="forgot-email"
                     type="email"
+                    inputMode="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="example@domain.com"
                     required
-                    className="text-right"
+                    className="text-right h-11 max-md:text-base"
                   />
                 </div>
                 <Button
@@ -387,12 +391,13 @@ export default function Login() {
                         key={idx}
                         id={`digit-${idx}`}
                         type="text"
+                        inputMode="numeric"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleDigitChange(e.target.value, idx)}
                         onKeyDown={(e) => handleDigitKeyDown(e, idx)}
                         required
-                        className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-400 dark:border-slate-600 rounded-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-background text-foreground"
+                        className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 border-slate-400 dark:border-slate-600 rounded-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-background text-foreground"
                       />
                     ))}
                   </div>
@@ -454,12 +459,12 @@ export default function Login() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="أدخل كلمة المرور الجديدة"
                       required
-                      className="text-right pl-10"
+                      className="text-right pl-11 h-11 max-md:text-base"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                     >
                       {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -479,12 +484,12 @@ export default function Login() {
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="أعد إدخال كلمة المرور لتأكيدها"
                       required
-                      className="text-right pl-10"
+                      className="text-right pl-11 h-11 max-md:text-base"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer p-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md"
                     >
                       {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

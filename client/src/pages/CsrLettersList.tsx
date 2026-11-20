@@ -64,7 +64,9 @@ import {
   Plus,
   RotateCcw,
   MoreVertical,
+  Calendar,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -182,22 +184,22 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
 
 
   const content = (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={`w-full min-w-0 space-y-5 sm:space-y-6 overflow-x-hidden text-right font-sans ${isEmbedded ? "" : "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8"}`} dir="rtl">
       {/* العنوان والإجراءات العلوية */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 shrink-0">
               <HeartHandshake className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               {requestId ? "الخطابات المجتمعية الخاصة بالطلب" : (isEmbedded ? "الخطاب المجتمعي" : "خطابات المسؤولية المجتمعية")}
             </h1>
-            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
+            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs shrink-0">
               برنامج سدانة
             </Badge>
             {requestId && (
-              <Badge variant="secondary" className="font-mono text-xs">
+              <Badge variant="secondary" className="font-mono text-xs shrink-0">
                 طلب #{requestId}
               </Badge>
             )}
@@ -226,7 +228,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
                 navigate(`/csr-letters/new${qStr}`);
               }}
-              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+              className="w-full sm:w-auto min-h-9 max-lg:min-h-10 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
@@ -370,8 +372,170 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table className="text-xs text-right">
+              <>
+                {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 lg:hidden">
+                  {letters.map((letter) => {
+                    const statusInfo = STATUS_MAP[letter.status] || STATUS_MAP.approved;
+                    const isPendingMyAction = showGreenHighlight && letter.status === "draft";
+
+                    return (
+                      <Card
+                        key={`csr-card-${letter.id}`}
+                        className={cn(
+                          "p-3.5 sm:p-4 rounded-xl border transition-all space-y-3",
+                          isPendingMyAction
+                            ? "bg-emerald-50/75 dark:bg-emerald-950/40 border-2 border-emerald-500/60 shadow-xs"
+                            : "bg-card border-border/80 hover:border-sky-300 dark:hover:border-sky-800 shadow-2xs"
+                        )}
+                      >
+                        {/* رأس البطاقة */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {isPendingMyAction && (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={50}>
+                                  <TooltipTrigger asChild>
+                                    <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                      <div className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                        <Clock className="w-3 h-3 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60">
+                                    <span>{isExecutiveDirectorCeo ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي"}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <span className="font-mono font-bold text-xs text-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+                              {letter.letterNumber}
+                            </span>
+                          </div>
+
+                          <div>
+                            {letter.status === "draft" ? (
+                              <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span>{isExec ? "بانتظار اعتمادك" : "بانتظار الاعتماد"}</span>
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* جسم البطاقة */}
+                        <div className="space-y-1.5 text-xs">
+                          <p className="font-bold text-foreground truncate">
+                            {letter.descriptiveName || `#${letter.requestNumber}`}
+                          </p>
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                            {letter.descriptiveName && (
+                              <span className="font-mono">طلب #{letter.requestNumber}</span>
+                            )}
+                            {letter.recipientName && (
+                              <span className="truncate">الجهة: {letter.recipientName}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* زر الأصناف */}
+                        <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedLetterForItems(letter)}
+                            className="h-7 text-xs font-bold gap-1 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 px-2"
+                          >
+                            <Package className="w-3.5 h-3.5" />
+                            <span>{letter.itemsCount} أصناف مطلوبة</span>
+                          </Button>
+                        </div>
+
+                        {/* تذييل البطاقة */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs">
+                          <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {letter.letterDate || "-"}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {canApprove && letter.status === "draft" && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  approveLetterMutation.mutate({
+                                    requestId: letter.requestId,
+                                    letterNumber: letter.letterNumber,
+                                  });
+                                }}
+                                disabled={approveLetterMutation.isPending}
+                                className="h-7 px-2.5 text-xs font-bold gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>اعتماد</span>
+                              </Button>
+                            )}
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full hover:bg-muted shrink-0"
+                                >
+                                  <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 text-right font-sans">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                  <span>معاينة وطباعة الخطاب الرسمي</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setSelectedLetterForItems(letter)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Package className="w-4 h-4 text-indigo-600 shrink-0" />
+                                  <span>عرض الأصناف المطلوبة ({letter.itemsCount})</span>
+                                </DropdownMenuItem>
+                                {canApprove && letter.status === "draft" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        approveLetterMutation.mutate({
+                                          requestId: letter.requestId,
+                                          letterNumber: letter.letterNumber,
+                                        });
+                                      }}
+                                      disabled={approveLetterMutation.isPending}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                      <span>اعتماد الخطاب فورياً</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* عرض الجدول للشاشات الكبيرة والآيباد الأفقي */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table className="text-xs text-right">
                   <TableHeader className="bg-muted/30">
                     <TableRow className="hover:bg-transparent border-b">
                       <th className="p-3 w-12 text-center font-bold">#</th>
@@ -560,6 +724,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
 
             {/* عناصر التنقل بين الصفحات */}
@@ -581,7 +746,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
 
         {/* نافذة عرض تفاصيل الأصناف المشمولة */}
         <Dialog open={!!selectedLetterForItems} onOpenChange={() => setSelectedLetterForItems(null)}>
-          <DialogContent className="max-w-lg text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader className="text-right sm:text-right pb-2 border-b">
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                 <Package className="w-5 h-5 text-sky-600" />
@@ -592,8 +757,8 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-2">
-              <table className="w-full text-xs text-right border-collapse border border-border">
+            <div className="py-2 overflow-x-auto">
+              <table className="w-full text-xs text-right border-collapse border border-border min-w-[340px]">
                 <thead className="bg-muted/40 font-bold border-b border-border">
                   <tr>
                     <th className="p-2 w-10 text-center">#</th>
@@ -631,7 +796,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
     return content;
   }
 
-  return <DashboardLayout>{content}</DashboardLayout>;
+  return <DashboardLayout tabletNavigation>{content}</DashboardLayout>;
 }
 
 export default function CsrLettersList() {

@@ -349,7 +349,7 @@ export default function SedanaExecutionPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="p-12 flex flex-col items-center justify-center gap-3 text-center" dir="rtl">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">جاري تحميل بيانات المستودع الافتراضي والتنفيذ...</p>
@@ -465,42 +465,42 @@ export default function SedanaExecutionPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 text-right font-sans" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-5 sm:space-y-6 px-3 sm:px-6 lg:px-8 overflow-x-hidden text-right font-sans" dir="rtl">
         {requestId === 0 ? (
           <div className="space-y-6">
             {/* الترويسة الرئيسية */}
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-card p-4 sm:p-6 rounded-2xl border border-border/80 shadow-xs">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
-                    <Boxes className="w-6 h-6" />
+              <div className="space-y-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                    <Boxes className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                  <h1 className="text-lg sm:text-2xl font-black text-foreground leading-snug">
                     المستودع الافتراضي لطلبات سدانة
                   </h1>
-                  <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-xs font-bold">
+                  <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-xs font-bold shrink-0">
                     برنامج سدانة
                   </Badge>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   اختر أحد طلبات سدانة في مرحلة التشغيل والتنفيذ لإدارة المخزون الافتراضي، أوامر الإدخال، الإخراج، ومحاضر التسليم
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleExportExcel}
                   disabled={isExporting}
-                  className="text-xs font-bold gap-1.5 h-9"
+                  className="text-xs font-bold gap-1.5 h-9 min-h-9 max-lg:min-h-10"
                 >
                   {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
                   <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
                 </Button>
                 <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 px-3 py-1.5 font-bold text-xs gap-1.5 shadow-2xs">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>{executionStageCount} طلبات في مرحلة التشغيل والتنفيذ</span>
                 </Badge>
               </div>
@@ -559,7 +559,7 @@ export default function SedanaExecutionPage() {
                   placeholder="البحث برقم الطلب، اسم المسجد، المدينة، أو الوصف..."
                   value={listSearch}
                   onChange={(e) => setListSearch(e.target.value)}
-                  className="pr-9 pl-9 h-10 text-xs"
+                  className="pr-9 pl-9 h-10 text-xs sm:text-sm max-md:text-base"
                 />
                 {listSearch && (
                   <button
@@ -572,12 +572,12 @@ export default function SedanaExecutionPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 overflow-x-auto pb-1 sm:pb-0">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
                 <Button
                   size="sm"
                   variant={listStageFilter === "all" ? "default" : "outline"}
                   onClick={() => setListStageFilter("all")}
-                  className={`text-xs font-bold h-9 px-3 cursor-pointer ${listStageFilter === "all" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                  className={`text-xs font-bold h-9 px-3 cursor-pointer shrink-0 ${listStageFilter === "all" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
                 >
                   الكل ({sedanaRequests.length})
                 </Button>
@@ -585,7 +585,7 @@ export default function SedanaExecutionPage() {
                   size="sm"
                   variant={listStageFilter === "execution" ? "default" : "outline"}
                   onClick={() => setListStageFilter("execution")}
-                  className={`text-xs font-bold h-9 px-3 gap-1.5 cursor-pointer ${listStageFilter === "execution" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-emerald-700 border-emerald-300"}`}
+                  className={`text-xs font-bold h-9 px-3 gap-1.5 cursor-pointer shrink-0 ${listStageFilter === "execution" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-emerald-700 border-emerald-300"}`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>التشغيل والتنفيذ ({executionStageCount})</span>
@@ -594,7 +594,7 @@ export default function SedanaExecutionPage() {
                   size="sm"
                   variant={listStageFilter === "others" ? "default" : "outline"}
                   onClick={() => setListStageFilter("others")}
-                  className={`text-xs font-bold h-9 px-3 cursor-pointer ${listStageFilter === "others" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                  className={`text-xs font-bold h-9 px-3 cursor-pointer shrink-0 ${listStageFilter === "others" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
                 >
                   التسليم والإغلاق ({otherStagesCount})
                 </Button>
@@ -615,7 +615,92 @@ export default function SedanaExecutionPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
+                {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 lg:hidden">
+                  {filteredRequests.map((r: any) => {
+                    const isExec = r.currentStage === "execution";
+                    return (
+                      <Card
+                        key={`wh-card-${r.id}`}
+                        onClick={() => setLocation(`/requests/${r.id}/sedana-execution`)}
+                        className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all space-y-3 ${
+                          isExec
+                            ? "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-400/60 shadow-xs"
+                            : "bg-card border-border/80 hover:border-emerald-300 shadow-2xs"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono font-black text-xs text-foreground bg-muted/80 px-2.5 py-1 rounded-md border border-border/60">
+                            #{r.requestNumber}
+                          </span>
+                          {isExec ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-[11px] gap-1 shadow-2xs">
+                              <Sparkles className="w-3 h-3 text-emerald-600" />
+                              <span>التشغيل والتنفيذ</span>
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[11px] text-muted-foreground font-normal">
+                              {STAGE_LABELS[r.currentStage] || r.currentStage}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-foreground truncate">{r.mosqueName}</p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
+                            <Building2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>{r.mosqueCity || "المدينة غير محددة"}</span>
+                            {r.descriptiveName && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate max-w-[180px] text-foreground/80 font-medium">{r.descriptiveName}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-border/50 text-center text-[10px]">
+                          <div className="p-1.5 rounded bg-muted/40">
+                            <span className="text-muted-foreground block">البنود</span>
+                            <span className="font-bold text-xs text-foreground">{r.itemsCount || 0}</span>
+                          </div>
+                          <div className="p-1.5 rounded bg-blue-50/70 dark:bg-blue-950/30">
+                            <span className="text-blue-700/80 dark:text-blue-300/80 block">إدخال</span>
+                            <span className="font-bold text-xs text-blue-700 dark:text-blue-300">{r.inwardCount || 0}</span>
+                          </div>
+                          <div className="p-1.5 rounded bg-amber-50/70 dark:bg-amber-950/30">
+                            <span className="text-amber-700/80 dark:text-amber-300/80 block">إخراج</span>
+                            <span className="font-bold text-xs text-amber-700 dark:text-amber-300">{r.outboundCount || 0}</span>
+                          </div>
+                          <div className="p-1.5 rounded bg-purple-50/70 dark:bg-purple-950/30">
+                            <span className="text-purple-700/80 dark:text-purple-300/80 block">تسليم</span>
+                            <span className="font-bold text-xs text-purple-700 dark:text-purple-300">{r.deliveryCount || 0}</span>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          className={`w-full h-9 text-xs font-bold gap-1.5 cursor-pointer shadow-xs ${
+                            isExec
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/requests/${r.id}/sedana-execution`);
+                          }}
+                        >
+                          <Boxes className="w-3.5 h-3.5" />
+                          <span>دخول المستودع</span>
+                          <ArrowLeft className="w-3.5 h-3.5 mr-auto" />
+                        </Button>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* عرض الجدول للشاشات الكبيرة والآيباد الأفقي */}
+                <div className="hidden lg:block overflow-x-auto">
                   <Table className="w-full text-right text-xs">
                     <TableHeader className="bg-muted/60">
                       <TableRow className="hover:bg-transparent border-b border-border/80">
@@ -754,45 +839,47 @@ export default function SedanaExecutionPage() {
         ) : (
           <>
             {/* الترويسة العلوية مع شريط اختيار طلب سدانة */}
-            <div className="flex flex-col gap-4 border-b pb-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLocation("/sedana-warehouse")}
-                      className="h-8 px-2.5 text-xs font-bold gap-1.5 text-muted-foreground hover:text-foreground border-border bg-card cursor-pointer"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>العودة لقائمة الطلبات</span>
-                    </Button>
-                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                      <Boxes className="w-5 h-5" />
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                      المستودع الافتراضي والتنفيذ المجدول
-                    </h1>
-                    <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs font-bold">
-                      برنامج سدانة
-                    </Badge>
+            <div className="flex flex-col gap-3 border-b pb-4">
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/sedana-warehouse")}
+                  className="h-8 sm:h-9 px-2.5 text-xs font-bold gap-1.5 text-muted-foreground hover:text-foreground border-border bg-card cursor-pointer shrink-0"
+                >
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                  <span>العودة لقائمة الطلبات</span>
+                </Button>
+
+                <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs font-bold shrink-0">
+                  برنامج سدانة
+                </Badge>
+              </div>
+
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shrink-0">
+                    <Boxes className="w-5 h-5" />
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                    إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
-                  </p>
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-snug break-words">
+                    المستودع الافتراضي والتنفيذ المجدول
+                  </h1>
                 </div>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
+                </p>
               </div>
             </div>
 
         {/* بطاقات الإحصائيات الـ 4 السريعة */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border border-border/80 shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-muted-foreground">إجمالي البنود المعتمدة</p>
-                <p className="text-xl font-extrabold text-foreground mt-0.5">{totalApproved} <span className="text-xs font-normal text-muted-foreground">وحدة</span></p>
+                <p className="text-xl font-extrabold text-foreground mt-0.5 tabular-nums">{totalApproved} <span className="text-xs font-normal text-muted-foreground">وحدة</span></p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
                 <Package className="w-5 h-5" />
               </div>
             </CardContent>
@@ -800,11 +887,11 @@ export default function SedanaExecutionPage() {
 
           <Card className="border border-border/80 shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-muted-foreground">الرصيد المتاح بالمستودع الافتراضي</p>
-                <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-0.5">{totalAvailableStock} <span className="text-xs font-normal text-muted-foreground">وحدة</span></p>
+                <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-0.5 tabular-nums">{totalAvailableStock} <span className="text-xs font-normal text-muted-foreground">وحدة</span></p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0">
                 <Boxes className="w-5 h-5" />
               </div>
             </CardContent>
@@ -812,11 +899,11 @@ export default function SedanaExecutionPage() {
 
           <Card className="border border-border/80 shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-muted-foreground">أوامر الإخراج ومسوغات الصرف</p>
-                <p className="text-xl font-extrabold text-sky-700 dark:text-sky-400 mt-0.5">{outboundOrders.length} <span className="text-xs font-normal text-muted-foreground">أمر مجدول</span></p>
+                <p className="text-xl font-extrabold text-sky-700 dark:text-sky-400 mt-0.5 tabular-nums">{outboundOrders.length} <span className="text-xs font-normal text-muted-foreground">أمر مجدول</span></p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 shrink-0">
                 <Layers className="w-5 h-5" />
               </div>
             </CardContent>
@@ -824,13 +911,13 @@ export default function SedanaExecutionPage() {
 
           <Card className="border border-border/80 shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-muted-foreground">سجلات وحركات المستودع</p>
-                <p className="text-xl font-extrabold text-purple-700 dark:text-purple-400 mt-0.5">
+                <p className="text-xl font-extrabold text-purple-700 dark:text-purple-400 mt-0.5 tabular-nums">
                   {inwardOrders.length + outboundOrders.length} <span className="text-xs font-normal text-muted-foreground">حركة</span>
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/40 text-purple-600">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/40 text-purple-600 shrink-0">
                 <History className="w-5 h-5" />
               </div>
             </CardContent>
@@ -839,19 +926,19 @@ export default function SedanaExecutionPage() {
 
         {/* التبويبات الرئيسية */}
         <Tabs defaultValue="stock" dir="rtl" className="space-y-4">
-          <TabsList dir="rtl" className="bg-muted/40 p-1 rounded-xl w-full grid grid-cols-1 sm:grid-cols-3 gap-1 h-auto">
-            <TabsTrigger value="stock" className="text-xs font-bold gap-1.5">
-              <Boxes className="w-3.5 h-3.5" />
+          <TabsList dir="rtl" className="bg-muted/40 p-1 rounded-xl w-full flex flex-nowrap overflow-x-auto no-scrollbar sm:grid sm:grid-cols-3 gap-1 h-auto justify-start">
+            <TabsTrigger value="stock" className="text-xs font-bold gap-1.5 shrink-0 whitespace-nowrap px-3 py-2">
+              <Boxes className="w-3.5 h-3.5 shrink-0" />
               <span>رصيد المستودع الافتراضي</span>
               <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{inventoryItems.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="outbound" className="text-xs font-bold gap-1.5">
-              <Layers className="w-3.5 h-3.5" />
+            <TabsTrigger value="outbound" className="text-xs font-bold gap-1.5 shrink-0 whitespace-nowrap px-3 py-2">
+              <Layers className="w-3.5 h-3.5 shrink-0" />
               <span>أوامر الإخراج ومسوغات الصرف</span>
               <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{outboundOrders.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="records" className="text-xs font-bold gap-1.5">
-              <History className="w-3.5 h-3.5" />
+            <TabsTrigger value="records" className="text-xs font-bold gap-1.5 shrink-0 whitespace-nowrap px-3 py-2">
+              <History className="w-3.5 h-3.5 shrink-0" />
               <span>سجلات المستودع</span>
               <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{inwardOrders.length + outboundOrders.length}</span>
             </TabsTrigger>
@@ -860,8 +947,8 @@ export default function SedanaExecutionPage() {
           {/* التبويب 1: رصيد المستودع الافتراضي */}
           <TabsContent value="stock" dir="rtl" className="space-y-4">
             <Card className="border border-border/80 shadow-2xs">
-              <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
                   <CardTitle className="text-sm font-bold text-foreground">
                     أرصدة البنود والمواد في المستودع الافتراضي للمسجد
                   </CardTitle>
@@ -870,13 +957,13 @@ export default function SedanaExecutionPage() {
                   </CardDescription>
                 </div>
                 {canInward && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button
                       size="sm"
                       onClick={() => {
                         setLocation(requestId > 0 ? `/requests/${requestId}/sedana-inward/new` : "/sedana-warehouse/inward/new");
                       }}
-                      className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
+                      className="w-full sm:w-auto min-h-9 text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>أمر إدخال جديد</span>
@@ -885,7 +972,58 @@ export default function SedanaExecutionPage() {
                 )}
               </CardHeader>
               <CardContent className="p-0">
-                <div className="overflow-x-auto" dir="rtl">
+                {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 lg:hidden">
+                  {inventoryItems.map((it: any, idx: number) => (
+                    <div key={`m-inv-${it.id}`} className="p-3.5 rounded-xl border border-border/80 bg-card space-y-3 shadow-2xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="font-bold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                            <span>{idx + 1}. {it.name}</span>
+                            {it.isManualInward && (
+                              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 font-bold px-1.5 py-0">
+                                بند إضافي
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="inline-block bg-muted px-2 py-0.5 rounded text-[11px] font-medium text-muted-foreground">
+                            {it.category || "مواد وتجهيزات"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs pt-2 border-t border-border/50">
+                        <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
+                          <span className="text-[10px] text-muted-foreground block">المعتمدة</span>
+                          <span className="font-mono font-black text-sm text-foreground">{it.approvedQty} <span className="text-[10px] font-normal">{it.unit}</span></span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60">
+                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block">المدخل</span>
+                          <span className="font-mono font-black text-sm text-emerald-800 dark:text-emerald-300">{it.totalInward} <span className="text-[10px] font-normal">{it.unit}</span></span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-800/60">
+                          <span className="text-[10px] text-sky-700 dark:text-sky-400 block">المصروف</span>
+                          <span className="font-mono font-black text-sm text-sky-800 dark:text-sky-300">{it.totalOutbound} <span className="text-[10px] font-normal">{it.unit}</span></span>
+                        </div>
+                        <div className={`p-2 rounded-lg border ${
+                          it.availableStock <= 0
+                            ? "bg-red-50/70 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+                            : "bg-indigo-50/70 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800"
+                        }`}>
+                          <span className="text-[10px] block opacity-85">المتاح للصرف</span>
+                          <span className="font-mono font-black text-sm">{it.availableStock} <span className="text-[10px] font-normal">{it.unit}</span></span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-800/60 col-span-2 sm:col-span-1">
+                          <span className="text-[10px] text-purple-700 dark:text-purple-400 block">المستلم نهائياً</span>
+                          <span className="font-mono font-black text-sm text-purple-800 dark:text-purple-300">{it.totalDelivered} <span className="text-[10px] font-normal">{it.unit}</span></span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* عرض الجدول للشاشات الكبيرة والآيباد الأفقي */}
+                <div className="hidden lg:block overflow-x-auto" dir="rtl">
                   <Table className="text-xs text-right" dir="rtl">
                     <TableHeader className="bg-muted/30">
                       <TableRow className="border-b">
@@ -1479,7 +1617,7 @@ export default function SedanaExecutionPage() {
 
         {/* Modal: تأكيد استلام أمر الإخراج من قبل الإمام واعتماده */}
         <Dialog open={isConfirmOutboundModalOpen} onOpenChange={setIsConfirmOutboundModalOpen}>
-          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -1623,7 +1761,7 @@ export default function SedanaExecutionPage() {
 
         {/* Modal: عرض وثيقة إثبات الاستلام الرقمي المعتمد */}
         <Dialog open={isViewOutboundModalOpen} onOpenChange={setIsViewOutboundModalOpen}>
-          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
                 <BadgeCheck className="w-5 h-5 text-emerald-600" />
@@ -1718,7 +1856,7 @@ export default function SedanaExecutionPage() {
 
         {/* Modal: تحويل أمر الإخراج لأمر تسليم ميداني */}
         <Dialog open={isDeliveryModalOpen} onOpenChange={setIsDeliveryModalOpen}>
-          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-base font-bold">إصدار أمر تسليم ميداني</DialogTitle>
               <DialogDescription className="text-xs">
@@ -1817,7 +1955,7 @@ export default function SedanaExecutionPage() {
 
         {/* Modal: إثبات وتأكيد الاستلام الرقمي من قبل الإمام */}
         <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-1.5">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -1922,7 +2060,7 @@ export default function SedanaExecutionPage() {
 
         {/* نافذة تأكيد تسليم الطلب المحمية بكلمة تأكيد */}
         <Dialog open={isHandoverModalOpen} onOpenChange={setIsHandoverModalOpen}>
-          <DialogContent className="sm:max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto text-right font-sans" dir="rtl">
             <DialogHeader className="text-right">
               <div className="flex items-center gap-2 mb-1">
                 <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
@@ -2084,7 +2222,7 @@ export default function SedanaExecutionPage() {
 
         {/* مودال إرسال إشعار للمستفيد / الإمام */}
         <Dialog open={isNotificationModalOpen} onOpenChange={setIsNotificationModalOpen}>
-          <DialogContent className="max-w-md" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">

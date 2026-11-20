@@ -331,8 +331,8 @@ export default function CreateCsrLetterPage() {
 
   if (user && !canAddLetter) {
     return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="max-w-md mx-auto my-20 p-6 sm:p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />
           </div>
@@ -349,30 +349,30 @@ export default function CreateCsrLetterPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0 text-right font-sans" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-16 sm:pb-20 px-3 sm:px-6 overflow-x-hidden text-right font-sans" dir="rtl">
         {/* Header and Visual Step Timeline */}
-        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
-          <div className="flex items-center justify-between pb-2">
-            <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col gap-5 sm:gap-6 border-b border-border/40 pb-5 sm:pb-6">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleBack}
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0 cursor-pointer"
+                className="h-9 w-9 max-lg:min-h-10 max-lg:min-w-10 rounded-full hover:bg-muted text-muted-foreground shrink-0 cursor-pointer"
               >
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <div className="text-right">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
+              <div className="text-right min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display leading-snug">
                     إصدار خطاب مسؤولية مجتمعية جديد
                   </h1>
-                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-xs">
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-[11px] sm:text-xs shrink-0">
                     برنامج سدانة
                   </Badge>
                 </div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
+                <p className="text-[11px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
                   إنشاء خطاب مسؤولية مجتمعية رسمي وتحديد الأصناف والكميات الموجهة للجهة المانحة
                 </p>
               </div>
@@ -487,7 +487,7 @@ export default function CreateCsrLetterPage() {
                       يتم هنا استعراض طلبات سدانة المعتمدة للمسؤولية المجتمعية في مرحلة "التشغيل والتنفيذ"
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                  <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                     {/* اختيار الطلب عبر Select منسق h-11 rounded-xl */}
                     <div className="space-y-2 text-right">
                       <div className="flex items-center justify-between">
@@ -568,11 +568,11 @@ export default function CreateCsrLetterPage() {
                     )}
                   </CardContent>
 
-                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
+                  <CardFooter className="border-t border-border/40 pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-4 sm:px-6 pb-4">
                     <Button
                       variant="outline"
                       onClick={handleBack}
-                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                      className="font-bold px-5 h-11 rounded-xl flex items-center justify-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
                     >
                       <ArrowRight className="h-4 w-4" />
                       <span>إلغاء والعودة</span>
@@ -580,7 +580,7 @@ export default function CreateCsrLetterPage() {
                     <Button
                       onClick={() => setStep(2)}
                       disabled={!selectedRequestId}
-                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 w-full sm:w-auto text-xs sm:text-sm"
                     >
                       <span>التالي: المورد المعتمد والكميات</span>
                       <ArrowLeft className="h-4 w-4" />
@@ -605,7 +605,7 @@ export default function CreateCsrLetterPage() {
                         : "تم تحديد المورد المعتمد للمسؤولية المجتمعية لهذا الطلب وتوثيق بياناته."}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                  <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                     {/* حقل اختيار المورد المعتمد كمسؤولية مجتمعية */}
                     <div className="space-y-2 text-right pb-4 border-b border-border/40">
                       <div className="flex items-center justify-between">
@@ -716,7 +716,7 @@ export default function CreateCsrLetterPage() {
                               value={recipientName}
                               onChange={(e) => setRecipientName(e.target.value)}
                               placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
-                              className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs"
+                              className="text-right border-border focus:ring-sky-600 rounded-xl h-10 sm:h-11 bg-background font-bold text-xs sm:text-sm max-md:text-base"
                             />
                           </div>
                         </div>
@@ -753,7 +753,65 @@ export default function CreateCsrLetterPage() {
                         </div>
                       </div>
 
-                      <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                      {/* عرض البطاقات للموبايل */}
+                      <div className="sm:hidden space-y-2.5">
+                        {(currentSupplier?.items || currentRequest?.eligibleItems || []).map((it: any) => {
+                          const isChecked = selectedItemIds.includes(it.id);
+                          const currentQty = itemsQuantities[it.id] ?? it.quantity ?? 1;
+
+                          return (
+                            <div
+                              key={`m-item-${it.id}`}
+                              className={`p-3.5 rounded-xl border transition-all space-y-3 ${
+                                isChecked ? "bg-sky-50/40 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/60" : "bg-muted/20 border-border/60 opacity-60"
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedItemIds((prev) => [...prev, it.id]);
+                                    } else {
+                                      setSelectedItemIds((prev) => prev.filter((id) => id !== it.id));
+                                    }
+                                  }}
+                                  className="mt-0.5 rounded-[4px] h-5 w-5"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-foreground text-sm block">{it.itemName}</span>
+                                  {it.description && (
+                                    <span className="text-xs text-muted-foreground mt-0.5 block">{it.description}</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/50">
+                                <span className="text-xs font-semibold text-muted-foreground shrink-0">الكمية ({it.unit || "وحدة"}):</span>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0.01"
+                                  step="any"
+                                  disabled={!isChecked}
+                                  value={currentQty}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setItemsQuantities((prev) => ({
+                                      ...prev,
+                                      [it.id]: val,
+                                    }));
+                                  }}
+                                  className="h-10 text-sm max-md:text-base text-center font-mono w-28 rounded-xl border-border bg-background focus:ring-sky-600"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* عرض الجدول للشاشات المتوسطة والكبيرة */}
+                      <div className="hidden sm:block border border-border/60 rounded-xl overflow-x-auto bg-background">
                         <table className="w-full text-xs text-right divide-y divide-border/60">
                           <thead className="bg-muted/40 font-bold text-muted-foreground">
                             <tr>
@@ -827,11 +885,11 @@ export default function CreateCsrLetterPage() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
+                  <CardFooter className="border-t border-border/40 pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-4 sm:px-6 pb-4">
                     <Button
                       variant="outline"
                       onClick={() => setStep(1)}
-                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                      className="font-bold px-5 h-11 rounded-xl flex items-center justify-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
                     >
                       <ArrowRight className="h-4 w-4" />
                       <span>السابق</span>
@@ -849,7 +907,7 @@ export default function CreateCsrLetterPage() {
                         setStep(3);
                       }}
                       disabled={!recipientName.trim() || recipientName.trim().toLowerCase() === "unassigned" || selectedItemIds.length === 0}
-                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 w-full sm:w-auto text-xs sm:text-sm"
                     >
                       <span>التالي: بيانات وتوثيق الخطاب</span>
                       <ArrowLeft className="h-4 w-4" />
@@ -872,7 +930,7 @@ export default function CreateCsrLetterPage() {
                       مراجعة البيانات المدخلة قبل الحفظ النهائي (للعرض والمراجعة فقط)
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                  <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                     {/* بطاقة معلومات التوجيه والخطاب الرسمي - عرض فقط */}
                     <div className="bg-slate-50/70 dark:bg-slate-800/40 rounded-xl p-5 border border-border/60 space-y-4">
                       <div className="flex items-center justify-between pb-3 border-b border-border/40">
@@ -957,7 +1015,27 @@ export default function CreateCsrLetterPage() {
                         </Button>
                       </div>
 
-                      <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                      {/* عرض البطاقات للموبايل */}
+                      <div className="sm:hidden space-y-2.5">
+                        {(currentSupplier?.items || currentRequest?.eligibleItems || [])
+                          .filter((it: any) => selectedItemIds.includes(it.id))
+                          .map((it: any, idx: number) => (
+                            <div key={`m-rev-${it.id}`} className="p-3 rounded-xl border border-border/70 bg-card space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-bold text-foreground text-xs">{idx + 1}. {it.itemName}</span>
+                                <Badge variant="secondary" className="font-mono text-xs bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 shrink-0">
+                                  {itemsQuantities[it.id] ?? it.quantity ?? 1} {it.unit || "وحدة"}
+                                </Badge>
+                              </div>
+                              {it.description && (
+                                <p className="text-[11px] text-muted-foreground">{it.description}</p>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* عرض الجدول للشاشات المتوسطة والكبيرة */}
+                      <div className="hidden sm:block border border-border/60 rounded-xl overflow-x-auto bg-background">
                         <table className="w-full text-xs text-right divide-y divide-border/60">
                           <thead className="bg-muted/40 font-bold text-muted-foreground">
                             <tr>
@@ -988,7 +1066,7 @@ export default function CreateCsrLetterPage() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="border-t border-border/40 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 px-6">
+                  <CardFooter className="border-t border-border/40 pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-4 sm:px-6 pb-4">
                     <Button
                       variant="outline"
                       onClick={() => setStep(2)}

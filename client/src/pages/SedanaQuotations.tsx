@@ -253,7 +253,7 @@ export default function SedanaQuotations() {
 
   if (!isPermissionsLoading && !canViewSedanaQuotations) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="py-20 text-center space-y-4 max-w-md mx-auto" dir="rtl">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
             <AlertCircle className="w-8 h-8" />
@@ -271,63 +271,67 @@ export default function SedanaQuotations() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-5 sm:space-y-6 px-3 sm:px-6 lg:px-8 overflow-x-hidden" dir="rtl">
         {selectedRequestId ? (
           <div className="space-y-5">
             {/* قسم رأس الطلب المحدد المبسط والعودة للقائمة */}
             <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-3.5 sm:p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearSelection}
-                    className="gap-1.5 h-8 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0"
-                  >
-                    <ArrowRight className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>العودة إلى قائمة طلبات سدانة</span>
-                  </Button>
+              {/* الصف العلوي: زر العودة + زر تغيير الطلب */}
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  className="gap-1.5 h-8 sm:h-9 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                  <span className="hidden xs:inline">العودة إلى قائمة طلبات سدانة</span>
+                  <span className="xs:hidden">العودة للقائمة</span>
+                </Button>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
-                    <h2 className="text-base sm:text-lg font-bold text-foreground">
-                      {activeSelectedRequest
-                        ? activeSelectedRequest.mosqueDisplayName
-                        : `طلب رقم #${selectedRequestId}`}
-                    </h2>
-                    <Badge
-                      variant="secondary"
-                      className="font-mono text-xs px-2 py-0.5 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800"
-                    >
-                      {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs px-2 py-0.5 font-bold",
-                        activeSelectedRequest?.currentStage === "financial_eval_and_approval"
-                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
-                      )}
-                    >
-                      {activeSelectedRequest?.currentStage === "financial_eval_and_approval"
-                        ? "التقييم المالي واعتماد العرض"
-                        : STAGE_LABELS[activeSelectedRequest?.currentStage || ""] || activeSelectedRequest?.currentStage || "التقييم المالي واعتماد العرض"}
-                    </Badge>
-                  </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 sm:h-9 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium shrink-0"
+                  onClick={handleClearSelection}
+                >
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  <span>تغيير الطلب</span>
+                </Button>
+              </div>
+
+              {/* الصف السفلي: معلومات الطلب والشارات */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
+                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-foreground break-words">
+                    {activeSelectedRequest
+                      ? activeSelectedRequest.mosqueDisplayName
+                      : `طلب رقم #${selectedRequestId}`}
+                  </h2>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
-                    onClick={handleClearSelection}
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="font-mono text-[11px] sm:text-xs px-2 py-0.5 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shrink-0"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>تغيير الطلب</span>
-                  </Button>
+                    {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[11px] sm:text-xs px-2 py-0.5 font-bold shrink-0 whitespace-normal text-right",
+                      activeSelectedRequest?.currentStage === "financial_eval_and_approval"
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    )}
+                  >
+                    {activeSelectedRequest?.currentStage === "financial_eval_and_approval"
+                      ? "التقييم المالي واعتماد العرض"
+                      : STAGE_LABELS[activeSelectedRequest?.currentStage || ""] || activeSelectedRequest?.currentStage || "التقييم المالي واعتماد العرض"}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -345,23 +349,23 @@ export default function SedanaQuotations() {
           <div className="space-y-5">
             {/* رأس الصفحة الرئيسي */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 border border-cyan-200 dark:border-cyan-800 shadow-xs">
-                  <Receipt className="w-6 h-6" />
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 border border-cyan-200 dark:border-cyan-800 shadow-xs shrink-0 mt-0.5">
+                  <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                       عروض أسعار سدانة
                     </h1>
                     <Badge
                       variant="outline"
-                      className="text-xs font-bold px-2.5 py-0.5 border-cyan-300 text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800"
+                      className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 border-cyan-300 text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800 whitespace-normal text-right leading-normal"
                     >
                       التقييم المالي واعتماد العرض
                     </Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     طلبات سدانة في مرحلة التقييم المالي واعتماد العرض لإدارة عروض الأسعار والمقارنة والترسية
                   </p>
                 </div>
@@ -447,9 +451,9 @@ export default function SedanaQuotations() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Select value={contentFilter} onValueChange={setContentFilter}>
-                  <SelectTrigger className="h-9 w-[170px] text-xs bg-background">
+                  <SelectTrigger className="h-9 w-full sm:w-[170px] text-xs bg-background">
                     <SelectValue placeholder="حالة العروض" />
                   </SelectTrigger>
                   <SelectContent align="end" dir="rtl">
@@ -497,25 +501,27 @@ export default function SedanaQuotations() {
                     <div
                       key={req.id}
                       onClick={() => handleSelectRequest(String(req.id))}
-                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-cyan-400/60 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-cyan-400/60 rounded-xl p-3.5 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4"
                     >
                       {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <Badge
-                          variant="secondary"
-                          className="font-mono font-bold text-xs px-2.5 py-1 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shrink-0 group-hover:bg-cyan-600 group-hover:text-white transition-colors"
-                        >
-                          {req.requestNumber || `REQ-${req.id}`}
-                        </Badge>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                        <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+                          <Badge
+                            variant="secondary"
+                            className="font-mono font-bold text-xs px-2.5 py-1 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shrink-0 group-hover:bg-cyan-600 group-hover:text-white transition-colors"
+                          >
+                            {req.requestNumber || `REQ-${req.id}`}
+                          </Badge>
+                        </div>
 
-                        <div className="space-y-1 min-w-0">
+                        <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
                             <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-cyan-600 transition-colors truncate">
                               {req.mosqueDisplayName}
                             </h3>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mr-6 flex-wrap">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                             {req.city && <span>{req.city}</span>}
                             {req.city && req.createdAt && <span>•</span>}
                             {req.createdAt && (
@@ -527,7 +533,7 @@ export default function SedanaQuotations() {
                             {req.requesterName && (
                               <>
                                 <span>•</span>
-                                <span className="truncate max-w-[150px]">مقدم الطلب: {req.requesterName}</span>
+                                <span className="truncate max-w-[180px]">مقدم الطلب: {req.requesterName}</span>
                               </>
                             )}
                           </div>
@@ -535,45 +541,47 @@ export default function SedanaQuotations() {
                       </div>
 
                       {/* اليسار: عدد عروض الأسعار + حالة الاعتماد + زر اختيار الطلب */}
-                      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
-                        {/* عدد عروض الأسعار */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                            req.quotationsCount > 0
-                              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
-                              : "bg-muted/30 text-muted-foreground border-border/50"
-                          }`}
-                        >
-                          <Receipt className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                          <span>
-                            {req.quotationsCount > 0
-                              ? `${req.quotationsCount} ${req.quotationsCount === 1 ? "عرض سعر" : "عروض أسعار"}`
-                              : "0 عروض أسعار"}
-                          </span>
-                        </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 shrink-0 justify-between lg:justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-border/50">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* عدد عروض الأسعار */}
+                          <div
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold ${
+                              req.quotationsCount > 0
+                                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                                : "bg-muted/30 text-muted-foreground border-border/50"
+                            }`}
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>
+                              {req.quotationsCount > 0
+                                ? `${req.quotationsCount} ${req.quotationsCount === 1 ? "عرض سعر" : "عروض أسعار"}`
+                                : "0 عروض أسعار"}
+                            </span>
+                          </div>
 
-                        {/* شارة حالة العرض */}
-                        {req.hasApprovedQuotation || req.currentStage !== "financial_eval_and_approval" ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>معتمد</span>
-                          </div>
-                        ) : req.quotationsCount > 0 ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60">
-                            <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                            <span>قيد التقييم المالي</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-muted/30 text-muted-foreground border-border/50">
-                            <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span>بانتظار تقديم العروض</span>
-                          </div>
-                        )}
+                          {/* شارة حالة العرض */}
+                          {req.hasApprovedQuotation || req.currentStage !== "financial_eval_and_approval" ? (
+                            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>معتمد</span>
+                            </div>
+                          ) : req.quotationsCount > 0 ? (
+                            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60">
+                              <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                              <span>قيد التقييم المالي</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold bg-muted/30 text-muted-foreground border-border/50">
+                              <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span>بانتظار تقديم العروض</span>
+                            </div>
+                          )}
+                        </div>
 
                         {/* زر الاختيار */}
                         <Button
                           size="sm"
-                          className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-cyan-600 group-hover:text-white"
+                          className="w-full sm:w-auto h-9 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-cyan-600 group-hover:text-white shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSelectRequest(String(req.id));

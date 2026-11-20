@@ -507,22 +507,22 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
         </div>
       </div>
     );
-    return embedded ? loadingContent : <DashboardLayout>{loadingContent}</DashboardLayout>;
+    return embedded ? loadingContent : <DashboardLayout tabletNavigation>{loadingContent}</DashboardLayout>;
   }
 
   const content = (
-    <div className="space-y-6 print:space-y-4">
+    <div className={`w-full min-w-0 space-y-6 overflow-x-hidden print:space-y-4 ${embedded ? "" : "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8"}`}>
         {!embedded && (
           <>
 {/* العنوان */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between print:hidden">
           <div>
-            <h1 className="text-2xl font-bold">التقرير المالي الشامل</h1>
-            <p className="text-muted-foreground">ملخص المصروفات وأوامر الصرف</p>
+            <h1 className="text-xl sm:text-2xl font-bold">التقرير المالي الشامل</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">ملخص المصروفات وأوامر الصرف</p>
           </div>
           {canExport && (
             <div className="flex gap-2">
-              <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200">
+              <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200 min-h-9 max-lg:min-h-10">
                 <Download className="ml-2 h-4 w-4" />
                 تصدير Excel
               </Button>
@@ -537,7 +537,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
         </div>
 
         {/* بطاقات الإحصائيات الرئيسية */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3.5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* كرت إجمالي طلبات الصرف */}
           <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -547,7 +547,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-blue-950 dark:text-blue-100 tracking-tight">
+              <div className="text-2xl sm:text-3xl font-extrabold text-blue-950 dark:text-blue-100 tracking-tight tabular-nums">
                 {summary?.totalRequests || 0}
                 <span className="text-xs font-normal text-muted-foreground mr-1.5">(طلب)</span>
               </div>
@@ -563,7 +563,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-amber-950 dark:text-amber-100 tracking-tight">
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-950 dark:text-amber-100 tracking-tight tabular-nums">
                 {summary?.totalContracts || 0}
                 <span className="text-xs font-normal text-muted-foreground mr-1.5">(عقد)</span>
               </div>
@@ -579,7 +579,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-purple-950 dark:text-purple-100 tracking-tight">
+              <div className="text-2xl sm:text-3xl font-extrabold text-purple-950 dark:text-purple-100 tracking-tight tabular-nums">
                 {summary?.totalOrders || 0}
                 <span className="text-xs font-normal text-muted-foreground mr-1.5">(أمر)</span>
               </div>
@@ -595,7 +595,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-emerald-950 dark:text-emerald-100 tracking-tight flex items-center gap-1.5">
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-950 dark:text-emerald-100 tracking-tight flex items-center gap-1.5 break-all tabular-nums min-w-0">
                 {formatAmount(summary?.totalOrderAmount || 0)}
                 <SaudiRiyal className="w-4 h-4 self-center" />
               </div>
@@ -607,8 +607,8 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
 
         {/* أسلوب التبويبات الفاخر المطور */}
         {availableTabs.length > 0 && (
-        <div className="flex justify-start mb-8 print:hidden">
-          <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 max-w-full overflow-x-auto no-scrollbar">
+        <div className="flex justify-start mb-6 sm:mb-8 print:hidden overflow-x-auto pb-1">
+          <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 min-w-full sm:min-w-0 sm:max-w-full overflow-x-auto no-scrollbar">
             {availableTabs.map((tab) => {
               const IsActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -672,7 +672,65 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/60 p-3 sm:p-4 space-y-3">
+                    {reportData?.byProject && reportData.byProject.length > 0 ? (
+                      reportData.byProject.map((project: any) => {
+                        const contractAmount = Number(project.contractAmount || 0);
+                        const associationValue = Number(project.associationValue || 0);
+                        const totalProjectValue = contractAmount + associationValue;
+                        return (
+                          <div key={`m-proj-${project.projectId}`} className="p-3.5 rounded-xl border border-border/70 bg-card space-y-2.5 shadow-2xs">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                                {project.projectNumber || "-"}
+                              </span>
+                              <Badge className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30 font-bold px-2 py-0.5 text-xs">
+                                نسبة الجمعية: {project.managementPercentage || 0}%
+                              </Badge>
+                            </div>
+
+                            <p className="font-bold text-foreground text-sm">
+                              {project.projectName}
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
+                              <div className="p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                                <span className="text-[11px] text-muted-foreground block">قيمة الجمعية:</span>
+                                <span className="font-bold text-amber-700 dark:text-amber-300 inline-flex items-center gap-1">
+                                  {associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  <SaudiRiyal className="w-3 h-3 inline" />
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40">
+                                <span className="text-[11px] text-muted-foreground block">قيمة العقد:</span>
+                                <span className="font-bold text-foreground inline-flex items-center gap-1">
+                                  {contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  <SaudiRiyal className="w-3 h-3 inline" />
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 text-xs font-bold">
+                              <span className="text-blue-900 dark:text-blue-200">الإجمالي للمشروع:</span>
+                              <span className="text-blue-700 dark:text-blue-300 font-extrabold inline-flex items-center gap-1">
+                                {totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground text-xs">
+                        لا توجد مشاريع مسجلة حالياً
+                      </div>
+                    )}
+                  </div>
+
+                  {/* عرض الجدول للشاشات المتوسطة والكبيرة */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-right border-collapse">
                       <thead>
                         <tr className="bg-slate-50/75 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs font-bold border-b border-slate-100 dark:border-slate-800">
@@ -753,7 +811,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               className="space-y-6"
             >
               {/* رسوم بيانية للعقود */}
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 {/* مخطط سير العقود عبر الأيام */}
                 <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                   <CardHeader className="pb-2">
@@ -874,7 +932,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               className="space-y-6"
             >
               {/* رسوم بيانية لطلبات الصرف */}
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 {/* مخطط سير طلبات الصرف عبر الأيام */}
                 <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                   <CardHeader className="pb-2">
@@ -995,7 +1053,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               className="space-y-6"
             >
               {/* رسوم بيانية لأوامر الصرف */}
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 {/* مخطط سير أوامر الصرف عبر الأيام */}
                 <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                   <CardHeader className="pb-2">
@@ -1116,7 +1174,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               className="space-y-6"
             >
               {/* رسوم بيانية لسندات القبض */}
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 {/* مخطط سير سندات القبض عبر الأيام */}
                 <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                   <CardHeader className="pb-2">
@@ -1313,7 +1371,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       {content}
     </DashboardLayout>
   );

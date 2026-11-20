@@ -486,7 +486,7 @@ export default function OrdersAndLettersReview() {
 
   if (!hasAnyFinancialPermission) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="p-8 text-center" dir="rtl">
           <Card className="max-w-md mx-auto p-8 space-y-3">
             <Lock className="w-10 h-10 text-muted-foreground mx-auto" />
@@ -503,77 +503,79 @@ export default function OrdersAndLettersReview() {
   const visibleTabsCount = (canPurchaseOrders ? 1 : 0) + (canCsrLetters ? 1 : 0) + (canDisbursementOrders ? 1 : 0);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-5 text-right font-sans" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-5 sm:space-y-6 px-3 sm:px-6 lg:px-8 overflow-x-hidden text-right font-sans" dir="rtl">
         {/* الحالة 1: تم اختيار طلب معين -> عرض شريط الطلب المبسط والأنيق + تبويبات أوامر الشراء والخطابات وأوامر الصرف */}
         {selectedRequestId ? (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-5">
+          <Tabs dir="rtl" value={activeTab} onValueChange={handleTabChange} className="w-full space-y-5">
             {/* قسم رأس الطلب المحدد المبسط */}
-            <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-3.5 sm:p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row-reverse sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearSelection}
-                    className="gap-1.5 h-8 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0 cursor-pointer"
-                  >
-                    <ArrowRight className="w-3.5 h-3.5 text-primary" />
-                    <span>العودة إلى قائمة طلبات سدانة</span>
-                  </Button>
+            <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-3.5 sm:p-4 space-y-3" dir="rtl">
+              {/* الصف العلوي: زر العودة + زر تغيير الطلب */}
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  className="gap-1.5 h-8 sm:h-9 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0 cursor-pointer"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="hidden xs:inline">العودة إلى قائمة طلبات سدانة</span>
+                  <span className="xs:hidden">العودة للقائمة</span>
+                </Button>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Building2 className="w-4 h-4 text-primary shrink-0" />
-                    <h2 className="text-base sm:text-lg font-bold text-foreground">
-                      {activeSelectedRequest
-                        ? activeSelectedRequest.mosqueDisplayName
-                        : `طلب رقم #${selectedRequestId}`}
-                    </h2>
-                    <Badge
-                      variant="secondary"
-                      className="font-mono text-xs px-2 py-0.5 bg-primary/10 text-primary border border-primary/20"
-                    >
-                      {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="text-xs px-2 py-0.5 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 font-bold"
-                    >
-                      التشغيل والتنفيذ
-                    </Badge>
-                  </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 sm:h-9 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium cursor-pointer shrink-0"
+                  onClick={handleClearSelection}
+                >
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  <span>تغيير الطلب</span>
+                </Button>
+              </div>
+
+              {/* الصف السفلي: معلومات الطلب والشارات */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Building2 className="w-4 h-4 text-primary shrink-0" />
+                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-foreground break-words">
+                    {activeSelectedRequest
+                      ? activeSelectedRequest.mosqueDisplayName
+                      : `طلب رقم #${selectedRequestId}`}
+                  </h2>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium cursor-pointer"
-                    onClick={handleClearSelection}
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="font-mono text-[11px] sm:text-xs px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 shrink-0"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>تغيير الطلب</span>
-                  </Button>
+                    {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] sm:text-xs px-2 py-0.5 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 font-bold shrink-0"
+                  >
+                    التشغيل والتنفيذ
+                  </Badge>
                 </div>
               </div>
 
               {/* تبويبات التنقل العلوية الـ 3 الخاصة بالطلب مع إغلاق التبويب غير المخصص */}
               <div className="pt-2 border-t border-border/60">
-                <TabsList className={`bg-muted/70 p-1 rounded-lg border border-border/80 h-auto grid gap-1.5 w-full sm:w-auto sm:inline-grid ${
-                  visibleTabsCount === 3 ? "grid-cols-3" : visibleTabsCount === 2 ? "grid-cols-2" : "grid-cols-1"
-                }`}>
+                <TabsList className="bg-muted/70 p-1 rounded-lg border border-border/80 h-auto flex flex-nowrap sm:inline-flex gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar justify-start">
                   {/* تبويب أوامر الصرف */}
                   {canDisbursementOrders && (
                     <TabsTrigger
                       value="disbursement_orders"
-                      className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
+                      className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-3 sm:px-4 py-1.5 gap-1.5 sm:gap-2 rounded-md transition-all shrink-0 whitespace-nowrap"
                     >
-                      <Coins className="w-4 h-4 text-amber-600" />
+                      <Coins className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>أوامر الصرف</span>
                       {linkedDisbursementOrders.length > 0 && (
                         <Badge
                           variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 mr-1"
+                          className="text-[11px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
                         >
                           {linkedDisbursementOrders.length}
                         </Badge>
@@ -586,13 +588,13 @@ export default function OrdersAndLettersReview() {
                     <TabsTrigger
                       value="csr_letters"
                       disabled={!activeSelectedRequest?.hasCsrLetterAllocation}
-                      className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
+                      className={`font-bold text-xs sm:text-sm px-3 sm:px-4 py-1.5 gap-1.5 sm:gap-2 rounded-md transition-all shrink-0 whitespace-nowrap ${
                         !activeSelectedRequest?.hasCsrLetterAllocation
                           ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
                           : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
                       }`}
                     >
-                      <HeartHandshake className="w-4 h-4 text-emerald-600" />
+                      <HeartHandshake className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>الخطاب المجتمعي</span>
                       {!activeSelectedRequest?.hasCsrLetterAllocation ? (
                         <Badge
@@ -605,7 +607,7 @@ export default function OrdersAndLettersReview() {
                       ) : activeSelectedRequest?.csrLettersCount > 0 ? (
                         <Badge
                           variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 mr-1"
+                          className="text-[11px] px-1.5 py-0 h-4 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200"
                         >
                           {activeSelectedRequest.csrLettersCount}
                         </Badge>
@@ -618,13 +620,13 @@ export default function OrdersAndLettersReview() {
                     <TabsTrigger
                       value="purchase_orders"
                       disabled={!activeSelectedRequest?.hasPurchaseOrderAllocation}
-                      className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
+                      className={`font-bold text-xs sm:text-sm px-3 sm:px-4 py-1.5 gap-1.5 sm:gap-2 rounded-md transition-all shrink-0 whitespace-nowrap ${
                         !activeSelectedRequest?.hasPurchaseOrderAllocation
                           ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
                           : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
                       }`}
                     >
-                      <ShoppingCart className="w-4 h-4 text-sky-600" />
+                      <ShoppingCart className="w-4 h-4 text-sky-600 shrink-0" />
                       <span>أوامر الشراء</span>
                       {!activeSelectedRequest?.hasPurchaseOrderAllocation ? (
                         <Badge
@@ -637,7 +639,7 @@ export default function OrdersAndLettersReview() {
                       ) : activeSelectedRequest?.purchaseOrdersCount > 0 ? (
                         <Badge
                           variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 mr-1"
+                          className="text-[11px] px-1.5 py-0 h-4 bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200"
                         >
                           {activeSelectedRequest.purchaseOrdersCount}
                         </Badge>
@@ -760,27 +762,27 @@ export default function OrdersAndLettersReview() {
           <div className="space-y-5">
             {/* رأس الصفحة الرئيسي */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
-                  <ShoppingBag className="w-6 h-6" />
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs shrink-0 mt-0.5">
+                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                       مالية سدانة
                     </h1>
                     <Badge
                       variant="outline"
-                      className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
+                      className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5 whitespace-normal text-right leading-normal"
                     >
                       {[
                         canDisbursementOrders ? "أوامر الصرف" : null,
                         canCsrLetters ? "الخطاب المجتمعي" : null,
                         canPurchaseOrders ? "أوامر الشراء" : null,
-                      ].filter(Boolean).join(" و ") || "مالية سدانة"}
+                      ].filter(Boolean).join(" • ") || "مالية سدانة"}
                     </Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     إدارة ومراجعة المعاملات المالية لبرنامج سدانة (أوامر الصرف، خطابات المسؤولية المجتمعية، وأوامر الشراء)
                   </p>
                 </div>
@@ -874,9 +876,9 @@ export default function OrdersAndLettersReview() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Select value={contentFilter} onValueChange={setContentFilter}>
-                  <SelectTrigger className="h-9 w-[160px] text-xs bg-background">
+                  <SelectTrigger className="h-9 w-full sm:w-[160px] text-xs bg-background">
                     <SelectValue placeholder="المحتوى" />
                   </SelectTrigger>
                   <SelectContent align="end" dir="rtl">
@@ -925,25 +927,27 @@ export default function OrdersAndLettersReview() {
                     <div
                       key={req.id}
                       onClick={() => handleSelectRequest(String(req.id))}
-                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-primary/50 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-primary/50 rounded-xl p-3.5 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4"
                     >
                       {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <Badge
-                          variant="secondary"
-                          className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                        >
-                          {req.requestNumber || `REQ-${req.id}`}
-                        </Badge>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                        <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+                          <Badge
+                            variant="secondary"
+                            className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          >
+                            {req.requestNumber || `REQ-${req.id}`}
+                          </Badge>
+                        </div>
 
-                        <div className="space-y-1 min-w-0">
+                        <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-primary shrink-0" />
                             <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
                               {req.mosqueDisplayName}
                             </h3>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mr-6 flex-wrap">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                             {req.city && <span>{req.city}</span>}
                             {req.city && req.createdAt && <span>•</span>}
                             {req.createdAt && (
@@ -955,7 +959,7 @@ export default function OrdersAndLettersReview() {
                             {req.requesterName && (
                               <>
                                 <span>•</span>
-                                <span className="truncate max-w-[150px]">مقدم الطلب: {req.requesterName}</span>
+                                <span className="truncate max-w-[180px]">مقدم الطلب: {req.requesterName}</span>
                               </>
                             )}
                           </div>
@@ -963,73 +967,75 @@ export default function OrdersAndLettersReview() {
                       </div>
 
                       {/* اليسار: أوامر الشراء + الخطابات المجتمعية + زر اختيار الطلب */}
-                      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
-                        {/* أوامر الشراء */}
-                        {canPurchaseOrders && (
-                          <div
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                              !req.hasPurchaseOrderAllocation
-                                ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
-                                : req.purchaseOrdersCount > 0
-                                ? "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
-                                : "bg-muted/30 text-muted-foreground border-border/50"
-                            }`}
-                          >
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            <span>
-                              {!req.hasPurchaseOrderAllocation
-                                ? "غير مخصص أمر شراء"
-                                : req.purchaseOrdersCount > 0
-                                ? `${req.purchaseOrdersCount} أمر شراء`
-                                : "0 أوامر"}
-                            </span>
-                          </div>
-                        )}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 shrink-0 justify-between lg:justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-border/50">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          {/* أوامر الشراء */}
+                          {canPurchaseOrders && (
+                            <div
+                              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold ${
+                                !req.hasPurchaseOrderAllocation
+                                  ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
+                                  : req.purchaseOrdersCount > 0
+                                  ? "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
+                                  : "bg-muted/30 text-muted-foreground border-border/50"
+                              }`}
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              <span>
+                                {!req.hasPurchaseOrderAllocation
+                                  ? "غير مخصص أمر شراء"
+                                  : req.purchaseOrdersCount > 0
+                                  ? `${req.purchaseOrdersCount} أمر شراء`
+                                  : "0 أوامر"}
+                              </span>
+                            </div>
+                          )}
 
-                        {/* الخطابات المجتمعية */}
-                        {canCsrLetters && (
-                          <div
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                              !req.hasCsrLetterAllocation
-                                ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
-                                : req.csrLettersCount > 0
-                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
-                                : "bg-muted/30 text-muted-foreground border-border/50"
-                            }`}
-                          >
-                            <HeartHandshake className="w-3.5 h-3.5" />
-                            <span>
-                              {!req.hasCsrLetterAllocation
-                                ? "غير مخصص خطاب مجتمعي"
-                                : req.csrLettersCount > 0
-                                ? `${req.csrLettersCount} خطاب مجتمعي`
-                                : "0 خطابات"}
-                            </span>
-                          </div>
-                        )}
+                          {/* الخطابات المجتمعية */}
+                          {canCsrLetters && (
+                            <div
+                              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold ${
+                                !req.hasCsrLetterAllocation
+                                  ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
+                                  : req.csrLettersCount > 0
+                                  ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
+                                  : "bg-muted/30 text-muted-foreground border-border/50"
+                              }`}
+                            >
+                              <HeartHandshake className="w-3.5 h-3.5" />
+                              <span>
+                                {!req.hasCsrLetterAllocation
+                                  ? "غير مخصص خطاب مجتمعي"
+                                  : req.csrLettersCount > 0
+                                  ? `${req.csrLettersCount} خطاب مجتمعي`
+                                  : "0 خطابات"}
+                              </span>
+                            </div>
+                          )}
 
-                        {/* أوامر الصرف */}
-                        {canDisbursementOrders && (
-                          <div
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                              req.disbursementOrdersCount > 0
-                                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
-                                : "bg-muted/30 text-muted-foreground border-border/50"
-                            }`}
-                          >
-                            <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            <span>
-                              {req.disbursementOrdersCount > 0
-                                ? `${req.disbursementOrdersCount} ${req.disbursementOrdersCount === 1 ? "أمر صرف" : "أوامر صرف"}`
-                                : "0 أوامر صرف"}
-                            </span>
-                          </div>
-                        )}
+                          {/* أوامر الصرف */}
+                          {canDisbursementOrders && (
+                            <div
+                              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-semibold ${
+                                req.disbursementOrdersCount > 0
+                                  ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                                  : "bg-muted/30 text-muted-foreground border-border/50"
+                              }`}
+                            >
+                              <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                              <span>
+                                {req.disbursementOrdersCount > 0
+                                  ? `${req.disbursementOrdersCount} ${req.disbursementOrdersCount === 1 ? "أمر صرف" : "أوامر صرف"}`
+                                  : "0 أوامر صرف"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
 
                         {/* زر الاختيار */}
                         <Button
                           size="sm"
-                          className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-primary group-hover:text-primary-foreground"
+                          className="w-full sm:w-auto h-9 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-primary group-hover:text-primary-foreground shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSelectRequest(String(req.id));
