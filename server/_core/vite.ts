@@ -69,7 +69,19 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(
+    express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache");
+        } else if (/[/\\]assets[/\\]/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (/\.(webp|jpe?g|png|svg|ico|woff2?)$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=604800");
+        }
+      },
+    })
+  );
 
   // fall through to index.html with dynamic SEO injection if the file doesn't exist
   app.use("*", async (req, res) => {

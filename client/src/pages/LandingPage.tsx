@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import { trpc } from "@/lib/trpc";
+import { HeroMosqueBackdrop } from "@/components/HeroMosqueBackdrop";
 
 export default function LandingPage() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -141,24 +142,7 @@ export default function LandingPage() {
         className="relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
       >
-        {/* صورة المسجد عالية الدقة بالخلفية مع تراجع عمق (Z-depth) وقناع شعاعي لتوسيط المنارة خلف الشعار */}
-        <div 
-          className="absolute inset-y-0 -inset-x-[2%] bg-cover bg-no-repeat opacity-50 pointer-events-none lg:translate-x-[0.68%]"
-          style={{ 
-            backgroundImage: 'url("/hero-mosque-hd.jpg")',
-            backgroundPosition: '49.3% center',
-            maskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
-          }}
-        />
-        {/* طبقة تدرج لوني لحماية التباين ووضوح النصوص */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.25) 0%, rgba(15, 118, 110, 0.28) 55%, rgba(30, 64, 175, 0.38) 100%)'
-          }}
-        />
-        <div className="absolute inset-0 opacity-5 pointer-events-none islamic-pattern" />
+        <HeroMosqueBackdrop />
 
         <div className="container relative z-10 mx-auto px-4 xs:px-6 pt-24 pb-14 sm:pt-28 sm:pb-20 md:pt-36 md:pb-28">
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-4 py-2">

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { HeroMosqueBackdrop } from "@/components/HeroMosqueBackdrop";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -207,25 +208,7 @@ export default function AdminLogin() {
         background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)'
       }}
     >
-      {/* نفس خلفية صفحة البداية (/) مع النسخة عالية الدقة للصورة وبدون ضبابية */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute inset-y-0 -inset-x-[2%] bg-cover bg-no-repeat opacity-50 pointer-events-none lg:translate-x-[0.68%]"
-          style={{ 
-            backgroundImage: 'url("/hero-mosque-hd.jpg")',
-            backgroundPosition: '49.3% center',
-            maskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
-          }}
-        />
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.25) 0%, rgba(15, 118, 110, 0.28) 55%, rgba(30, 64, 175, 0.38) 100%)'
-          }}
-        />
-        <div className="absolute inset-0 opacity-5 pointer-events-none islamic-pattern" />
-      </div>
+      <HeroMosqueBackdrop />
 
       <Card className="relative z-10 w-full max-w-md p-5 sm:p-8 bg-white/95 backdrop-blur-xl border border-white/40 ring-1 ring-black/5 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] rounded-2xl sm:rounded-3xl transition-all duration-300 my-auto" dir="rtl">
         {/* الشعار */}
