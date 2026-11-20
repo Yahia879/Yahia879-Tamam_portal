@@ -143,18 +143,18 @@ export default function LandingPage() {
       >
         {/* صورة المسجد المدمجة بالخلفية مع قناع شعاعي لإخفاء العمود/المئذنة من الوسط وتوفير مساحة تنفس كاملة للنصوص */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 mix-blend-overlay pointer-events-none"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50 pointer-events-none"
           style={{ 
             backgroundImage: 'url("/hero-mosque.jpg")',
-            maskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
+            maskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, rgba(0, 0, 0, 0.15) 20%, rgba(0, 0, 0, 0.55) 52%, black 82%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, rgba(0, 0, 0, 0.15) 20%, rgba(0, 0, 0, 0.55) 52%, black 82%)',
           }}
         />
         {/* طبقة تدرج لوني لحماية التباين ووضوح النصوص */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.15) 0%, rgba(15, 118, 110, 0.3) 50%, rgba(30, 64, 175, 0.45) 100%)'
+            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.22) 0%, rgba(15, 118, 110, 0.25) 55%, rgba(30, 64, 175, 0.35) 100%)'
           }}
         />
         <div className="absolute inset-0 opacity-5 pointer-events-none islamic-pattern" />
