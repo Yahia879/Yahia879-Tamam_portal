@@ -141,11 +141,11 @@ export default function LandingPage() {
         className="relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
       >
-        {/* صورة المسجد المدمجة بالخلفية مع تراجع عمق (Z-depth) وقناع شعاعي لتوسيط المنارة خلف الشعار */}
+        {/* صورة المسجد عالية الدقة بالخلفية مع تراجع عمق (Z-depth) وقناع شعاعي لتوسيط المنارة خلف الشعار */}
         <div 
-          className="absolute inset-y-0 -inset-x-[2%] bg-cover bg-no-repeat opacity-45 blur-[0.75px] pointer-events-none lg:translate-x-[0.68%]"
+          className="absolute inset-y-0 -inset-x-[2%] bg-cover bg-no-repeat opacity-50 pointer-events-none lg:translate-x-[0.68%]"
           style={{ 
-            backgroundImage: 'url("/hero-mosque.jpg")',
+            backgroundImage: 'url("/hero-mosque-hd.jpg")',
             backgroundPosition: '49.3% center',
             maskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
             WebkitMaskImage: 'radial-gradient(ellipse 55% 70% at 50% 45%, rgba(0, 0, 0, 0.08) 18%, rgba(0, 0, 0, 0.5) 52%, black 82%)',
