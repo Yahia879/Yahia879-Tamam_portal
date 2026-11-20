@@ -202,12 +202,30 @@ export default function AdminLogin() {
 
   return (
     <div 
-      className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
+      className="relative min-h-[100dvh] flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto overflow-x-hidden"
       style={{
         background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
       }}
     >
-      <Card className="w-full max-w-md p-5 sm:p-8 bg-white/95 shadow-2xl rounded-2xl sm:rounded-3xl transition-all duration-300 my-auto" dir="rtl">
+      {/* خلفية صورة المسجد */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0 bg-cover bg-no-repeat opacity-75"
+          style={{
+            backgroundImage: 'url("/hero-mosque.jpg")',
+            backgroundPosition: 'center center',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor}55 0%, ${secondaryColor}44 50%, ${primaryColor}66 100%)`
+          }}
+        />
+        <div className="absolute inset-0 opacity-5 islamic-pattern" />
+      </div>
+
+      <Card className="relative z-10 w-full max-w-md p-5 sm:p-8 bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl sm:rounded-3xl transition-all duration-300 my-auto" dir="rtl">
         {/* الشعار */}
         <div className="text-center mb-6 sm:mb-8 text-right">
           <div 
