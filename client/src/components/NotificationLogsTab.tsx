@@ -315,7 +315,7 @@ export default function NotificationLogsTab({
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="pr-8 text-xs h-9 rounded-xl border-border/70"
+                className="pr-8 text-xs max-md:text-base h-10 sm:h-9 rounded-xl border-border/70"
               />
             </div>
 
@@ -328,7 +328,7 @@ export default function NotificationLogsTab({
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="text-xs h-9 rounded-xl border-border/70">
+                <SelectTrigger className="text-xs h-10 sm:h-9 rounded-xl border-border/70">
                   <SelectValue placeholder="قناة الإرسال" />
                 </SelectTrigger>
                 <SelectContent dir="rtl" className="text-xs">
@@ -409,7 +409,7 @@ export default function NotificationLogsTab({
             </div>
           ) : (
             <>
-              <div className="w-full overflow-x-auto scrollbar-thin">
+              <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                 <Table className="min-w-[850px] table-fixed">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/40 dark:bg-slate-950/20 border-b border-border/40 text-foreground font-bold">
@@ -501,6 +501,65 @@ export default function NotificationLogsTab({
                 </Table>
               </div>
 
+              {/* Mobile & Tablet Portrait View */}
+              <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:gap-3 md:p-4 divide-border/40">
+                {logs.map((item: any, idx: number) => {
+                  const rowNum = (page - 1) * itemsPerPage + idx + 1;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedLog(item)}
+                      className="p-3.5 sm:p-4 md:rounded-xl md:border md:border-border/60 bg-card hover:bg-muted/20 transition-colors cursor-pointer space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-[11px] text-muted-foreground">#{rowNum}</span>
+                          {renderChannelBadge(item.channel)}
+                        </div>
+                        {renderDeliveryStatusBadge(item.deliveryStatus)}
+                      </div>
+
+                      <div className="font-bold text-sm text-foreground break-words">
+                        {item.recipientName || "مستخدم غير محدد"}
+                      </div>
+
+                      <p className="text-xs text-foreground/85 line-clamp-2 leading-relaxed">
+                        {item.message}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                        <span className="text-[11px] text-muted-foreground">
+                          {formatDate(item.createdAt)}
+                        </span>
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          {item.deliveryStatus === "failed" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResend(item.id)}
+                              disabled={resendingId === item.id}
+                              className="h-8 px-2.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer gap-1"
+                            >
+                              <RotateCcw className={`w-3.5 h-3.5 ${resendingId === item.id ? "animate-spin" : ""}`} />
+                              <span>إعادة إرسال</span>
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedLog(item)}
+                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-teal-600 cursor-pointer gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
 
               {totalPages > 1 && (
                 <EnhancedPagination
@@ -519,7 +578,7 @@ export default function NotificationLogsTab({
 
       {/* مودال عرض تفاصيل الإشعار المسجل */}
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
-        <DialogContent className="max-w-xl text-right" dir="rtl" showCloseButton={false}>
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto text-right p-4 sm:p-6" dir="rtl" showCloseButton={false}>
           <DialogClose className="absolute top-4 sm:top-5 left-4 sm:left-5 text-muted-foreground hover:text-foreground opacity-75 hover:opacity-100 transition-all rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent hover:border-border/40 focus:outline-none select-none active:scale-95 shadow-xs cursor-pointer">
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
             <span className="sr-only">إغلاق</span>
@@ -563,7 +622,7 @@ export default function NotificationLogsTab({
 
               {/* زر إعادة الإرسال في حال فشل التسليم */}
               {selectedLog.deliveryStatus === "failed" && (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-xs">
                   <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>فشل تسليم هذا الإشعار للمستلم سابقاً</span>
@@ -573,7 +632,7 @@ export default function NotificationLogsTab({
                     size="sm"
                     onClick={() => handleResend(selectedLog.id)}
                     disabled={resendingId === selectedLog.id}
-                    className="h-8 px-3 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg cursor-pointer text-xs"
+                    className="w-full sm:w-auto h-9 sm:h-8 px-3 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg cursor-pointer text-xs"
                   >
                     <RotateCcw className={`w-3.5 h-3.5 ${resendingId === selectedLog.id ? "animate-spin" : ""}`} />
                     <span>إعادة الإرسال (Resend)</span>

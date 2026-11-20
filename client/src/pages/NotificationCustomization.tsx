@@ -124,7 +124,7 @@ const ChannelToggles = ({
   disabled?: boolean;
 }) => {
   return (
-    <div className={`flex items-center justify-center gap-1 sm:gap-1.5 bg-muted/30 p-1 sm:p-1.5 rounded-lg border border-border/30 w-fit mx-auto ${disabled ? "opacity-60" : ""}`}>
+    <div className={`flex items-center justify-center gap-1 sm:gap-1.5 bg-muted/30 p-1 sm:p-1.5 rounded-lg border border-border/30 w-fit mx-auto lg:mx-auto ${disabled ? "opacity-60" : ""}`}>
       <TooltipProvider delayDuration={200}>
         {/* إشعارات الموقع */}
         <Tooltip>
@@ -132,7 +132,7 @@ const ChannelToggles = ({
             <button
               disabled={disabled}
               onClick={() => !disabled && onToggle("in_app", !inApp)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
+              className={`min-h-8 min-w-8 sm:min-h-9 sm:min-w-9 flex items-center justify-center p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 inApp
                   ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -152,7 +152,7 @@ const ChannelToggles = ({
             <button
               disabled={disabled}
               onClick={() => !disabled && onToggle("whatsapp", !whatsapp)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
+              className={`min-h-8 min-w-8 sm:min-h-9 sm:min-w-9 flex items-center justify-center p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 whatsapp
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -172,7 +172,7 @@ const ChannelToggles = ({
             <button
               disabled={disabled}
               onClick={() => !disabled && onToggle("email", !email)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
+              className={`min-h-8 min-w-8 sm:min-h-9 sm:min-w-9 flex items-center justify-center p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 email
                   ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -192,7 +192,7 @@ const ChannelToggles = ({
             <button
               disabled={disabled}
               onClick={() => !disabled && onToggle("sms", !sms)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
+              className={`min-h-8 min-w-8 sm:min-h-9 sm:min-w-9 flex items-center justify-center p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 sms
                   ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -1852,7 +1852,7 @@ export default function NotificationCustomization() {
     const truncated = isLong ? raw.substring(0, maxChars).trim() + "..." : raw;
     return (
       <div 
-        className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate max-w-[280px] sm:max-w-[420px] md:max-w-[550px] cursor-default" 
+        className="text-[11px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 lg:truncate max-w-full lg:max-w-[550px] cursor-default" 
         title={raw}
       >
         {truncated}
@@ -2160,24 +2160,24 @@ export default function NotificationCustomization() {
 
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-8 overflow-x-hidden space-y-5 sm:space-y-6">
         {/* رأس الصفحة مع زر الرجوع */}
-        <div className="flex items-center gap-4 mb-6" dir="rtl">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6" dir="rtl">
           <Link href="/settings">
-            <Button variant="ghost" size="icon" type="button">
+            <Button variant="ghost" size="icon" type="button" className="min-h-10 min-w-10 shrink-0">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">تخصيص الإشعارات</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground">تخصيص الإشعارات</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">تخصيص استقبال إشعارات النظام للأدوار والمستخدمين</p>
           </div>
         </div>
 
         {/* علامات تبويب التخصيص */}
         {availableTabs.length === 0 ? (
-          <Card className="border border-border/50 shadow-sm p-12 text-center rounded-xl">
+          <Card className="border border-border/50 shadow-sm p-8 sm:p-12 text-center rounded-xl">
             <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Shield className="w-12 h-12 text-muted-foreground/40" />
               <h3 className="text-lg font-bold text-foreground">لا تملك صلاحية الوصول</h3>
@@ -2185,18 +2185,18 @@ export default function NotificationCustomization() {
             </div>
           </Card>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6" dir="rtl">
-            <div className="flex justify-center w-full mb-8">
-              <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-wrap sm:flex-nowrap gap-2 sm:gap-2.5 w-full max-w-5xl shadow-inner backdrop-blur-md">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-5 sm:space-y-6" dir="rtl">
+            <div className="flex justify-center w-full mb-4 sm:mb-8">
+              <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-1.5 sm:p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 grid grid-cols-1 sm:flex sm:flex-nowrap gap-1.5 sm:gap-2.5 w-full max-w-5xl h-auto shadow-inner backdrop-blur-md">
                 {availableTabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <TabsTrigger 
                       key={tab.value}
                       value={tab.value} 
-                      className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                      className="sm:flex-1 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
                     >
-                      <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
+                      <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400 shrink-0" />
                       <span>{tab.label}</span>
                     </TabsTrigger>
                   );
@@ -2223,7 +2223,7 @@ export default function NotificationCustomization() {
                     </div>
                   ) : paginatedRoles && paginatedRoles.length > 0 ? (
                     <>
-                      <div className="w-full overflow-x-auto scrollbar-thin">
+                      <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                         <Table className="min-w-[700px]">
                           <TableHeader>
                             <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
@@ -2275,6 +2275,48 @@ export default function NotificationCustomization() {
                           </TableBody>
                         </Table>
                       </div>
+
+                      {/* عرض الجوال والآيباد العمودي للأدوار */}
+                      <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:gap-3 md:p-4 divide-border/40">
+                        {paginatedRoles.map(role => (
+                          <div key={role.id} className="p-3.5 sm:p-4 md:rounded-xl md:border md:border-border/60 bg-card space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-sm text-foreground">{role.nameAr}</span>
+                              <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold shrink-0 ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
+                                {role.isSystem ? "أساسي" : "مخصص"}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2.5 pt-2 border-t border-border/40">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">إشعارات الطلبات والمساجد</span>
+                                <div className="shrink-0">
+                                  <ChannelToggles
+                                    inApp={role.receiveRequestNotifications || false}
+                                    whatsapp={getRoleChannelState(role.id, 'request').whatsapp}
+                                    sms={getRoleChannelState(role.id, 'request').sms}
+                                    email={getRoleChannelState(role.id, 'request').email}
+                                    disabled={!canByRole}
+                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'request', channel, val)}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">إشعارات المالية والعقود</span>
+                                <div className="shrink-0">
+                                  <ChannelToggles
+                                    inApp={role.receiveFinancialAndContractNotifications || false}
+                                    whatsapp={getRoleChannelState(role.id, 'financial').whatsapp}
+                                    sms={getRoleChannelState(role.id, 'financial').sms}
+                                    email={getRoleChannelState(role.id, 'financial').email}
+                                    disabled={!canByRole}
+                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'financial', channel, val)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                       <Pagination
                         currentPage={rolesPage}
                         totalPages={rolesTotalPages}
@@ -2301,7 +2343,7 @@ export default function NotificationCustomization() {
                     <select
                       value={selectedTriggerRoleId}
                       onChange={(e) => setSelectedTriggerRoleId(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 h-10 text-xs sm:text-sm max-md:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20"
                     >
                       {dbRoles?.filter(role => role.id !== "service_requester").map(role => (
                         <option key={role.id} value={role.id}>
@@ -2313,7 +2355,7 @@ export default function NotificationCustomization() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="w-full overflow-x-auto scrollbar-thin">
+                <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                   <Table className="min-w-[600px]">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
@@ -2507,6 +2549,70 @@ export default function NotificationCustomization() {
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* عرض الجوال والآيباد العمودي للأحداث حسب الدور */}
+                <div className="lg:hidden divide-y divide-border/40">
+                  {[
+                    { title: "قسم الطلبات والمساجد", items: NOTIFICATION_TRIGGERS.filter(t => t.category === "request") },
+                    { title: "قسم المالية والعقود", items: NOTIFICATION_TRIGGERS.filter(t => t.category === "financial" && !t.id.startsWith("custody_")) },
+                    { title: "العهد المالية والاستثناءات", items: NOTIFICATION_TRIGGERS.filter(t => t.id.startsWith("custody_")) },
+                  ].map((section) => (
+                    <div key={section.title}>
+                      <div className="py-2.5 px-4 bg-slate-50/70 dark:bg-slate-900/40 font-bold text-teal-600 dark:text-teal-400 text-xs border-b border-border/40">
+                        {section.title}
+                      </div>
+                      <div className="divide-y divide-border/40">
+                        {section.items.map((trig) => {
+                          const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                          const emailState = getTriggerChannelState(trig.id, 'email');
+                          const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                          const smsState = getTriggerChannelState(trig.id, 'sms');
+                          return (
+                            <div key={trig.id} className="p-3.5 sm:p-4 space-y-2.5 bg-card">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                  {renderTruncatedPreview(trig.id)}
+                                </div>
+                                {canEditMessageFormats && (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 shrink-0 text-teal-600 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 border border-teal-200/50 rounded-lg"
+                                    onClick={() => handleOpenEditTemplateModal(trig)}
+                                    type="button"
+                                    title="تعديل صيغة الرسالة"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between gap-2 pt-1">
+                                <span className="text-[11px] font-medium text-muted-foreground">قنوات الإرسال:</span>
+                                <div>
+                                  <ChannelToggles
+                                    inApp={inAppState.enabled}
+                                    whatsapp={whatsappState.enabled}
+                                    sms={smsState.enabled}
+                                    email={emailState.enabled}
+                                    disabled={!canByDepartment}
+                                    onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                    inherited={{
+                                      inApp: inAppState.isInherited,
+                                      whatsapp: whatsappState.isInherited,
+                                      sms: smsState.isInherited,
+                                      email: emailState.isInherited,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -2530,7 +2636,7 @@ export default function NotificationCustomization() {
                   </div>
                 ) : paginatedStaffUsers && paginatedStaffUsers.length > 0 ? (
                   <>
-                    <div className="w-full overflow-x-auto scrollbar-thin">
+                    <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                       <Table className="min-w-[700px]">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
@@ -2597,6 +2703,67 @@ export default function NotificationCustomization() {
                         </TableBody>
                       </Table>
                     </div>
+
+                    {/* عرض الجوال والآيباد العمودي للأشخاص */}
+                    <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:gap-3 md:p-4 divide-border/40">
+                      {paginatedStaffUsers.map(user => {
+                        const roleColor = roles.find(r => r.id === user.role)?.color || "bg-slate-500/10 text-slate-600 border-slate-500/20";
+                        const roleLabel = dbRoles?.find(r => r.id === user.role)?.nameAr || user.role;
+                        return (
+                          <div key={user.id} className="p-3.5 sm:p-4 md:rounded-xl md:border md:border-border/60 bg-card space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-sm text-foreground break-words">{user.name}</div>
+                                <div className="text-xs text-muted-foreground break-all mt-0.5" dir="ltr">{user.email}</div>
+                              </div>
+                              <Badge variant="outline" className={`text-[10px] py-0.5 px-2 rounded-full border font-medium shrink-0 ${roleColor}`}>
+                                {roleLabel}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2.5 pt-2 border-t border-border/40">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">إشعارات الطلبات والمساجد</span>
+                                <div className="shrink-0">
+                                  <ChannelToggles
+                                    inApp={getUserChannelState(user.id, 'request').inApp}
+                                    whatsapp={getUserChannelState(user.id, 'request').whatsapp}
+                                    sms={getUserChannelState(user.id, 'request').sms}
+                                    email={getUserChannelState(user.id, 'request').email}
+                                    disabled={!canByPerson}
+                                    onToggle={(channel, val) => handleToggleUserChannel(user.id, 'request', channel, val)}
+                                    inherited={{
+                                      inApp: getUserChannelState(user.id, 'request').isInherited.inApp,
+                                      whatsapp: getUserChannelState(user.id, 'request').isInherited.whatsapp,
+                                      sms: getUserChannelState(user.id, 'request').isInherited.sms,
+                                      email: getUserChannelState(user.id, 'request').isInherited.email,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">إشعارات المالية والعقود</span>
+                                <div className="shrink-0">
+                                  <ChannelToggles
+                                    inApp={getUserChannelState(user.id, 'financial').inApp}
+                                    whatsapp={getUserChannelState(user.id, 'financial').whatsapp}
+                                    sms={getUserChannelState(user.id, 'financial').sms}
+                                    email={getUserChannelState(user.id, 'financial').email}
+                                    disabled={!canByPerson}
+                                    onToggle={(channel, val) => handleToggleUserChannel(user.id, 'financial', channel, val)}
+                                    inherited={{
+                                      inApp: getUserChannelState(user.id, 'financial').isInherited.inApp,
+                                      whatsapp: getUserChannelState(user.id, 'financial').isInherited.whatsapp,
+                                      sms: getUserChannelState(user.id, 'financial').isInherited.sms,
+                                      email: getUserChannelState(user.id, 'financial').isInherited.email,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                     <Pagination
                       currentPage={usersPage}
                       totalPages={usersTotalPages}
@@ -2649,7 +2816,7 @@ export default function NotificationCustomization() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="w-full overflow-x-auto scrollbar-thin">
+                      <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                         <Table className="min-w-[600px]">
                           <TableHeader>
                             <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
@@ -2729,6 +2896,60 @@ export default function NotificationCustomization() {
                           </TableBody>
                         </Table>
                       </div>
+
+                      {/* عرض الجوال والآيباد العمودي لإشعارات المستفيد */}
+                      <div className="lg:hidden divide-y divide-border/40">
+                        {BENEFICIARY_SECTIONS.map((section) => (
+                          <div key={section.title}>
+                            <div className="py-2.5 px-4 bg-slate-50/70 dark:bg-slate-900/40 font-bold text-teal-600 dark:text-teal-400 text-xs border-b border-border/40">
+                              {section.title}
+                            </div>
+                            <div className="divide-y divide-border/40">
+                              {section.triggers.map((trig) => {
+                                const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
+                                const emailState = getBeneficiaryChannelState(trig.id, 'email');
+                                const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
+                                const smsState = getBeneficiaryChannelState(trig.id, 'sms');
+                                return (
+                                  <div key={trig.id} className="p-3.5 sm:p-4 space-y-2.5 bg-card">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                        {renderTruncatedPreview(trig.id)}
+                                      </div>
+                                      {canEditBeneficiaryFormats && (
+                                        <Button
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-9 w-9 shrink-0 text-teal-600 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 border border-teal-200/50 rounded-lg"
+                                          onClick={() => handleOpenEditTemplateModal(trig)}
+                                          type="button"
+                                          title="تعديل صيغة الرسالة"
+                                        >
+                                          <Pencil className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 pt-1">
+                                      <span className="text-[11px] font-medium text-muted-foreground">قنوات الإرسال:</span>
+                                      <div>
+                                        <ChannelToggles
+                                          inApp={inAppState}
+                                          whatsapp={whatsappState}
+                                          sms={smsState}
+                                          email={emailState}
+                                          disabled={!canBeneficiary}
+                                          onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -2743,7 +2964,7 @@ export default function NotificationCustomization() {
 
         {/* مودال تخصيص رسالة الإشعار */}
         <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
-          <DialogContent className="max-w-xl text-right" dir="rtl" showCloseButton={false}>
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto text-right p-4 sm:p-6" dir="rtl" showCloseButton={false}>
             {/* زر إغلاق مخصص لتفادي تداخله جهة اليمين مع العناوين العربية */}
             <DialogClose className="absolute top-4 sm:top-5 left-4 sm:left-5 text-muted-foreground hover:text-foreground opacity-75 hover:opacity-100 transition-all rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent hover:border-border/40 focus:outline-none select-none active:scale-95 shadow-sm">
               <X className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -2826,10 +3047,10 @@ export default function NotificationCustomization() {
               )}
             </div>
 
-            <DialogFooter className="flex sm:justify-start gap-2 border-t border-border/40 pt-4 mt-2">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-start gap-2 border-t border-border/40 pt-4 mt-2">
               <Button
                 onClick={handleSaveTemplate}
-                className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold px-5 py-2 text-xs sm:text-sm rounded-xl transition-all shadow-sm"
+                className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold px-5 h-10 text-xs sm:text-sm rounded-xl transition-all shadow-sm"
                 disabled={updateTemplateMutation.isPending}
               >
                 {updateTemplateMutation.isPending ? "جاري الحفظ..." : "حفظ"}
@@ -2837,7 +3058,7 @@ export default function NotificationCustomization() {
               <Button
                 variant="outline"
                 onClick={() => setIsEditTemplateOpen(false)}
-                className="font-semibold px-5 py-2 text-xs sm:text-sm rounded-xl"
+                className="w-full sm:w-auto font-semibold px-5 h-10 text-xs sm:text-sm rounded-xl"
                 type="button"
               >
                 إلغاء

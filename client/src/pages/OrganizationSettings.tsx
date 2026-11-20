@@ -385,7 +385,7 @@ function SignatoriesSection() {
         ) : signatories && signatories.length > 0 ? (
           <>
             {/* Desktop Table */}
-            <div className="hidden md:block">
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
@@ -474,9 +474,9 @@ function SignatoriesSection() {
             </div>
 
             {/* Mobile Cards View */}
-            <div className="md:hidden divide-y divide-sidebar-border/10">
+            <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4">
               {signatories.map((signatory: any) => (
-                <div key={signatory.id} className="p-4 space-y-3">
+                <div key={signatory.id} className="p-4 rounded-xl border border-border/70 bg-card space-y-3 shadow-2xs">
                   <div className="flex justify-between items-start">
                     <div className="min-w-0 flex-1">
                       <h4 className="font-bold text-foreground">{signatory.name}</h4>
@@ -968,7 +968,7 @@ export default function OrganizationSettings() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground text-sm animate-pulse">جاري تحميل الإعدادات...</p>
@@ -978,25 +978,25 @@ export default function OrganizationSettings() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 space-y-6 max-w-6xl mx-auto px-3 sm:px-6 overflow-x-hidden" dir="rtl">
         {/* العنوان */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Link href="/settings">
-              <Button variant="ghost" size="icon" type="button">
+              <Button variant="ghost" size="icon" type="button" className="min-h-10 min-w-10 shrink-0">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold">إعدادات الجمعية</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">إعدادات الجمعية</h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 إدارة بيانات الجمعية الثابتة المستخدمة في العقود والمستندات الرسمية
               </p>
             </div>
           </div>
           {canSaveAnySettings && (
-            <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto gradient-primary text-white order-first sm:order-last">
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto min-h-10 gradient-primary text-white order-first sm:order-last">
               {updateMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin ml-2" />
               ) : (
@@ -1020,8 +1020,8 @@ export default function OrganizationSettings() {
             </div>
           </Card>
         ) : (
-          <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
-          <div className="w-full overflow-x-auto overflow-y-hidden pb-3 scrollbar-thin">
+          <Tabs dir="rtl" key={defaultTab} defaultValue={defaultTab} className="space-y-6">
+          <div className="w-full overflow-x-auto overflow-y-hidden pb-2 no-scrollbar">
             <TabsList 
               className="bg-muted/60 p-1 inline-flex md:grid w-auto md:w-full border shadow-sm rounded-xl h-auto"
               style={{ gridTemplateColumns: `repeat(${[canShowBasic, canShowSigners, canShowBanks, canShowContracts].filter(Boolean).length}, minmax(0, 1fr))` }}

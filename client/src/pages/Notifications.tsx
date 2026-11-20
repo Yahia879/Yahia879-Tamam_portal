@@ -123,20 +123,21 @@ export default function Notifications() {
   const notifications = data?.notifications || [];
   const isRequester = user?.role === "service_requester";
   const Layout = isRequester ? BeneficiaryLayout : DashboardLayout;
+  const layoutProps = isRequester ? {} : { tabletNavigation: true };
 
   return (
-    <Layout>
-      <div className="space-y-4 sm:space-y-6" dir={isEn ? "ltr" : "rtl"}>
+    <Layout {...layoutProps}>
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:py-4 overflow-x-hidden space-y-4 sm:space-y-6" dir={isEn ? "ltr" : "rtl"}>
         {/* شريط العنوان وزر تحديد الكل كمقروء */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
             <Link href={user?.role === "service_requester" ? "/requester" : "/dashboard"}>
-              <Button variant="ghost" size="icon" className="flex-shrink-0">
+              <Button variant="ghost" size="icon" className="flex-shrink-0 min-h-10 min-w-10">
                 {isEn ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
               </Button>
             </Link>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground">
                 {isEn ? "Notifications" : "الإشعارات"}
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
@@ -144,26 +145,26 @@ export default function Notifications() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {user?.role !== "service_requester" && (
-              <Link href="/notifications/customization">
+              <Link href="/notifications/customization" className="flex-1 sm:flex-initial">
                 <Button 
                   variant="outline" 
-                  className="flex items-center gap-1.5 h-9 sm:h-10 text-xs sm:text-sm text-muted-foreground hover:text-foreground border-border bg-card cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 h-10 text-xs sm:text-sm text-muted-foreground hover:text-foreground border-border bg-card cursor-pointer"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
                   <span>{isEn ? "Customize" : "تخصيص الإشعارات"}</span>
                 </Button>
               </Link>
             )}
             <Button 
               variant="outline" 
-              className="flex items-center gap-2 flex-1 sm:flex-initial h-9 sm:h-10 text-xs sm:text-sm"
+              className="flex items-center justify-center gap-2 flex-1 sm:flex-initial h-10 text-xs sm:text-sm"
               onClick={() => markAllAsReadMutation.mutate()}
               disabled={markAllAsReadMutation.isPending || !unreadCountData || unreadCountData === 0}
             >
-              <CheckCheck className="w-4 h-4" />
-              {isEn ? "Mark all as read" : "تحديد الكل كمقروء"}
+              <CheckCheck className="w-4 h-4 shrink-0" />
+              <span>{isEn ? "Mark all as read" : "تحديد الكل كمقروء"}</span>
             </Button>
           </div>
         </div>
@@ -275,7 +276,7 @@ export default function Notifications() {
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground font-bold" : "text-muted-foreground"}`} title={notification.title}>
+                                <p className={`text-sm sm:text-base font-medium break-words ${!notification.isRead ? "text-foreground font-bold" : "text-muted-foreground"}`} title={notification.title}>
                                   {notification.title}
                                 </p>
                                 {isSedanaNotif && (

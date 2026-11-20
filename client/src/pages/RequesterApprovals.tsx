@@ -488,34 +488,34 @@ export default function RequesterApprovals() {
 
   if (!hasAnyPermission) {
     return (
-      <DashboardLayout>
-        <div className="container py-20 text-center">
+      <DashboardLayout tabletNavigation>
+        <div className="container py-20 text-center px-4">
           <Shield className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية للوصول إلى قسم إدارة المستفيدين</h2>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>العودة للرئيسية</Button>
+          <h2 className="text-xl sm:text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية للوصول إلى قسم إدارة المستفيدين</h2>
+          <Button variant="outline" className="mt-4 min-h-10" onClick={() => navigate("/")}>العودة للرئيسية</Button>
         </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 w-full max-w-full pb-12 font-['Cairo',sans-serif]">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-4 overflow-x-hidden space-y-5 sm:space-y-6 pb-12 font-['Cairo',sans-serif]">
         {/* رأس الصفحة */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 p-5 sm:p-6 rounded-3xl shadow-xs">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
-              <CheckSquare className="w-6 h-6" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xs">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
+              <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground">إدارة المستفيدين والطلبات الواردة</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-black text-foreground">إدارة المستفيدين والطلبات الواردة</h1>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
                 مراجعة حسابات طالبي الخدمة، طلبات الاستثناء، طلبات التبرعات العينية والأراضي، والاستفسارات العامة
               </p>
             </div>
           </div>
           {canCreateAccounts && (
-            <Button className="gap-2 self-start sm:self-auto" onClick={() => setShowCreateRequester(true)}>
+            <Button className="gap-2 w-full sm:w-auto min-h-10 shrink-0" onClick={() => setShowCreateRequester(true)}>
               <UserPlus className="h-4 w-4" />
               إضافة مستفيد
             </Button>
@@ -528,7 +528,7 @@ export default function RequesterApprovals() {
             setShowCreateRequester(open);
             if (!open) setNewRequester(emptyRequester);
           }}>
-            <DialogContent dir="rtl" className="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto p-6 sm:max-w-3xl sm:p-8">
+            <DialogContent dir="rtl" className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] sm:w-[95vw] overflow-y-auto p-4 sm:max-w-3xl sm:p-8">
               <DialogHeader className="items-start text-right sm:text-right">
                 <DialogTitle>إضافة مستفيد</DialogTitle>
                 <DialogDescription className="text-right leading-relaxed">أدخل بيانات المستفيد وكلمة المرور. سيظهر الحساب ضمن الحسابات قيد المراجعة لحين اعتماده.</DialogDescription>
@@ -546,27 +546,27 @@ export default function RequesterApprovals() {
                 <fieldset disabled={createRequester.isPending} className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="requester-name">اسم المستفيد *</Label>
-                    <Input id="requester-name" required minLength={2} maxLength={60} autoComplete="name" value={newRequester.name} onChange={(event) => setNewRequester({ ...newRequester, name: event.target.value })} />
+                    <Input id="requester-name" required minLength={2} maxLength={60} autoComplete="name" className="max-md:text-base" value={newRequester.name} onChange={(event) => setNewRequester({ ...newRequester, name: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-email">البريد الإلكتروني *</Label>
-                    <Input id="requester-email" type="email" dir="ltr" required autoComplete="email" value={newRequester.email} onChange={(event) => setNewRequester({ ...newRequester, email: event.target.value })} />
+                    <Input id="requester-email" type="email" dir="ltr" required autoComplete="email" className="max-md:text-base" value={newRequester.email} onChange={(event) => setNewRequester({ ...newRequester, email: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-phone">رقم الجوال *</Label>
-                    <Input id="requester-phone" type="tel" dir="ltr" required pattern="05[0-9]{8}" maxLength={10} placeholder="05XXXXXXXX" autoComplete="tel" value={newRequester.phone} onChange={(event) => setNewRequester({ ...newRequester, phone: event.target.value })} />
+                    <Input id="requester-phone" type="tel" dir="ltr" required pattern="05[0-9]{8}" maxLength={10} placeholder="05XXXXXXXX" autoComplete="tel" className="max-md:text-base" value={newRequester.phone} onChange={(event) => setNewRequester({ ...newRequester, phone: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-password">كلمة المرور *</Label>
-                    <Input id="requester-password" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" placeholder="8 أحرف على الأقل" value={newRequester.password} onChange={(event) => setNewRequester({ ...newRequester, password: event.target.value })} />
+                    <Input id="requester-password" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" placeholder="8 أحرف على الأقل" className="max-md:text-base" value={newRequester.password} onChange={(event) => setNewRequester({ ...newRequester, password: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-password-confirm">تأكيد كلمة المرور *</Label>
-                    <Input id="requester-password-confirm" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" value={newRequester.confirmPassword} onChange={(event) => setNewRequester({ ...newRequester, confirmPassword: event.target.value })} />
+                    <Input id="requester-password-confirm" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" className="max-md:text-base" value={newRequester.confirmPassword} onChange={(event) => setNewRequester({ ...newRequester, confirmPassword: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-national-id">رقم الهوية (اختياري)</Label>
-                    <Input id="requester-national-id" dir="ltr" maxLength={20} value={newRequester.nationalId} onChange={(event) => setNewRequester({ ...newRequester, nationalId: event.target.value })} />
+                    <Input id="requester-national-id" dir="ltr" maxLength={20} className="max-md:text-base" value={newRequester.nationalId} onChange={(event) => setNewRequester({ ...newRequester, nationalId: event.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="requester-city">المدينة (اختياري)</Label>
@@ -653,7 +653,7 @@ export default function RequesterApprovals() {
         )}
 
         {activeTab === 'donations' && canViewDonations && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <Card className="border border-border/70 shadow-xs rounded-2xl">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/60 flex items-center justify-center shrink-0">
@@ -857,7 +857,7 @@ export default function RequesterApprovals() {
                         setSearch(e.target.value);
                         resetPage();
                       }}
-                      className="pr-9 text-xs sm:text-sm h-10 rounded-2xl border-border/70"
+                      className="pr-9 text-xs sm:text-sm max-md:text-base h-10 rounded-2xl border-border/70"
                     />
                   </div>
                   <Select
@@ -902,7 +902,7 @@ export default function RequesterApprovals() {
               ) : (
                 <>
                   {/* Desktop View */}
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent">
@@ -1020,7 +1020,7 @@ export default function RequesterApprovals() {
                   </div>
 
                   {/* Mobile View */}
-                  <div className="md:hidden divide-y">
+                  <div className="lg:hidden divide-y">
                     {filtered.map(user => {
                       const isPending = (user.status ?? "pending") === "pending";
                       const statusInfo = statusConfig[user.status ?? "pending"];
@@ -1176,7 +1176,7 @@ export default function RequesterApprovals() {
             </CardHeader>
             <CardContent className="p-0">
               {/* عرض الشاشات الكبيرة */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
@@ -1295,7 +1295,7 @@ export default function RequesterApprovals() {
               </div>
 
               {/* عرض بطاقات الموبايل */}
-              <div className="md:hidden divide-y">
+              <div className="lg:hidden divide-y">
                 {exceptionRequests.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     لا توجد طلبات استثناء حالياً
@@ -1443,7 +1443,7 @@ export default function RequesterApprovals() {
                       placeholder="بحث بالاسم أو الجوال..."
                       value={submissionSearch}
                       onChange={e => setSubmissionSearch(e.target.value)}
-                      className="pr-9 text-xs h-10 rounded-2xl border-border/70"
+                      className="pr-9 text-xs max-md:text-base h-10 rounded-2xl border-border/70"
                     />
                   </div>
                 </div>
@@ -1465,7 +1465,7 @@ export default function RequesterApprovals() {
               ) : (
                 <>
                   {/* عرض الشاشات الكبيرة */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden lg:block overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-muted/30">
                         <TableRow>
@@ -1600,7 +1600,7 @@ export default function RequesterApprovals() {
                   </div>
 
                   {/* عرض بطاقات الموبايل */}
-                  <div className="md:hidden divide-y">
+                  <div className="lg:hidden divide-y">
                     {donationSubmissions.map((sub: any) => {
                       const isNew = sub.status === "new";
                       const typeInfo = submissionTypeLabels[sub.submissionType] || submissionTypeLabels.donor_other;
@@ -1730,7 +1730,7 @@ export default function RequesterApprovals() {
                       placeholder="بحث بالاسم أو الاستفسار..."
                       value={submissionSearch}
                       onChange={e => setSubmissionSearch(e.target.value)}
-                      className="pr-9 text-xs h-10 rounded-2xl border-border/70"
+                      className="pr-9 text-xs max-md:text-base h-10 rounded-2xl border-border/70"
                     />
                   </div>
                 </div>
@@ -1752,7 +1752,7 @@ export default function RequesterApprovals() {
               ) : (
                 <>
                   {/* عرض الشاشات الكبيرة */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden lg:block overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-muted/30">
                         <TableRow>
@@ -1887,7 +1887,7 @@ export default function RequesterApprovals() {
                   </div>
 
                   {/* عرض بطاقات الموبايل */}
-                  <div className="md:hidden divide-y">
+                  <div className="lg:hidden divide-y">
                     {inquirySubmissions.map((sub: any) => {
                       const isNew = sub.status === "new";
                       const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
@@ -2004,19 +2004,19 @@ export default function RequesterApprovals() {
                   </CardDescription>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full lg:w-auto">
                   <div className="relative flex-1 sm:w-64">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="بحث بالاسم، المسجد، أو الجوال..."
                       value={sedanaSearch}
                       onChange={(e) => setSedanaSearch(e.target.value)}
-                      className="pr-8 h-9 text-xs rounded-xl border-border/70"
+                      className="pr-8 h-10 sm:h-9 text-xs max-md:text-base rounded-xl border-border/70"
                     />
                   </div>
 
                   <Select value={sedanaStatusFilter} onValueChange={(val: any) => setSedanaStatusFilter(val)}>
-                    <SelectTrigger className="h-9 text-xs font-bold w-44 rounded-xl">
+                    <SelectTrigger className="h-10 sm:h-9 text-xs font-bold w-full sm:w-44 rounded-xl">
                       <SelectValue placeholder="الحالة" />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
@@ -2059,7 +2059,7 @@ export default function RequesterApprovals() {
               ) : (
                 <>
                   {/* عرض الجدول للشاشات الكبيرة */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden lg:block overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-muted/40">
                         <TableRow>
@@ -2179,7 +2179,7 @@ export default function RequesterApprovals() {
                   </div>
 
                   {/* عرض بطاقات الموبايل */}
-                  <div className="md:hidden divide-y">
+                  <div className="lg:hidden divide-y">
                     {sedanaInquiriesList.map((item: any) => {
                       const inq = item.inquiry;
                       const isPending = inq.status === 'pending';
@@ -2257,7 +2257,7 @@ export default function RequesterApprovals() {
       {/* نافذة عرض ومراجعة تفاصيل التبرع / الاستفسار الكاملة */}
       <Dialog open={!!selectedSubmission} onOpenChange={(open) => !open && setSelectedSubmission(null)}>
         {selectedSubmission && (
-          <DialogContent className="max-w-4xl sm:max-w-4xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
+          <DialogContent className="max-w-4xl sm:max-w-4xl w-[calc(100vw-1rem)] sm:w-[95vw] rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[calc(100dvh-2rem)] overflow-y-auto font-['Cairo',sans-serif]">
             {/* Modal Header */}
             <div className="flex items-center gap-3 sm:gap-4 text-right w-full pb-4 sm:pb-5 border-b border-border/60">
               <div className="p-2.5 sm:p-3.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
@@ -2512,7 +2512,7 @@ export default function RequesterApprovals() {
 
 
           return (
-            <DialogContent className="max-w-4xl sm:max-w-4xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
+            <DialogContent className="max-w-4xl sm:max-w-4xl w-[calc(100vw-1rem)] sm:w-[95vw] rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[calc(100dvh-2rem)] overflow-y-auto font-['Cairo',sans-serif]">
               {/* رأس النافذة */}
               <div className="flex items-center gap-3 sm:gap-4 text-right w-full pb-4 sm:pb-5 border-b border-border/60">
                 <div className="p-2.5 sm:p-3.5 rounded-2xl bg-cyan-500/10 text-cyan-600 border border-cyan-500/20 shrink-0">
@@ -2776,7 +2776,7 @@ export default function RequesterApprovals() {
                           placeholder="اكتب سبب ومبررات الرفض بالتفصيل..."
                           value={actionNotes}
                           onChange={(e) => setActionNotes(e.target.value)}
-                          className="text-xs resize-none rounded-xl"
+                          className="text-xs max-md:text-base resize-none rounded-xl"
                         />
                       </div>
                     )}

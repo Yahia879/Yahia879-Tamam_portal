@@ -357,25 +357,25 @@ export default function CategoriesManagement() {
   );
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-4 overflow-x-hidden space-y-5 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Link href="/settings">
-              <Button variant="ghost" size="icon" type="button">
+              <Button variant="ghost" size="icon" type="button" className="min-h-10 min-w-10 shrink-0">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">إدارة التصنيفات</h1>
-              <p className="text-sm text-gray-500">إدارة المدن والجهات والبنوك والوحدات المستخدمة في البوابة</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">إدارة التصنيفات</h1>
+              <p className="text-xs sm:text-sm text-gray-500">إدارة المدن والجهات والبنوك والوحدات المستخدمة في البوابة</p>
             </div>
           </div>
         </div>
 
         {!canAccessCategories ? (
-          <Card className="border border-red-200/60 dark:border-red-900/30 bg-red-50/20 dark:bg-red-900/10 p-8 rounded-2xl text-center">
+          <Card className="border border-red-200/60 dark:border-red-900/30 bg-red-50/20 dark:bg-red-900/10 p-6 sm:p-8 rounded-2xl text-center">
             <div className="max-w-md mx-auto space-y-3">
               <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-fit mx-auto">
                 <Lock className="w-6 h-6" />
@@ -395,7 +395,7 @@ export default function CategoriesManagement() {
                 placeholder={selectedType ? "بحث في القيم..." : "بحث في التصنيفات..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10 h-9 text-sm w-full"
+                className="pr-10 h-10 text-sm max-md:text-base w-full"
               />
             </div>
 
@@ -475,12 +475,12 @@ export default function CategoriesManagement() {
                         {filteredValues.length} قيمة
                       </CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedType(null)}
-                        className="flex-1 sm:flex-none h-8 text-xs sm:text-sm"
+                        className="flex-1 sm:flex-none min-h-10 sm:h-9 text-xs sm:text-sm"
                       >
                         رجوع
                       </Button>
@@ -488,14 +488,14 @@ export default function CategoriesManagement() {
                         <Button 
                           size="sm" 
                           onClick={openAddValue}
-                          className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-8 text-xs sm:text-sm"
+                          className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 min-h-10 sm:h-9 text-xs sm:text-sm"
                         >
                           <Plus className="w-4 h-4 ml-1" />
                           إضافة قيمة
                         </Button>
                       )}
                       <Dialog open={isAddValueOpen} onOpenChange={setIsAddValueOpen}>
-                        <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 text-right font-sans" dir="rtl">
+                        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 text-right font-sans" dir="rtl">
                           <DialogHeader className="text-right sm:text-right">
                             <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200 text-right">إضافة قيمة جديدة</DialogTitle>
                             <DialogDescription className="text-xs sm:text-sm text-muted-foreground text-right">إضافة قيمة إلى {categoryTypeNames[selectedType] || selectedType}</DialogDescription>
@@ -509,7 +509,7 @@ export default function CategoriesManagement() {
                                 placeholder={selectedType === "sadad_billers" ? "مثال: الشركة السعودية للكهرباء" : selectedType === "sedana_items" ? "مثال: صابون سائل للأيدي" : "مثال: الرياض"}
                                 value={valueForm.nameAr}
                                 onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                                className="h-9 text-right"
+                                className="h-10 sm:h-9 max-md:text-base text-right"
                                 dir="rtl"
                               />
                             </div>
@@ -520,7 +520,7 @@ export default function CategoriesManagement() {
                                   placeholder="مثال: 002"
                                   value={valueForm.name}
                                   onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
-                                  className="h-9 text-right"
+                                  className="h-10 sm:h-9 max-md:text-base text-right"
                                   dir="rtl"
                                 />
                               </div>
@@ -533,7 +533,7 @@ export default function CategoriesManagement() {
                                     value={sedanaForm.category}
                                     onValueChange={(val) => setSedanaForm({ ...sedanaForm, category: val })}
                                   >
-                                    <SelectTrigger className="h-9 text-right text-xs" dir="rtl">
+                                    <SelectTrigger className="h-10 sm:h-9 text-right text-xs" dir="rtl">
                                       <SelectValue placeholder="اختر التصنيف..." />
                                     </SelectTrigger>
                                     <SelectContent dir="rtl">
@@ -552,7 +552,7 @@ export default function CategoriesManagement() {
                                     placeholder="مثال: شهر"
                                     value={sedanaForm.unit}
                                     onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
-                                    className="h-9 text-right text-xs"
+                                    className="h-10 sm:h-9 text-right text-xs max-md:text-base"
                                     dir="rtl"
                                   />
                                 </div>
@@ -567,11 +567,12 @@ export default function CategoriesManagement() {
                                       <div className="flex-1 flex items-center gap-1.5">
                                         <Input
                                           type="number"
+                                          inputMode="numeric"
                                           min="0"
                                           placeholder="0"
                                           value={sedanaForm.monthlyLimit}
                                           onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
-                                          className="h-8 text-right font-mono text-xs"
+                                          className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                                           dir="rtl"
                                         />
                                         <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -583,11 +584,12 @@ export default function CategoriesManagement() {
                                       <div className="flex-1 flex items-center gap-1.5">
                                         <Input
                                           type="number"
+                                          inputMode="numeric"
                                           min="0"
                                           placeholder="0"
                                           value={sedanaForm.quarterlyLimit}
                                           onChange={(e) => setSedanaForm({ ...sedanaForm, quarterlyLimit: Number(e.target.value) })}
-                                          className="h-8 text-right font-mono text-xs"
+                                          className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                                           dir="rtl"
                                         />
                                         <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -599,11 +601,12 @@ export default function CategoriesManagement() {
                                       <div className="flex-1 flex items-center gap-1.5">
                                         <Input
                                           type="number"
+                                          inputMode="numeric"
                                           min="0"
                                           placeholder="0"
                                           value={sedanaForm.semiAnnualLimit}
                                           onChange={(e) => setSedanaForm({ ...sedanaForm, semiAnnualLimit: Number(e.target.value) })}
-                                          className="h-8 text-right font-mono text-xs"
+                                          className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                                           dir="rtl"
                                         />
                                         <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -615,11 +618,12 @@ export default function CategoriesManagement() {
                                       <div className="flex-1 flex items-center gap-1.5">
                                         <Input
                                           type="number"
+                                          inputMode="numeric"
                                           min="0"
                                           placeholder="0"
                                           value={sedanaForm.oneTimeLimit}
                                           onChange={(e) => setSedanaForm({ ...sedanaForm, oneTimeLimit: Number(e.target.value) })}
-                                          className="h-8 text-right font-mono text-xs"
+                                          className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                                           dir="rtl"
                                         />
                                         <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -634,11 +638,11 @@ export default function CategoriesManagement() {
                             <Button 
                               onClick={handleAddValue} 
                               disabled={createCategoryMutation.isPending} 
-                              className="w-full sm:w-auto h-9 text-sm font-bold bg-primary text-primary-foreground"
+                              className="w-full sm:w-auto h-10 sm:h-9 text-sm font-bold bg-primary text-primary-foreground"
                             >
                               {createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة"}
                             </Button>
-                            <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
+                            <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-10 sm:h-9 text-sm">إلغاء</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -655,7 +659,7 @@ export default function CategoriesManagement() {
                   ) : (
                     <>
                       {/* Desktop View Table */}
-                      <div className="hidden md:block overflow-x-auto">
+                      <div className="hidden lg:block overflow-x-auto">
                         <Table>
                           <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
                             <TableRow className="border-b border-border/80">
@@ -769,7 +773,7 @@ export default function CategoriesManagement() {
                       </div>
 
                       {/* Mobile View Cards */}
-                      <div className="md:hidden divide-y">
+                      <div className="lg:hidden divide-y">
                         {filteredValues.map((value: Category, index: number) => (
                           <div 
                             key={value.id} 
@@ -791,7 +795,7 @@ export default function CategoriesManagement() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => openEditValue(value)}
-                                      className="h-8 w-8 p-0"
+                                      className="h-9 w-9 p-0"
                                     >
                                       <Edit2 className="w-4 h-4 text-blue-500" />
                                     </Button>
@@ -806,7 +810,7 @@ export default function CategoriesManagement() {
                                         }
                                       }}
                                       disabled={deleteCategoryMutation.isPending}
-                                      className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
+                                      className="h-9 w-9 p-0 border-red-100 hover:bg-red-50"
                                     >
                                       <Trash2 className="w-4 h-4 text-red-500" />
                                     </Button>
@@ -887,7 +891,7 @@ export default function CategoriesManagement() {
 
         {/* Edit Value Dialog */}
         <Dialog open={isEditValueOpen} onOpenChange={setIsEditValueOpen}>
-          <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 text-right font-sans" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 text-right font-sans" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200 text-right">تعديل القيمة</DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground text-right">تعديل بيانات القيمة</DialogDescription>
@@ -900,7 +904,7 @@ export default function CategoriesManagement() {
                 <Input
                   value={valueForm.nameAr}
                   onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                  className="h-9 text-right"
+                  className="h-10 sm:h-9 max-md:text-base text-right"
                   dir="rtl"
                 />
               </div>
@@ -910,7 +914,7 @@ export default function CategoriesManagement() {
                   <Input
                     value={valueForm.name}
                     onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
-                    className="h-9 text-right"
+                    className="h-10 sm:h-9 max-md:text-base text-right"
                     dir="rtl"
                   />
                 </div>
@@ -923,7 +927,7 @@ export default function CategoriesManagement() {
                       value={sedanaForm.category}
                       onValueChange={(val) => setSedanaForm({ ...sedanaForm, category: val })}
                     >
-                      <SelectTrigger className="h-9 text-right text-xs" dir="rtl">
+                      <SelectTrigger className="h-10 sm:h-9 text-right text-xs" dir="rtl">
                         <SelectValue placeholder="اختر التصنيف..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
@@ -947,7 +951,7 @@ export default function CategoriesManagement() {
                       placeholder="مثال: قطعة، لتر، كرتون..."
                       value={sedanaForm.unit}
                       onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
-                      className="h-9 text-right text-xs"
+                      className="h-10 sm:h-9 text-right text-xs max-md:text-base"
                       dir="rtl"
                     />
                   </div>
@@ -962,11 +966,12 @@ export default function CategoriesManagement() {
                         <div className="flex-1 flex items-center gap-1.5">
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             placeholder="0"
                             value={sedanaForm.monthlyLimit}
                             onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
-                            className="h-8 text-right font-mono text-xs"
+                            className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                             dir="rtl"
                           />
                           <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -978,11 +983,12 @@ export default function CategoriesManagement() {
                         <div className="flex-1 flex items-center gap-1.5">
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             placeholder="0"
                             value={sedanaForm.quarterlyLimit}
                             onChange={(e) => setSedanaForm({ ...sedanaForm, quarterlyLimit: Number(e.target.value) })}
-                            className="h-8 text-right font-mono text-xs"
+                            className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                             dir="rtl"
                           />
                           <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -994,11 +1000,12 @@ export default function CategoriesManagement() {
                         <div className="flex-1 flex items-center gap-1.5">
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             placeholder="0"
                             value={sedanaForm.semiAnnualLimit}
                             onChange={(e) => setSedanaForm({ ...sedanaForm, semiAnnualLimit: Number(e.target.value) })}
-                            className="h-8 text-right font-mono text-xs"
+                            className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                             dir="rtl"
                           />
                           <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -1010,11 +1017,12 @@ export default function CategoriesManagement() {
                         <div className="flex-1 flex items-center gap-1.5">
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             placeholder="0"
                             value={sedanaForm.oneTimeLimit}
                             onChange={(e) => setSedanaForm({ ...sedanaForm, oneTimeLimit: Number(e.target.value) })}
-                            className="h-8 text-right font-mono text-xs"
+                            className="h-9 sm:h-8 text-right font-mono text-xs max-md:text-base"
                             dir="rtl"
                           />
                           <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
@@ -1029,11 +1037,11 @@ export default function CategoriesManagement() {
               <Button 
                 onClick={handleUpdateValue} 
                 disabled={updateCategoryMutation.isPending} 
-                className="w-full sm:w-auto h-9 text-sm font-bold bg-primary text-primary-foreground"
+                className="w-full sm:w-auto h-10 sm:h-9 text-sm font-bold bg-primary text-primary-foreground"
               >
                 {updateCategoryMutation.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
-              <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
+              <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-10 sm:h-9 text-sm">إلغاء</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

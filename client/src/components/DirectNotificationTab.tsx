@@ -413,18 +413,18 @@ export default function DirectNotificationTab({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
               {/* تبديل الفئتين كـ Tabs */}
               {(canSendBeneficiary || canSendStaff) && (
-                <div className="flex p-1 bg-muted/80 dark:bg-slate-800/80 rounded-xl border border-border/60">
+                <div className="flex flex-col sm:flex-row p-1 bg-muted/80 dark:bg-slate-800/80 rounded-xl border border-border/60 gap-1 sm:gap-0">
                   {canSendBeneficiary && (
                     <button
                       type="button"
                       onClick={() => handleCategorySwitch("beneficiary")}
-                      className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 min-h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         effectiveCategory === "beneficiary"
                           ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <HeartHandshake className="w-3.5 h-3.5" />
+                      <HeartHandshake className="w-3.5 h-3.5 shrink-0" />
                       <span>طالبو الخدمة (المستفيدين) ({formattedBeneficiaries.length})</span>
                     </button>
                   )}
@@ -433,13 +433,13 @@ export default function DirectNotificationTab({
                     <button
                       type="button"
                       onClick={() => handleCategorySwitch("staff")}
-                      className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 min-h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         effectiveCategory === "staff"
                           ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <Shield className="w-3.5 h-3.5" />
+                      <Shield className="w-3.5 h-3.5 shrink-0" />
                       <span>المسؤولون والموظفون ({formattedStaff.length})</span>
                     </button>
                   )}
@@ -456,7 +456,7 @@ export default function DirectNotificationTab({
                     setSearchTerm(e.target.value);
                     setPage(1);
                   }}
-                  className="pr-8 text-xs h-9 rounded-xl border-border/70"
+                  className="pr-8 text-xs max-md:text-base h-10 sm:h-9 rounded-xl border-border/70"
                 />
               </div>
             </div>
@@ -548,7 +548,7 @@ export default function DirectNotificationTab({
             </div>
           ) : (
             <>
-              <div className="w-full overflow-x-auto scrollbar-thin">
+              <div className="hidden lg:block w-full overflow-x-auto scrollbar-thin">
                 <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
@@ -654,6 +654,84 @@ export default function DirectNotificationTab({
                     })}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile & Tablet Portrait View */}
+              <div className="lg:hidden divide-y divide-border/40">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/60 dark:bg-slate-950/20 text-xs">
+                  <label className="flex items-center gap-2 font-bold text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isPageAllSelected}
+                      onChange={handleToggleSelectPage}
+                      className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer accent-teal-600"
+                    />
+                    <span>تحديد الصفحة الحالية ({paginatedRecipients.length})</span>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:gap-3 md:p-4">
+                  {paginatedRecipients.map((recipient) => {
+                    const isSelected = selectedRecipients.has(recipient.id);
+                    return (
+                      <div
+                        key={recipient.id}
+                        onClick={() => handleToggleRecipient(recipient)}
+                        className={`p-3.5 sm:p-4 md:rounded-xl md:border cursor-pointer transition-colors space-y-2 ${
+                          isSelected
+                            ? "bg-teal-50/90 dark:bg-teal-950/30 border-r-4 border-r-teal-600 md:border-teal-500/60"
+                            : "bg-card hover:bg-muted/20 md:border-border/60"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleRecipient(recipient);
+                              }}
+                              className="w-4 h-4 mt-0.5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer accent-teal-600 shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-sm text-foreground break-words">
+                                {recipient.name}
+                                {recipient.city && (
+                                  <span className="text-[11px] text-muted-foreground mr-1.5 font-normal">
+                                    ({recipient.city})
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] py-0.5 px-2 rounded-full border font-bold ${recipient.roleBadgeColor}`}
+                                >
+                                  {recipient.roleTitle}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] py-0.5 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold shrink-0"
+                          >
+                            نشط
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-1 pr-6">
+                          <span dir="ltr" className="font-mono">{recipient.phone || "—"}</span>
+                          {recipient.email && (
+                            <span dir="ltr" className="truncate max-w-[200px]" title={recipient.email}>
+                              {recipient.email}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {totalPages > 1 && (
@@ -793,7 +871,7 @@ export default function DirectNotificationTab({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="مثال: تنبيه إداري، تذكير بمتابعة الطلب..."
-                className="text-xs sm:text-sm rounded-xl border-border/70 bg-background"
+                className="text-xs sm:text-sm max-md:text-base h-10 sm:h-9 rounded-xl border-border/70 bg-background"
               />
             </div>
           )}
@@ -813,7 +891,7 @@ export default function DirectNotificationTab({
               onChange={(e) => setMessage(e.target.value)}
               placeholder="اكتب نص الرسالة هنا..."
               rows={4}
-              className="text-xs sm:text-sm rounded-xl border-border/70 bg-background leading-relaxed"
+              className="text-xs sm:text-sm max-md:text-base rounded-xl border-border/70 bg-background leading-relaxed"
             />
           </div>
 

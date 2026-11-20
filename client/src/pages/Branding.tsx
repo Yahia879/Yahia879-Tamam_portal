@@ -235,7 +235,7 @@ export default function Branding() {
   // شاشة حجب الوصول في حال عدم توفر أي صلاحية من صلاحيات الهوية البصرية
   if (!canAccessBranding) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 mb-4">
             <ShieldAlert className="w-8 h-8" />
@@ -284,7 +284,7 @@ export default function Branding() {
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 font-mono text-sm ${disabled ? "bg-muted cursor-not-allowed text-muted-foreground opacity-80" : ""}`}
+          className={`flex-1 font-mono text-sm max-md:text-base h-10 ${disabled ? "bg-muted cursor-not-allowed text-muted-foreground opacity-80" : ""}`}
           maxLength={7}
         />
         <div className="w-10 h-10 rounded-lg border shadow-sm flex-shrink-0" style={{ backgroundColor: value }} />
@@ -293,23 +293,23 @@ export default function Branding() {
   );
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 space-y-6 max-w-6xl mx-auto px-3 sm:px-6 overflow-x-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Link href="/settings">
-              <Button variant="ghost" size="icon" type="button">
+              <Button variant="ghost" size="icon" type="button" className="min-h-10 min-w-10 shrink-0">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">الهوية البصرية</h1>
-              <p className="text-sm text-muted-foreground">تخصيص الألوان والشعارات للبوابة</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">الهوية البصرية</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">تخصيص الألوان والشعارات للبوابة</p>
             </div>
           </div>
           {canEditColors && (
             <Button
-              className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last"
+              className="gradient-primary text-white w-full sm:w-auto min-h-10 order-first sm:order-last"
               onClick={handleSaveColors}
               disabled={isSaving}
             >

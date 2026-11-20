@@ -129,20 +129,20 @@ export default function FormsCustomization() {
   const visibleOptions = allOptions.filter((opt) => opt.visible);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-4 overflow-x-hidden space-y-5 sm:space-y-6">
         {/* رأس الصفحة البسيط */}
         <div className="flex items-center gap-3 pb-4 border-b border-border/60">
           <Link href="/settings">
-            <Button variant="ghost" size="icon" type="button" className="shrink-0">
+            <Button variant="ghost" size="icon" type="button" className="shrink-0 min-h-10 min-w-10">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <SlidersHorizontal className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">تخصيص النماذج</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">تخصيص النماذج</h1>
             <p className="text-xs text-muted-foreground">
               اختر النموذج الذي ترغب بتعديله وتخصيص أسئلته
             </p>
@@ -150,7 +150,7 @@ export default function FormsCustomization() {
         </div>
 
         {visibleOptions.length === 0 ? (
-          <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-3">
+          <div className="p-6 sm:p-8 rounded-2xl border border-border bg-card text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
               <ShieldAlert className="w-6 h-6" />
             </div>
@@ -163,7 +163,7 @@ export default function FormsCustomization() {
               variant="outline"
               size="sm"
               onClick={() => navigate("/settings")}
-              className="mt-2 text-xs font-semibold"
+              className="mt-2 min-h-10 text-xs font-semibold"
             >
               العودة لمركز الإعدادات
             </Button>
@@ -178,33 +178,33 @@ export default function FormsCustomization() {
                   key={opt.id}
                   type="button"
                   onClick={() => navigate(opt.path)}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all text-right group shadow-2xs"
+                  className="w-full flex items-center justify-between gap-3 p-3.5 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all text-right group shadow-2xs min-h-14"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
                     {/* رقم الخيار البارز */}
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center border border-primary/20 shrink-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 mt-0.5 sm:mt-0">
                       {idx + 1}
                     </div>
 
                     <div
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${opt.iconColor}`}
+                      className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${opt.iconColor}`}
                     >
                       <Icon className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
                           {opt.title}
                         </h3>
-                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md shrink-0">
                           {opt.optionBadge}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{opt.subtitle}</p>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.subtitle}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
+                  <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors shrink-0">
                     <span className="text-xs font-bold hidden sm:inline">دخول</span>
                     <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                   </div>

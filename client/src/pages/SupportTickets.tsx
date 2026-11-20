@@ -562,7 +562,7 @@ export default function SupportTickets() {
 
   if (!user) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
           <p className="text-gray-500 font-bold">{isEn ? "Loading and verifying data..." : "جاري تحميل البيانات والتحقق منها..."}</p>
@@ -573,7 +573,7 @@ export default function SupportTickets() {
 
   if (!hasCreate && !hasView) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <ShieldAlert className="w-16 h-16 text-destructive mb-4 animate-pulse" />
           <h2 className="text-2xl font-black text-gray-800 mb-2">{isEn ? "Access Denied" : "غير مصرح لك بالوصول"}</h2>
@@ -584,17 +584,17 @@ export default function SupportTickets() {
   }
 
   return (
-    <DashboardLayout>
-      <div className={`space-y-6 p-1 md:p-4 ${isEn ? "text-left" : "text-right"}`} dir={isEn ? "ltr" : "rtl"}>
+    <DashboardLayout tabletNavigation>
+      <div className={`w-full min-w-0 max-w-7xl mx-auto overflow-x-hidden space-y-5 sm:space-y-6 px-3 sm:px-6 py-2 md:py-4 ${isEn ? "text-left" : "text-right"}`} dir={isEn ? "ltr" : "rtl"}>
         {/* Banner / Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-700 via-teal-800 to-[#09707e] text-white p-6 md:p-8 shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-700 via-teal-800 to-[#09707e] text-white p-4 sm:p-6 md:p-8 shadow-md">
           {/* Islamic pattern background overlay */}
           <div className="absolute inset-0 opacity-10 bg-cover bg-center islamic-pattern" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3 !leading-normal py-1">
-                <LifeBuoy className="w-9 h-9 text-teal-200 animate-pulse" />
-                {isEn ? "Technical Support Center" : "مركز الدعم الفني"}
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+            <div className="space-y-2 min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight flex items-center gap-2.5 sm:gap-3 !leading-normal py-1">
+                <LifeBuoy className="w-7 h-7 sm:w-9 sm:h-9 text-teal-200 animate-pulse shrink-0" />
+                <span>{isEn ? "Technical Support Center" : "مركز الدعم الفني"}</span>
               </h1>
               <p className="text-teal-50/90 max-w-xl text-sm md:text-base leading-relaxed font-medium">
                 {hasView
@@ -614,7 +614,7 @@ export default function SupportTickets() {
               {hasCreate && (
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
+                    <Button className="w-full md:w-auto min-h-11 bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-5 sm:px-6 py-3 sm:py-5 text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
                       <Plus className="w-5 h-5" />
                       {isEn ? "Contact Support" : "تواصل مع الدعم الفني"}
                     </Button>
@@ -622,17 +622,17 @@ export default function SupportTickets() {
                   <DialogContent
                     dir={isEn ? "ltr" : "rtl"}
                     showCloseButton={false}
-                    className="!fixed !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-none !p-0 !m-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden"
+                    className="!fixed !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-[100dvh] !max-w-none !max-h-none !rounded-none !border-none !p-0 !m-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
                     {/* Modal Header */}
-                    <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 pt-6 pb-4 md:px-10 flex items-center justify-between shadow-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 py-4 sm:px-6 sm:pt-6 sm:pb-4 md:px-10 flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <LifeBuoy className="w-5 h-5" />
                         </div>
-                        <div>
-                          <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50 !leading-normal py-0.5">
+                        <div className="min-w-0">
+                          <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-50 !leading-normal py-0.5 truncate">
                             {isEn ? "Create New Support Ticket" : "إنشاء تذكرة دعم جديدة"}
                           </DialogTitle>
                           <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
@@ -646,15 +646,15 @@ export default function SupportTickets() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsCreateOpen(false)}
-                        className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="w-10 h-10 shrink-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
                         <X className="w-5 h-5 text-slate-550" />
                       </Button>
                     </div>
 
                     <div className="flex-1 w-full overflow-y-auto bg-slate-50/50 dark:bg-slate-900/10">
-                      <div className={`w-full max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col space-y-8 ${isEn ? "text-left" : "text-right"}`}>
-                        <form onSubmit={handleSubmitTicket} className={`space-y-6 ${isEn ? "text-left" : "text-right"} bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm`}>
+                      <div className={`w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8 md:py-12 flex flex-col space-y-6 sm:space-y-8 ${isEn ? "text-left" : "text-right"}`}>
+                        <form onSubmit={handleSubmitTicket} className={`space-y-5 sm:space-y-6 ${isEn ? "text-left" : "text-right"} bg-white dark:bg-slate-900 p-4 sm:p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm`}>
                           
                           {/* Custom Ticket Type Chooser */}
                           <div className="space-y-3">
@@ -787,11 +787,11 @@ export default function SupportTickets() {
                           </div>
 
                           {/* Footer buttons */}
-                          <div className={`flex items-center justify-start gap-3 pt-6 border-t border-slate-200 dark:border-slate-800 ${isEn ? "flex-row" : "flex-row-reverse"}`}>
+                          <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-start gap-3 pt-5 sm:pt-6 border-t border-slate-200 dark:border-slate-800 ${isEn ? "sm:flex-row" : "sm:flex-row-reverse"}`}>
                             <Button
                               type="submit"
                               disabled={createTicketMutation.isPending || uploading}
-                              className="font-bold px-8 h-11 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all rounded-xl"
+                              className="w-full sm:w-auto font-bold px-8 h-11 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all rounded-xl"
                             >
                               {createTicketMutation.isPending ? (
                                 <>
@@ -807,7 +807,7 @@ export default function SupportTickets() {
                               variant="outline"
                               onClick={() => setIsCreateOpen(false)}
                               disabled={createTicketMutation.isPending}
-                              className="px-8 h-11 text-base rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                              className="w-full sm:w-auto px-8 h-11 text-base rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
                             >
                               {isEn ? "Cancel" : "إلغاء"}
                             </Button>
@@ -848,7 +848,7 @@ export default function SupportTickets() {
         {/* ======================================================== */}
         {hasCreate && !hasView && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: selectedTicketId ? '70vh' : 'auto' }}>
+            <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${selectedTicketId ? "lg:min-h-[70vh]" : ""}`}>
               {/* My Tickets List (1/3 width) */}
               <div className="lg:col-span-1 space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -956,13 +956,13 @@ export default function SupportTickets() {
               </div>
 
               {/* Ticket Detail & Replies Panel (2/3 width) */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 min-w-0">
                 {selectedTicketId && selectedTicket ? (
-                  <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden" style={{ height: '70vh' }}>
+                  <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden h-[76dvh] min-h-[460px] max-h-[760px] lg:h-[70vh]">
                     {/* Panel Header */}
-                    <div className="pt-5 pb-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
-                      <div className={`space-y-1 ${isEn ? "text-left" : "text-right"}`}>
-                        <div className="flex items-center gap-2">
+                    <div className="pt-4 pb-3 px-3.5 sm:pt-5 sm:pb-3.5 sm:px-5 border-b border-slate-100 dark:border-slate-800 flex items-start sm:items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
+                      <div className={`space-y-1 min-w-0 ${isEn ? "text-left" : "text-right"}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
                           <h3 className="text-base font-bold text-slate-900 dark:text-white !leading-normal py-0.5 flex items-center gap-1.5">
                             {selectedTicket.ticketType === "technical_issue" ? (
@@ -996,10 +996,10 @@ export default function SupportTickets() {
                     </div>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-5 bg-slate-50/10 dark:bg-slate-900/10">
-                      <div className="space-y-5">
+                    <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 bg-slate-50/10 dark:bg-slate-900/10">
+                      <div className="space-y-4 sm:space-y-5">
                         {/* Description Card */}
-                        <div className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 ${isEn ? "text-left" : "text-right"} space-y-3 shadow-2xs`}>
+                        <div className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-3.5 sm:p-4 ${isEn ? "text-left" : "text-right"} space-y-3 shadow-2xs`}>
                           <div className="font-bold text-slate-800 dark:text-slate-200 text-xs pb-1.5 border-b border-slate-100 dark:border-slate-850 flex items-center gap-1.5">
                             <User className="w-3.5 h-3.5 text-primary" />
                             <span>{isEn ? "Your Report Details:" : "تفاصيل بلاغك:"}</span>
@@ -1017,7 +1017,7 @@ export default function SupportTickets() {
                                   ? `Attachments (${getSafeAttachments(selectedTicket.attachments).length})`
                                   : `المرفقات (${getSafeAttachments(selectedTicket.attachments).length})`}
                               </span>
-                              <div className="grid grid-cols-4 gap-2">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
                                   <button
                                     key={idx}
@@ -1148,7 +1148,7 @@ export default function SupportTickets() {
                           value={replyMessage}
                           onChange={(e) => setReplyMessage(e.target.value)}
                           placeholder={isEn ? "Type a reply or inquiry for the support team..." : "اكتب استفساراً أو رداً إضافياً لفريق الدعم..."}
-                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm`}
+                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm max-md:text-base`}
                           required={replyAttachments.length === 0}
                         />
                         <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending || replyUploading}>
@@ -1193,7 +1193,7 @@ export default function SupportTickets() {
                       value={faqSearch}
                       onChange={(e) => setFaqSearch(e.target.value)}
                       placeholder={isEn ? "Search frequently asked questions..." : "ابحث في الأسئلة الشائعة..."}
-                      className={`h-9 ${isEn ? "text-left pl-10 pr-4" : "text-right pr-10 pl-4"} rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs`}
+                      className={`h-10 sm:h-9 ${isEn ? "text-left pl-10 pr-4" : "text-right pr-10 pl-4"} rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs max-md:text-base`}
                     />
                     <Search className={`w-4 h-4 text-slate-400 absolute top-2.5 ${isEn ? "left-3" : "right-3"}`} />
                   </div>
@@ -1239,7 +1239,7 @@ export default function SupportTickets() {
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
                       placeholder={isEn ? "Search by ticket #, sender name, or content..." : "ابحث برقم التذكرة، اسم المرسل، أو محتوى التذكرة..."}
-                      className={`${isEn ? "pl-11 pr-4 text-left" : "pr-11 pl-4 text-right"} h-11 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm font-medium`}
+                      className={`${isEn ? "pl-11 pr-4 text-left" : "pr-11 pl-4 text-right"} h-11 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm max-md:text-base font-medium`}
                     />
                   </div>
                   
@@ -1354,9 +1354,9 @@ export default function SupportTickets() {
             </div>
 
             {/* Selected Ticket Conversation Panel (2/3 width) */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-4 min-w-0">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
-                <MessageSquare className="w-5 h-5 text-slate-550" />
+                <MessageSquare className="w-5 h-5 text-slate-550 shrink-0" />
                 {isEn ? "Ticket Preview & Reply" : "معاينة التذكرة والرد عليها"}
               </h2>
 
@@ -1364,10 +1364,10 @@ export default function SupportTickets() {
                 loadingTicketDetails ? (
                   <Card className="animate-pulse h-[65vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl" />
                 ) : selectedTicket ? (
-                  <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[68vh] bg-white dark:bg-slate-900">
+                  <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[55dvh] lg:min-h-[68vh] bg-white dark:bg-slate-900">
                     {/* Panel Header */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                      <div className="space-y-1">
+                    <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                      <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono bg-slate-250 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">#{selectedTicket.id}</span>
                           <span className="font-bold text-slate-900 dark:text-white !leading-normal py-0.5 flex items-center gap-1.5">
@@ -1380,20 +1380,20 @@ export default function SupportTickets() {
                           </span>
                           {renderStatusBadge(selectedTicket.status)}
                         </div>
-                        <div className={`text-xs text-slate-500 dark:text-slate-400 font-bold ${isEn ? "text-left" : "text-right"}`}>
+                        <div className={`text-xs text-slate-500 dark:text-slate-400 font-bold break-words ${isEn ? "text-left" : "text-right"}`}>
                           {isEn ? "Sender: " : "المرسل: "}{selectedTicket.userName} ({selectedTicket.userEmail}) •{" "}
                           {new Date(selectedTicket.createdAt).toLocaleString(isEn ? "en-US" : "ar-SA")}
                         </div>
                       </div>
 
                       {/* Status select for Admin */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                         <span className="text-xs text-slate-500 dark:text-slate-400 font-bold shrink-0">{isEn ? "Update Status:" : "تحديث الحالة:"}</span>
                         <Select
                           value={selectedTicket.status}
                           onValueChange={handleStatusChange}
                         >
-                          <SelectTrigger className={`w-[140px] ${isEn ? "text-left justify-between" : "text-right justify-between flex-row-reverse"} h-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold`}>
+                          <SelectTrigger className={`w-full sm:w-[150px] ${isEn ? "text-left justify-between" : "text-right justify-between flex-row-reverse"} h-10 sm:h-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="text-xs font-semibold">
@@ -1406,10 +1406,10 @@ export default function SupportTickets() {
                     </div>
 
                     {/* Content Scroll Area */}
-                    <div className="flex-1 overflow-y-auto p-5 bg-slate-50/20 dark:bg-slate-900/10">
-                      <div className="space-y-6">
+                    <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 bg-slate-50/20 dark:bg-slate-900/10">
+                      <div className="space-y-5 sm:space-y-6">
                         {/* Ticket Description */}
-                        <div className={`bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4 ${isEn ? "text-left" : "text-right"}`}>
+                        <div className={`bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 ${isEn ? "text-left" : "text-right"}`}>
                           <div className="font-bold text-slate-850 dark:text-slate-200 text-sm border-b border-slate-100 dark:border-slate-850 pb-2 flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                               <User className="w-4 h-4" />
@@ -1459,7 +1459,7 @@ export default function SupportTickets() {
                                 return (
                                   <div
                                     key={reply.id}
-                                    className={`flex gap-3 max-w-[85%] ${
+                                    className={`flex gap-2.5 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${
                                       isMe
                                         ? (isEn ? "ml-auto flex-row-reverse" : "mr-auto flex-row-reverse")
                                         : (isEn ? "mr-auto" : "ml-auto")
@@ -1468,9 +1468,9 @@ export default function SupportTickets() {
                                     <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-350 dark:border-slate-705 flex items-center justify-center shrink-0">
                                       <User className="w-4 h-4 text-slate-600 dark:text-slate-405" />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 min-w-0">
                                       <div
-                                        className={`rounded-2xl p-4 text-sm leading-relaxed shadow-2xs ${
+                                        className={`rounded-2xl p-3 sm:p-4 text-sm leading-relaxed shadow-2xs ${
                                           isMe
                                             ? (isEn ? "bg-teal-600 text-white rounded-tl-none" : "bg-teal-600 text-white rounded-tr-none")
                                             : (isEn ? "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tr-none" : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none")
@@ -1478,7 +1478,7 @@ export default function SupportTickets() {
                                       >
                                         <p className="whitespace-pre-wrap font-medium break-words [word-break:break-word]">{reply.message}</p>
                                         {getSafeAttachments((reply as any).attachments).length > 0 && (
-                                          <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 min-w-[180px]`}>
+                                          <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 w-full max-w-[220px]`}>
                                             {getSafeAttachments((reply as any).attachments).map((url, index) => (
                                               <button
                                                 key={index}
@@ -1556,7 +1556,7 @@ export default function SupportTickets() {
                           value={replyMessage}
                           onChange={(e) => setReplyMessage(e.target.value)}
                           placeholder={isEn ? "Write your reply here to send to the user..." : "اكتب ردك هنا وسيجري إرساله للمستفيد..."}
-                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm`}
+                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm max-md:text-base`}
                           required={replyAttachments.length === 0}
                         />
                         <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md" disabled={addReplyMutation.isPending || replyUploading}>
@@ -1655,10 +1655,10 @@ export default function SupportTickets() {
               </div>
 
               {/* Caption/Name */}
-              <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
+              <div className="mt-2 px-3 sm:px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex flex-col sm:flex-row justify-between items-center gap-1 text-slate-300 text-center sm:text-start">
                 <p className="text-xs font-medium flex items-center gap-1.5">
-                  <Info className="h-4 w-4 text-slate-400" />
-                  {isEn ? `Attachment Preview - ${previewDoc.title}` : `معاينة المرفق - ${previewDoc.title}`}
+                  <Info className="h-4 w-4 text-slate-400 shrink-0" />
+                  <span className="truncate max-w-[260px] sm:max-w-md">{isEn ? `Attachment Preview - ${previewDoc.title}` : `معاينة المرفق - ${previewDoc.title}`}</span>
                 </p>
                 <p className="text-xs font-bold truncate max-w-[200px]" dir="ltr">{previewDoc.title}</p>
               </div>

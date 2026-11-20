@@ -147,17 +147,17 @@ export default function FormsCustomizationEscalation() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto pb-24 text-right" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 space-y-5 sm:space-y-6 max-w-4xl mx-auto pb-24 px-3 sm:px-6 overflow-x-hidden text-right" dir="rtl">
 
         {/* رأس الصفحة الرئيسي */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-xs">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-500 text-white shadow-xs">
               <Clock className="w-5 h-5" />
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-lg sm:text-xl font-bold text-foreground">
                   تخصيص مدة التصعيد
@@ -169,19 +169,19 @@ export default function FormsCustomizationEscalation() {
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 تحديد مدة مراحل الطلبات ومهلة قبول المستفيدين
               </p>
             </div>
           </div>
 
           {canSave && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
               <Button
                 type="button"
                 onClick={handleSave}
                 disabled={updateSettingsMutation.isPending || !hasChanges}
-                className={`text-xs font-semibold px-5 h-10 rounded-xl shadow-xs gap-2 transition-all ${
+                className={`w-full sm:w-auto text-xs font-semibold px-5 h-10 rounded-xl shadow-xs gap-2 transition-all ${
                   hasChanges
                     ? "gradient-primary text-white shadow-md cursor-pointer"
                     : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none"
@@ -199,17 +199,17 @@ export default function FormsCustomizationEscalation() {
         </div>
 
         {/* 3. شريط الإحصائيات السريع */}
-        <div className="flex items-center gap-6 p-4 px-5 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-6 p-3.5 sm:p-4 px-4 sm:px-5 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-primary" />
+            <Layers className="w-4 h-4 text-primary shrink-0" />
             <span>إجمالي المراحل: <strong className="text-foreground">{draftStages.length} مراحل</strong></span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-teal-600" />
+            <Users className="w-4 h-4 text-teal-600 shrink-0" />
             <span>مهلة قبول المستفيد: <strong className="text-foreground">{draftBeneficiaryDays} أيام</strong></span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-rose-500" />
+            <Calendar className="w-4 h-4 text-rose-500 shrink-0" />
             <span>إجمالي مدد المراحل الثابتة: <strong className="text-foreground">{totalCycleDays} يوم</strong> <span className="text-2xs text-muted-foreground font-normal">(+ مدة العقد المعتمد)</span></span>
           </div>
         </div>
@@ -220,7 +220,7 @@ export default function FormsCustomizationEscalation() {
 
           <Card className="border border-border shadow-xs">
             <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center shrink-0">
                     <Users className="w-4 h-4" />
@@ -229,20 +229,20 @@ export default function FormsCustomizationEscalation() {
                     <h4 className="font-bold text-sm text-foreground">
                       مهلة قبول تسجيل المستفيد
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                       عدد الأيام المسموحة قبل اعتبار تسجيل المستفيد متأخراً
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
+                <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0 self-end sm:self-center">
                   {canEditBeneficiarySla && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
-                      className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-background cursor-pointer"
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
@@ -251,11 +251,12 @@ export default function FormsCustomizationEscalation() {
                   {canEditBeneficiarySla ? (
                     <Input
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       max={60}
                       value={draftBeneficiaryDays}
                       onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
-                      className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                      className="w-12 text-center font-bold text-sm max-md:text-base h-9 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
                     />
                   ) : (
                     <span className="font-bold text-sm text-foreground px-2.5">
@@ -269,7 +270,7 @@ export default function FormsCustomizationEscalation() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
-                      className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-background cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -296,86 +297,89 @@ export default function FormsCustomizationEscalation() {
                   className="border border-border shadow-xs hover:border-primary/40 transition-all"
                 >
                   <CardContent className="p-3.5 sm:p-4">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                       {/* رقم واسم المرحلة */}
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
                           {index + 1}
                         </span>
-                        <span className="font-bold text-sm text-foreground truncate">
+                        <span className="font-bold text-sm text-foreground break-words">
                           {stg.stageName}
                         </span>
                       </div>
 
                       {/* عداد الأيام أو شارة غير قابلة للتعديل */}
                       {isExecution ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-muted/50 text-muted-foreground text-xs font-semibold shrink-0">
                             <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span>المشاريع: مدة العقد المعتمد</span>
                           </div>
 
-                          <div className="flex items-center gap-2 bg-amber-50/70 dark:bg-amber-950/30 p-1 px-3 rounded-xl border border-amber-200 dark:border-amber-800/60 shrink-0">
+                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-amber-50/70 dark:bg-amber-950/30 p-1.5 px-3 rounded-xl border border-amber-200 dark:border-amber-800/60 shrink-0">
                             <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
                               فرص التبرع (بعد طلب الصرف):
                             </span>
 
-                            {canEditDurations && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setDraftStages(prev => prev.map((item, idx) => 
-                                    idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
-                                  ));
-                                }}
-                                className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
-                              >
-                                <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {canEditDurations && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDraftStages(prev => prev.map((item, idx) => 
+                                      idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
+                                    ));
+                                  }}
+                                  className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                                >
+                                  <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                                </Button>
+                              )}
 
-                            {canEditDurations ? (
-                              <Input
-                                type="number"
-                                min={1}
-                                max={365}
-                                value={stg.durationDays ?? 30}
-                                onChange={(e) => {
-                                  const parsed = parseInt(e.target.value);
-                                  const val = isNaN(parsed) ? 0 : parsed;
-                                  setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
-                                }}
-                                className="w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0"
-                              />
-                            ) : (
-                              <span className="font-bold text-sm text-amber-900 dark:text-amber-300 px-2">
-                                {stg.durationDays ?? 30}
-                              </span>
-                            )}
+                              {canEditDurations ? (
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={1}
+                                  max={365}
+                                  value={stg.durationDays ?? 30}
+                                  onChange={(e) => {
+                                    const parsed = parseInt(e.target.value);
+                                    const val = isNaN(parsed) ? 0 : parsed;
+                                    setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
+                                  }}
+                                  className="w-14 text-center font-bold text-sm max-md:text-base h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0"
+                                />
+                              ) : (
+                                <span className="font-bold text-sm text-amber-900 dark:text-amber-300 px-2">
+                                  {stg.durationDays ?? 30}
+                                </span>
+                              )}
 
-                            {canEditDurations && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setDraftStages(prev => prev.map((item, idx) => 
-                                    idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
-                                  ));
-                                }}
-                                className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
-                              >
-                                <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                              </Button>
-                            )}
+                              {canEditDurations && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDraftStages(prev => prev.map((item, idx) => 
+                                      idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
+                                    ));
+                                  }}
+                                  className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                                >
+                                  <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                                </Button>
+                              )}
 
-                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 px-1">يوم</span>
+                              <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 px-1">يوم</span>
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
+                        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0 self-end sm:self-center">
                           {canEditDurations && (
                             <Button
                               type="button"
@@ -386,7 +390,7 @@ export default function FormsCustomizationEscalation() {
                                   idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
                                 ));
                               }}
-                              className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                              className="h-9 w-9 p-0 rounded-lg hover:bg-background cursor-pointer"
                             >
                               <Minus className="w-4 h-4" />
                             </Button>
@@ -395,6 +399,7 @@ export default function FormsCustomizationEscalation() {
                           {canEditDurations ? (
                             <Input
                               type="number"
+                              inputMode="numeric"
                               min={0}
                               max={180}
                               value={stg.durationDays}
@@ -402,7 +407,7 @@ export default function FormsCustomizationEscalation() {
                                 const val = parseInt(e.target.value) || 0;
                                 setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
                               }}
-                              className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                              className="w-12 text-center font-bold text-sm max-md:text-base h-9 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
                             />
                           ) : (
                             <span className="font-bold text-sm text-foreground px-2">
@@ -420,7 +425,7 @@ export default function FormsCustomizationEscalation() {
                                   idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
                                 ));
                               }}
-                              className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                              className="h-9 w-9 p-0 rounded-lg hover:bg-background cursor-pointer"
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
@@ -439,7 +444,7 @@ export default function FormsCustomizationEscalation() {
 
         {/* زر الحفظ العائم في الأسفل عند وجود تعديلات */}
         {canSave && hasChanges && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-card border border-border shadow-xl rounded-2xl p-3 px-6 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-3">
+          <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-auto max-w-md bg-card border border-border shadow-xl rounded-2xl p-3 px-4 sm:px-6 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-3">
             <div className="flex items-center gap-2 text-xs">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
               <span className="font-semibold text-foreground">توجد تعديلات غير محفوظة</span>

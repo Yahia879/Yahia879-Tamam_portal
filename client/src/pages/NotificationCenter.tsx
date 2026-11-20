@@ -64,7 +64,7 @@ export default function NotificationCenter() {
 
   if (isAuthOrPermsLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex items-center justify-center py-24" dir="rtl">
           <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
         </div>
@@ -75,14 +75,14 @@ export default function NotificationCenter() {
   // إذا لم يملك المستخدم أي صلاحية من صلاحيات مركز الإشعارات، يتم حجب الصفحة وإظهار رسالة عدم التصريح
   if (!canDirectSend && !canSendLogs) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4" dir="rtl">
           <AlertCircle className="h-14 w-14 text-rose-500" />
           <h2 className="text-xl font-bold">عذراً، الوصول غير مصرح به</h2>
-          <p className="text-muted-foreground max-w-md">
+          <p className="text-muted-foreground max-w-md text-sm">
             مركز الإشعارات متاح حصراً لمن يملكون صلاحيات إرسال الإشعارات أو مراجعة سجلات الإرسال.
           </p>
-          <Button onClick={() => setLocation("/settings")} variant="outline" className="mt-2">
+          <Button onClick={() => setLocation("/settings")} variant="outline" className="mt-2 min-h-10">
             العودة للإعدادات
           </Button>
         </div>
@@ -91,22 +91,22 @@ export default function NotificationCenter() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-4 overflow-x-hidden space-y-5 sm:space-y-6" dir="rtl">
         {/* رأس الصفحة مع زر العودة للإعدادات */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/40">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <Link href="/settings">
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" title="العودة للإعدادات">
+              <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" title="العودة للإعدادات">
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </Button>
             </Link>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs shrink-0">
                   <Send className="w-4 h-4" />
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight">
                   مركز الإشعارات
                 </h1>
               </div>
@@ -118,18 +118,18 @@ export default function NotificationCenter() {
         </div>
 
         {/* التبويبات الرئيسية مع التوسيط */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <div className="flex justify-center w-full">
-            <TabsList className="bg-slate-100/80 dark:bg-slate-900/50 p-1.5 rounded-2xl h-auto flex flex-wrap justify-center gap-1.5 border border-border/50 shadow-xs max-w-fit">
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="w-full space-y-5 sm:space-y-6">
+          <div className="flex justify-start sm:justify-center w-full overflow-x-auto pb-1 sm:pb-0">
+            <TabsList className="bg-slate-100/80 dark:bg-slate-900/50 p-1.5 rounded-2xl h-auto flex w-full sm:w-auto sm:max-w-fit justify-center gap-1.5 border border-border/50 shadow-xs">
               {availableTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-xs rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
+                    className="flex-1 sm:flex-initial data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-xs rounded-xl px-3.5 sm:px-5 py-2.5 min-h-10 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap"
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4 shrink-0" />
                     <span>{tab.label}</span>
                   </TabsTrigger>
                 );

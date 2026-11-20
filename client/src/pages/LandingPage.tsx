@@ -66,7 +66,11 @@ export default function LandingPage() {
             {/* الشعار */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img 
-                src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
+                src={
+                  isScrolled
+                    ? (orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || "/logo.svg")
+                    : (orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg")
+                } 
                 alt="شعار بوابة منارة" 
                 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 shrink-0 object-contain transition-all duration-300" 
                 onError={(e) => {
@@ -161,7 +165,7 @@ export default function LandingPage() {
             <div className="flex justify-center mb-5 sm:mb-6 md:mb-8">
               <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
                 <img 
-                  src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || "/logo-white.svg"} 
+                  src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} 
                   alt="شعار بوابة منارة" 
                   className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain" 
                   onError={(e) => {

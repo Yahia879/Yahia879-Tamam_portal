@@ -246,7 +246,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   if (!canViewDetails) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center py-20 gap-4 px-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center">
             <Shield className="w-8 h-8 text-amber-600 dark:text-amber-400" />
@@ -274,7 +274,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           <p className="text-muted-foreground text-sm animate-pulse">جاري تحميل تفاصيل الحساب...</p>
@@ -285,7 +285,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   if (!user || user.role !== "service_requester") {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center py-20 gap-4 px-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center">
             <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
@@ -315,23 +315,23 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const isRejectionResponseImage = user.rejectionResponse ? /\.(jpg|jpeg|png|webp)$/i.test(user.rejectionResponse) : false;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-0" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:py-4 space-y-5 sm:space-y-6 overflow-x-hidden" dir="rtl">
         {/* رأس الصفحة مع زر العودة */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 text-right min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 text-right min-w-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/requester-approvals")}
-              className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
+              className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-10 w-10"
             >
               <ArrowRight className="h-5 w-5 text-slate-600 dark:text-slate-400" />
             </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                <User className="w-5.5 h-5.5 text-primary" />
-                تفاصيل حساب طالب الخدمة
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <User className="w-5 h-5 text-primary shrink-0" />
+                <span className="truncate">تفاصيل حساب طالب الخدمة</span>
               </h1>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
                 مراجعة بيانات المستخدم والملف المرفق لإثبات الصفة
@@ -339,7 +339,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {(user.status ?? "pending") === "pending" && user.createdAt && (() => {
               const slaInfo = calculateBeneficiarySLA(user.createdAt, allowedDays);
               return (
@@ -419,9 +419,9 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* معلومات طالب الخدمة */}
           <Card className="lg:col-span-2 border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl">
-            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-row items-center justify-between">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" />
+                <User className="w-5 h-5 text-primary shrink-0" />
                 البيانات الأساسية للمستخدم
               </CardTitle>
               {canEdit && !isEditing && (
@@ -429,14 +429,14 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                   onClick={() => setIsEditing(true)}
                   variant="outline"
                   size="sm"
-                  className="font-bold gap-1 rounded-xl h-9"
+                  className="font-bold gap-1 rounded-xl h-10 sm:h-9"
                 >
                   <Edit className="w-4 h-4" />
                   تعديل البيانات
                 </Button>
               )}
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
+            <CardContent className="p-4 sm:p-6 space-y-6">
               {isEditing ? (
                 <div className="space-y-6 text-right">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -448,7 +448,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm max-md:text-base font-semibold text-foreground"
                         />
                       </div>
                     </div>
@@ -461,7 +461,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Input
                           value={editEmail}
                           onChange={(e) => setEditEmail(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm font-semibold text-foreground text-right"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm max-md:text-base font-semibold text-foreground text-right"
                         />
                       </div>
                     </div>
@@ -474,7 +474,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Input
                           value={editPhone}
                           onChange={(e) => setEditPhone(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm font-semibold text-foreground text-right"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm max-md:text-base font-semibold text-foreground text-right"
                         />
                       </div>
                     </div>
@@ -487,7 +487,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Input
                           value={editNationalId}
                           onChange={(e) => setEditNationalId(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm max-md:text-base font-semibold text-foreground"
                         />
                       </div>
                     </div>
@@ -554,7 +554,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             value={editCustomRequesterType}
                             onChange={(e) => setEditCustomRequesterType(e.target.value)}
                             placeholder="أدخل الصفة الأخرى"
-                            className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                            className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm max-md:text-base font-semibold text-foreground"
                           />
                         </div>
                       </div>
@@ -569,13 +569,13 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           type="date"
                           value={editCreatedAt}
                           onChange={(e) => setEditCreatedAt(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm max-md:text-base font-semibold text-foreground [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
                     <Button
                       onClick={() => {
                         if (!editName.trim() || !editEmail.trim() || !editPhone.trim()) {
@@ -814,7 +814,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                           طريقة الرد المطلوبة من طالب الخدمة
                         </label>
-                        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
                           <button
                             type="button"
                             onClick={() => setNotesRequiredType("text")}
@@ -849,11 +849,11 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder="اكتب الملاحظات لطالب الخدمة"
                           rows={3}
-                          className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
+                          className="w-full text-sm max-md:text-base p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
                         />
                       </div>
 
-                      <div className="flex gap-2 border-t pt-3">
+                      <div className="flex flex-col sm:flex-row gap-2 border-t pt-3">
                         <Button
                           onClick={() => {
                             updateNotes.mutate(
@@ -862,14 +862,14 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             );
                           }}
                           disabled={updateNotes.isPending}
-                          className="bg-primary hover:bg-primary/95 text-white font-bold px-5 rounded-xl"
+                          className="bg-primary hover:bg-primary/95 text-white font-bold px-5 h-10 rounded-xl w-full sm:w-auto"
                         >
                           {updateNotes.isPending ? "جاري الإرسال..." : "الارسال لطالب الخدمة"}
                         </Button>
                         <Button
                           variant="ghost"
                           onClick={() => setShowNotesForm(false)}
-                          className="font-bold px-5 rounded-xl border border-slate-200"
+                          className="font-bold px-5 h-10 rounded-xl border border-slate-200 w-full sm:w-auto"
                         >
                           إلغاء
                         </Button>
@@ -884,11 +884,11 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
                             طريقة الرد المطلوبة من المستفيد عند معالجة الرفض
                           </label>
-                          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
                             <button
                               type="button"
                               onClick={() => setNotesRequiredType("text")}
-                              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                              className={`py-2 px-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "text"
                                   ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-350 shadow-sm border border-rose-200/20"
                                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
@@ -899,7 +899,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             <button
                               type="button"
                               onClick={() => setNotesRequiredType("file")}
-                              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                              className={`py-2 px-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "file"
                                   ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-350 shadow-sm border border-rose-200/20"
                                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
@@ -910,7 +910,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             <button
                               type="button"
                               onClick={() => setNotesRequiredType("none")}
-                              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                              className={`py-2 px-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "none"
                                   ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-350 shadow-sm border border-rose-200/20"
                                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
@@ -931,11 +931,11 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder={user.status === "active" ? "يرجى كتابة سبب إيقاف الحساب بالتفصيل هنا..." : "يرجى كتابة سبب رفض الحساب بالتفصيل هنا..."}
                           rows={3}
-                          className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-rose-300/60 focus:border-rose-300 outline-none resize-none transition-all"
+                          className="w-full text-sm max-md:text-base p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-rose-300/60 focus:border-rose-300 outline-none resize-none transition-all"
                         />
                       </div>
 
-                      <div className="flex gap-2 border-t pt-3">
+                      <div className="flex flex-col sm:flex-row gap-2 border-t pt-3">
                         <Button
                           onClick={() => {
                             if (!notes.trim()) {
@@ -1682,7 +1682,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
       {/* حوار تأكيد حذف المستفيد نهائياً */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent className="rounded-2xl max-w-md" dir="rtl">
+        <AlertDialogContent className="rounded-2xl w-[calc(100vw-1rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto" dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right font-bold text-base flex items-center gap-2 text-rose-600">
               <Trash2 className="w-5 h-5 text-rose-600" />
