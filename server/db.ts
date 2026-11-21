@@ -13,6 +13,10 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
   _migrationPromise = (async () => {
     try {
       const promisePool = p.promise();
+    const [followUpCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM progress_reports LIKE 'followUpDetails'");
+    if (followUpCols.length === 0) {
+      await promisePool.query("ALTER TABLE progress_reports ADD COLUMN followUpDetails JSON");
+    }
     const [cols] = await promisePool.query("SHOW COLUMNS FROM disbursement_orders") as any[];
     const colNames = Array.isArray(cols) ? cols.map((c: any) => c.Field) : [];
     if (!colNames.includes("executiveNotes")) {
@@ -540,6 +544,7 @@ export async function getDb() {
       _db = null;
     }
   }
+  await _migrationPromise;
   return _db;
 }
 

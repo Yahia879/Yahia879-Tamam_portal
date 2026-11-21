@@ -3,68 +3,42 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { 
   ArrowRight, 
   ArrowLeft,
-  Clock, 
-  Calendar, 
-  BarChart3, 
   MapPin, 
   FileText,
   Layers,
-  FileCheck,
-  Printer
+  FileCheck
 } from "lucide-react";
 
-import SemiMonthlyReportPage from "./SemiMonthlyReportPage";
-import MonthlyReportPage from "./MonthlyReportPage";
-import QuarterlyReportPage from "./QuarterlyReportPage";
+import { FOLLOW_UP_REPORT_TITLE } from "@shared/followUpReport";
+import FollowUpReportPage from "./FollowUpReportPage";
 import VisitReportPage from "./VisitReportPage";
 
-type ReportTypeKey = "semi-monthly" | "monthly" | "quarterly" | "visit";
+type ReportTypeKey = "follow-up" | "visit";
 
 export default function NewProjectReportPage() {
-  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [selectedType, setSelectedType] = useState<ReportTypeKey | null>("semi-monthly");
+  const [selectedType, setSelectedType] = useState<ReportTypeKey>("follow-up");
 
   const reportTypes = [
     {
-      key: "semi-monthly" as ReportTypeKey,
-      title: "تقرير نصف شهري",
-      description: "متابعة دورية كل أسبوعين لرصد نسبة الإنجاز والانحرافات الفنية",
-      icon: Clock,
+      key: "follow-up" as const,
+      title: FOLLOW_UP_REPORT_TITLE,
+      description: "متابعة إنجاز المشروع ومعالمه وتحدياته خلال فترة تحددها.",
+      icon: FileText,
     },
     {
-      key: "monthly" as ReportTypeKey,
-      title: "تقرير شهري",
-      description: "تقرير رصد شهري شامل يتضمن المعالم الرئيسية والانحرافات",
-      icon: Calendar,
-    },
-    {
-      key: "quarterly" as ReportTypeKey,
-      title: "تقرير ربعي",
-      description: "تقرير تقييمي ربع سنوي لقياس المواءمة والأثر المالي والدروس المستفادة",
-      icon: BarChart3,
-    },
-    {
-      key: "visit" as ReportTypeKey,
+      key: "visit" as const,
       title: "تقرير زيارة ميدانية",
       description: "رصد ميداني فوري وتوثيق صور الموقع والملاحظات الهندسية",
       icon: MapPin,
     },
   ];
 
-  const getReportTitle = (key: ReportTypeKey | null) => {
-    switch (key) {
-      case "semi-monthly": return "تقرير نصف شهري";
-      case "monthly": return "تقرير شهري";
-      case "quarterly": return "تقرير ربعي";
-      case "visit": return "تقرير زيارة ميدانية";
-      default: return "";
-    }
-  };
+  const selectedReport = reportTypes.find(item => item.key === selectedType);
 
   return (
     <DashboardLayout tabletNavigation>
@@ -187,10 +161,7 @@ export default function NewProjectReportPage() {
               </CardContent>
               <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex justify-end gap-2">
                 <Button
-                  disabled={!selectedType}
-                  onClick={() => {
-                    if (selectedType) setCurrentStep(2);
-                  }}
+                  onClick={() => setCurrentStep(2)}
                   className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 min-h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span>التالي</span>
@@ -206,7 +177,7 @@ export default function NewProjectReportPage() {
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2 text-foreground text-sm sm:text-base font-bold">
                   <FileCheck className="h-4.5 w-4.5 text-teal-600 shrink-0" />
-                  <span className="break-words">الخطوة 2: تعبئة {getReportTitle(selectedType)}</span>
+                  <span className="break-words">الخطوة 2: تعبئة {selectedReport?.title}</span>
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground mt-0.5">
                   قم بإدخال وتأكيد كافة بيانات وملاحظات التقرير
@@ -225,9 +196,7 @@ export default function NewProjectReportPage() {
               </div>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 text-right min-w-0">
-              {selectedType === "semi-monthly" && <SemiMonthlyReportPage showLayout={false} />}
-              {selectedType === "monthly" && <MonthlyReportPage showLayout={false} />}
-              {selectedType === "quarterly" && <QuarterlyReportPage showLayout={false} />}
+              {selectedType === "follow-up" && <FollowUpReportPage showLayout={false} />}
               {selectedType === "visit" && <VisitReportPage showLayout={false} />}
             </CardContent>
           </Card>

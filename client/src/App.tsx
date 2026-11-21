@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, Redirect } from "wouter";
+import { Route, Switch, Redirect, useSearch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DocumentTitleProvider } from "./contexts/DocumentTitleContext";
@@ -69,6 +69,7 @@ import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import NewMultiMosqueProjectPage from "./pages/NewMultiMosqueProjectPage";
 import ProjectReportsHubPage from "./pages/ProjectReportsHubPage";
 import NewProjectReportPage from "./pages/NewProjectReportPage";
+import FollowUpReportPage from "./pages/FollowUpReportPage";
 import ProjectReportPrintPage from "./pages/ProjectReportPrintPage";
 import SemiMonthlyReportPage from "./pages/SemiMonthlyReportPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
@@ -386,9 +387,10 @@ function Router() {
       <Route path="/project-reports/new">{() => <AdminRoute component={NewProjectReportPage} />}</Route>
       <Route path="/project-reports/:id/print">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
       <Route path="/project-reports/:id/pdf">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
-      <Route path="/project-reports/semi-monthly">{() => <AdminRoute component={SemiMonthlyReportPage} />}</Route>
-      <Route path="/project-reports/monthly">{() => <AdminRoute component={MonthlyReportPage} />}</Route>
-      <Route path="/project-reports/quarterly">{() => <AdminRoute component={QuarterlyReportPage} />}</Route>
+      <Route path="/project-reports/follow-up">{() => <AdminRoute component={FollowUpReportPage} />}</Route>
+      <Route path="/project-reports/semi-monthly">{() => <LegacyProjectReport component={SemiMonthlyReportPage} />}</Route>
+      <Route path="/project-reports/monthly">{() => <LegacyProjectReport component={MonthlyReportPage} />}</Route>
+      <Route path="/project-reports/quarterly">{() => <LegacyProjectReport component={QuarterlyReportPage} />}</Route>
       <Route path="/project-reports/visit">{() => <AdminRoute component={VisitReportPage} />}</Route>
       
       {/* صفحات أخرى - إدارية */}
@@ -540,6 +542,13 @@ function Router() {
     </Switch>
     </PermissionRouteGuard>
   );
+}
+
+function LegacyProjectReport({ component }: { component: typeof SemiMonthlyReportPage }) {
+  const search = useSearch();
+  return Number(new URLSearchParams(search).get("editId")) > 0
+    ? <AdminRoute component={component} />
+    : <Redirect to="/project-reports/follow-up" />;
 }
 
 function App() {

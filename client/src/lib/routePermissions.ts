@@ -277,6 +277,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/milestones/new": ["projects", "contracts", "progress_reports", "progress_invoices", "projects.view_details"],
   "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
   "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/follow-up": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
   "/project-reports/semi-monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
   "/project-reports/monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
   "/project-reports/quarterly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],

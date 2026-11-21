@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { FOLLOW_UP_REPORT_TITLE, isFollowUpReport } from "@shared/followUpReport";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
@@ -134,9 +135,10 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
   const reports = useMemo(() => {
     if (!dbReports) return [];
 
-    // تصفية التقارير لإظهار تقارير المشاريع فقط (النصف شهرية، الشهرية، الربعية، والزيارات الميدانية)
+    // عرض تقارير المتابعة الجديدة وتقارير المشاريع المسجلة سابقاً.
     const filteredDbReports = dbReports.filter((r) => {
       if ((r as any).disbursementRequestId) return false;
+      if (isFollowUpReport(r)) return true;
 
       const titleLower = (r.title || "").toLowerCase();
       const reportNumUpper = (r.reportNumber || "").toUpperCase();
@@ -159,7 +161,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
     });
 
     return filteredDbReports.map((r) => {
-      let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" = "monthly";
+      let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" | "follow-up" = "monthly";
       let typeLabel = "تقرير شهري";
 
       const titleLower = (r.title || "").toLowerCase();
@@ -174,7 +176,10 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
         }
       }
 
-      if (titleLower.includes("زيارة") || titleLower.includes("visit") || reportNumUpper.includes("VISIT")) {
+      if (isFollowUpReport(r)) {
+        typeKey = "follow-up";
+        typeLabel = FOLLOW_UP_REPORT_TITLE;
+      } else if (titleLower.includes("زيارة") || titleLower.includes("visit") || reportNumUpper.includes("VISIT")) {
         typeKey = "visit";
         typeLabel = "تقرير زيارة";
       } else if (titleLower.includes("ربع") || titleLower.includes("quarterly") || reportNumUpper.includes("Q") || (diffDays >= 70 && diffDays <= 110)) {
@@ -194,7 +199,9 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
       const gap = planned - actual;
 
       let ragLabel = "أخضر";
-      if (gap >= 25) {
+      if (typeKey === "follow-up" && (r.plannedProgress == null || r.actualProgress == null)) {
+        ragLabel = "—";
+      } else if (gap >= 25) {
         ragLabel = "أحمر";
       } else if (gap >= 5) {
         ragLabel = "أصفر";
@@ -228,6 +235,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
   const stats = useMemo(() => {
     return {
       total: reports.length,
+      followUp: reports.filter((r) => r.typeKey === "follow-up").length,
       semiMonthly: reports.filter((r) => r.typeKey === "semi-monthly").length,
       monthly: reports.filter((r) => r.typeKey === "monthly").length,
       quarterly: reports.filter((r) => r.typeKey === "quarterly").length,
@@ -305,7 +313,16 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
         </div>
 
         {/* 4 Pure Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground">{FOLLOW_UP_REPORT_TITLE}</span>
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+            </div>
+            <span className="text-xl sm:text-2xl font-black text-foreground">{stats.followUp}</span>
+          </div>
           {/* Card 1: Semi-monthly */}
           <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
             <div className="flex items-center justify-between gap-2">
@@ -386,6 +403,14 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   الكل ({stats.total})
                 </Button>
                 <Button
+                  variant={filterType === "follow-up" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setFilterType("follow-up")}
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
+                >
+                  {FOLLOW_UP_REPORT_TITLE}
+                </Button>
+                <Button
                   variant={filterType === "semi-monthly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("semi-monthly")}
@@ -438,7 +463,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                             <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                              {report.id}
+                              {report.typeKey === "follow-up" ? <bdi>{report.reportNumber}</bdi> : report.id}
                             </span>
                             <span className="text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded-md">
                               {report.type}
@@ -446,7 +471,9 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                           </div>
                           <Badge
                             className={`shrink-0 ${
-                              report.rag === "أخضر"
+                              report.rag === "—"
+                                ? "bg-muted text-muted-foreground text-[10px]"
+                                : report.rag === "أخضر"
                                 ? "bg-emerald-500 text-white text-[10px]"
                                 : report.rag === "أصفر"
                                 ? "bg-amber-500 text-white text-[10px]"
@@ -496,7 +523,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                           )}
                         </div>
 
-                        {report.status === "معتمد" && (
+                        {(report.typeKey === "follow-up" || report.status === "معتمد") && (
                           <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="w-full">
                             <Button
                               variant="outline"
@@ -550,7 +577,9 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   ) : (
                     filteredReports.map((report) => (
                       <TableRow key={report.id} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs font-bold text-primary">{report.id}</TableCell>
+                        <TableCell className="font-mono text-xs font-bold text-primary">
+                          {report.typeKey === "follow-up" ? <bdi>{report.reportNumber}</bdi> : report.id}
+                        </TableCell>
                         <TableCell className="text-xs font-semibold">{report.type}</TableCell>
                         <TableCell className="text-xs font-medium max-w-xs truncate">{report.project}</TableCell>
                         <TableCell>
@@ -562,7 +591,9 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                         <TableCell className="text-center">
                           <Badge
                             className={
-                              report.rag === "أخضر"
+                              report.rag === "—"
+                                ? "bg-muted text-muted-foreground text-[10px]"
+                                : report.rag === "أخضر"
                                 ? "bg-emerald-500 text-white text-[10px]"
                                 : report.rag === "أصفر"
                                 ? "bg-amber-500 text-white text-[10px]"
@@ -601,7 +632,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="text-right text-xs">
-                              {report.status === "معتمد" && (
+                              {(report.typeKey === "follow-up" || report.status === "معتمد") && (
                                 <DropdownMenuItem asChild>
                                   <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
                                     <Printer className="w-4 h-4 text-teal-600" />

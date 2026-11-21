@@ -1363,6 +1363,7 @@ export const progressReports = mysqlTable("progress_reports", {
   
   // ملخص الأعمال
   workSummary: text("workSummary"), // ملخص الأعمال المنجزة
+  followUpDetails: json("followUpDetails").$type<import("../shared/followUpReport").FollowUpReportDetails>(),
   challenges: text("challenges"), // التحديات والمعوقات
   nextSteps: text("nextSteps"), // الخطوات القادمة
   recommendations: text("recommendations"), // التوصيات

@@ -6,8 +6,9 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { isProgressInvoice } from "../../shared/progressInvoicePermissions";
 import { isAchievementProgressReport } from "../../shared/progressReportPermissions";
+import { FOLLOW_UP_REPORT_TITLE, followUpReportDetailsSchema, isFollowUpReport } from "../../shared/followUpReport";
 import { getDb } from "../db";
-import { progressReports, projects, users, disbursementRequests, disbursementOrders, contractPayments, payments, contracts, contractsEnhanced } from "../../drizzle/schema";
+import { progressReports, projects, mosqueRequests, users, disbursementRequests, disbursementOrders, contractPayments, payments, contracts, contractsEnhanced } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
 
 const pmUsers = alias(users, "pmUsers");
@@ -35,6 +36,24 @@ const parseDateInput = (val: any): Date | null => {
     return null;
   }
 };
+
+function validateFollowUpDates(report: {
+  reportDate?: string | Date | null;
+  reportPeriodStart?: string | Date | null;
+  reportPeriodEnd?: string | Date | null;
+}) {
+  const dates = [report.reportDate, report.reportPeriodStart, report.reportPeriodEnd].map(value => {
+    if (typeof value === "string" && !z.iso.date().safeParse(value).success) return null;
+    return parseDateInput(value);
+  });
+  const [date, from, to] = dates;
+  if (!date || !from || !to) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى إدخال تاريخ التقرير وتاريخ بداية الفترة ونهايتها." });
+  }
+  if (to < from) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "يجب أن يكون تاريخ نهاية الفترة في يوم البداية أو بعده." });
+  }
+}
 
 async function cancelLinkedDisbursements(
   db: any,
@@ -496,6 +515,9 @@ export const progressReportsRouter = router({
           budgetRemaining: progressReports.budgetRemaining,
           milestones: progressReports.milestones,
           attachments: progressReports.attachments,
+          followUpDetails: sql`${progressReports.followUpDetails}`.mapWith((value: unknown) =>
+            followUpReportDetailsSchema.parse(typeof value === "string" ? JSON.parse(value) : value)
+          ),
           photos: progressReports.photos,
           status: progressReports.status,
           reviewNotes: progressReports.reviewNotes,
@@ -510,6 +532,7 @@ export const progressReportsRouter = router({
           // بيانات مدير المشروع والاعتمادات
           projectManagerId: projects.managerId,
           projectManagerName: pmUsers.name,
+          projectStage: sql<string | null>`COALESCE(${mosqueRequests.currentStage}, ${projects.status})`,
           projectManagerSignatureName: pmUsers.signatureName,
           projectManagerSignatureDepartment: pmUsers.signatureDepartment,
           projectManagerSignatureUrl: pmUsers.signatureUrl,
@@ -550,6 +573,7 @@ export const progressReportsRouter = router({
         .leftJoin(projects, eq(progressReports.projectId, projects.id))
         .leftJoin(users, eq(progressReports.createdBy, users.id))
         .leftJoin(pmUsers, eq(projects.managerId, pmUsers.id))
+        .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id))
         .leftJoin(appUsers, eq(progressReports.approvedBy, appUsers.id))
         .leftJoin(mgrUsers, eq(progressReports.managerApprovedBy, mgrUsers.id))
         .leftJoin(excUsers, eq(progressReports.exceptionApprovedBy, excUsers.id))
@@ -603,9 +627,9 @@ export const progressReportsRouter = router({
         reportDate: z.union([z.string(), z.date()]),
         reportPeriodStart: z.union([z.string(), z.date(), z.null()]).optional(),
         reportPeriodEnd: z.union([z.string(), z.date(), z.null()]).optional(),
-        overallProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).default(0),
-        plannedProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).default(0),
-        actualProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).default(0),
+        overallProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).optional(),
+        plannedProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).optional(),
+        actualProgress: z.preprocess((v) => Math.min(100, Math.max(0, Number(v) || 0)), z.number()).optional(),
         workSummary: z.string().optional(),
         challenges: z.string().optional(),
         nextSteps: z.string().optional(),
@@ -615,11 +639,14 @@ export const progressReportsRouter = router({
         milestones: z.string().optional(),
         attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
+        followUpDetails: followUpReportDetailsSchema.optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const invoice = isProgressInvoice(input);
-      const achievement = isAchievementProgressReport(input);
+      const followUp = input.followUpDetails !== undefined;
+      const title = followUp ? FOLLOW_UP_REPORT_TITLE : input.title;
+      const invoice = !followUp && isProgressInvoice(input);
+      const achievement = !followUp && isAchievementProgressReport(input);
       const hasAdd = invoice
         ? await checkPermission(ctx.user.id, "progress_invoices.add")
         : achievement ? await checkPermission(ctx.user.id, "progress_reports.add")
@@ -629,12 +656,17 @@ export const progressReportsRouter = router({
       if (!hasAdd && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير مشاريع" });
       }
+      if (followUp) {
+        validateFollowUpDates(input);
+      } else if (isFollowUpReport(input)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى استخدام نموذج تقارير متابعة." });
+      }
 
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       try {
-        const isInvoice = (input.workSummary && input.workSummary.includes("[نوع: مستخلص")) || (input.title && input.title.includes("مستخلص"));
+        const isInvoice = !followUp && ((input.workSummary && input.workSummary.includes("[نوع: مستخلص")) || (input.title && input.title.includes("مستخلص")));
         if (isInvoice) {
           try {
             // التحقق مما إذا كانت القيمة المسددة تساوي أو تتجاوز قيمة العقد
@@ -722,20 +754,21 @@ export const progressReportsRouter = router({
           }
         }
         const reportNumber = `${prefix}${String(sequence).padStart(4, "0")}`;
-        const variance = input.actualProgress - input.plannedProgress;
+        const variance = (input.actualProgress ?? 0) - (input.plannedProgress ?? 0);
 
         const [result] = await db.insert(progressReports).values({
           reportNumber,
           projectId: input.projectId,
-          title: input.title || `تقرير متابعة - ${reportNumber}`,
+          title: title || `تقرير متابعة - ${reportNumber}`,
           reportDate: parseDateInput(input.reportDate) || new Date(),
           reportPeriodStart: parseDateInput(input.reportPeriodStart) || null,
           reportPeriodEnd: parseDateInput(input.reportPeriodEnd) || null,
-          overallProgress: input.overallProgress ?? 0,
-          plannedProgress: input.plannedProgress ?? 0,
-          actualProgress: input.actualProgress ?? 0,
-          variance,
-          workSummary: input.workSummary || null,
+          overallProgress: input.overallProgress ?? (followUp ? null : 0),
+          plannedProgress: input.plannedProgress ?? (followUp ? null : 0),
+          actualProgress: input.actualProgress ?? (followUp ? null : 0),
+          variance: followUp && (input.actualProgress === undefined || input.plannedProgress === undefined) ? null : variance,
+          workSummary: followUp ? null : input.workSummary || null,
+          followUpDetails: input.followUpDetails ?? null,
           challenges: input.challenges || null,
           nextSteps: input.nextSteps || null,
           recommendations: input.recommendations || null,
@@ -744,12 +777,12 @@ export const progressReportsRouter = router({
           milestones: input.milestones || null,
           attachments: input.attachments || null,
           photos: input.photos ? JSON.stringify(input.photos) : null,
-          status: "pending",
+          status: followUp ? "draft" : "pending",
           createdBy: ctx.user.id,
         });
 
         try {
-          await notifyProgressReportCreation(result.insertId, reportNumber, input.title || "", input.projectId);
+          if (!followUp) await notifyProgressReportCreation(result.insertId, reportNumber, title || "", input.projectId);
         } catch (notifErr) {
           console.error("Failed to notify progress report creation:", notifErr);
         }
@@ -788,6 +821,7 @@ export const progressReportsRouter = router({
         milestones: z.string().optional(),
         attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
+        followUpDetails: followUpReportDetailsSchema.optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -795,8 +829,12 @@ export const progressReportsRouter = router({
       if (!db) throw new Error("Database not available");
       const [existingReport] = await db.select().from(progressReports).where(eq(progressReports.id, input.id));
       if (!existingReport) throw new TRPCError({ code: "NOT_FOUND" });
-      const invoice = isProgressInvoice(existingReport) || isProgressInvoice({ ...existingReport, ...input });
-      const achievement = isAchievementProgressReport(existingReport) || isAchievementProgressReport({ ...existingReport, ...input });
+      const followUp = isFollowUpReport(existingReport);
+      if ((input.followUpDetails !== undefined || isFollowUpReport(input)) && !followUp) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا السجل ليس تقرير متابعة موحّدًا." });
+      }
+      const invoice = !followUp && (isProgressInvoice(existingReport) || isProgressInvoice({ ...existingReport, ...input }));
+      const achievement = !followUp && (isAchievementProgressReport(existingReport) || isAchievementProgressReport({ ...existingReport, ...input }));
       const hasEdit = invoice ? await checkPermission(ctx.user.id, "progress_invoices.edit")
         : achievement ? await checkPermission(ctx.user.id, "progress_reports.edit")
         : await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create") || await checkPermission(ctx.user.id, "reports.create");
@@ -808,11 +846,18 @@ export const progressReportsRouter = router({
           message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو رفضه أو أثناء انتظار اعتماد المدير التنفيذي",
         });
       }
+      if (followUp) {
+        validateFollowUpDates({
+          reportDate: input.reportDate === undefined ? existingReport.reportDate : input.reportDate,
+          reportPeriodStart: input.reportPeriodStart === undefined ? existingReport.reportPeriodStart : input.reportPeriodStart,
+          reportPeriodEnd: input.reportPeriodEnd === undefined ? existingReport.reportPeriodEnd : input.reportPeriodEnd,
+        });
+      }
 
       try {
         const updateData: any = {};
         
-        if (input.title !== undefined) updateData.title = input.title;
+        if (!followUp && input.title !== undefined) updateData.title = input.title;
         if (input.reportDate !== undefined) {
           const d = parseDateInput(input.reportDate);
           if (d) updateData.reportDate = d;
@@ -826,7 +871,7 @@ export const progressReportsRouter = router({
         if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
         if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
         if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
-        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary || null;
+        if (!followUp && input.workSummary !== undefined) updateData.workSummary = input.workSummary || null;
         if (input.challenges !== undefined) updateData.challenges = input.challenges || null;
         if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps || null;
         if (input.recommendations !== undefined) updateData.recommendations = input.recommendations || null;
@@ -838,6 +883,15 @@ export const progressReportsRouter = router({
 
         if (input.actualProgress !== undefined && input.plannedProgress !== undefined) {
           updateData.variance = input.actualProgress - input.plannedProgress;
+        }
+        if (followUp && input.followUpDetails !== undefined) {
+          updateData.followUpDetails = input.followUpDetails;
+          updateData.overallProgress = input.actualProgress ?? null;
+          updateData.plannedProgress = input.plannedProgress ?? null;
+          updateData.actualProgress = input.actualProgress ?? null;
+          updateData.variance = input.actualProgress === undefined || input.plannedProgress === undefined
+            ? null
+            : input.actualProgress - input.plannedProgress;
         }
 
         await db

@@ -1,4 +1,5 @@
 import { isProgressInvoice } from "./progressInvoicePermissions";
+import { isFollowUpReport } from "./followUpReport";
 
 export const PROGRESS_REPORT_ACTIONS = ["view", "add", "edit", "approve", "revoke_approval", "exception_approve", "view_revoke_reason"] as const;
 export const PROGRESS_REPORT_PERMISSION_IDS = PROGRESS_REPORT_ACTIONS.map(action => `progress_reports.${action}`);
@@ -8,6 +9,7 @@ export function isProgressReportPermission(permission: string): boolean {
 }
 
 export function isSeparateProjectReport(report: { title?: string | null; reportNumber?: string | null }): boolean {
+  if (isFollowUpReport(report)) return true;
   const title = report.title?.toLowerCase() || "";
   const number = report.reportNumber?.toUpperCase() || "";
   return ["زيارة", "visit", "نصف", "شهري", "ربعي", "semi", "monthly", "quarterly"].some(marker => title.includes(marker)) ||

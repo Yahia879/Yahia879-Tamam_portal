@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { isFollowUpReport } from "@shared/followUpReport";
+import { FollowUpReportPrint } from "@/components/project-reports/FollowUpReportPrint";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, Clock, Target, Activity, Eye, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +173,13 @@ export default function ProjectReportPrintPage() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a5f4a]" />
       </div>
     );
+  }
+
+  if (report && isFollowUpReport(report)) {
+    return <FollowUpReportPrint report={report} organization={orgSettings} onBack={handleBack} onPrint={handlePrint} />;
+  }
+  if (!report && new URLSearchParams(window.location.search).get("type") === "follow-up") {
+    return <p className="p-6 text-center" dir="rtl">تعذّر العثور على تقرير المتابعة.</p>;
   }
 
   // منع معاينة وطباعة التقرير إذا كان غير معتمد أو توجد بيانات ناقصة
