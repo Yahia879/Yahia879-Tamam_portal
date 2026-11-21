@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import {
   MapPin, 
   FileText,
   Layers,
-  FileCheck
+  FileCheck,
+  GitMerge,
 } from "lucide-react";
 
 import { FOLLOW_UP_REPORT_TITLE } from "@shared/followUpReport";
@@ -21,7 +22,8 @@ type ReportTypeKey = "follow-up" | "visit";
 
 export default function NewProjectReportPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [selectedType, setSelectedType] = useState<ReportTypeKey>("follow-up");
+  const [selectedType, setSelectedType] = useState<ReportTypeKey | null>(null);
+  const [mergeMode, setMergeMode] = useState(false);
 
   const reportTypes = [
     {
@@ -39,6 +41,11 @@ export default function NewProjectReportPage() {
   ];
 
   const selectedReport = reportTypes.find(item => item.key === selectedType);
+
+  function openReport(merge: boolean) {
+    setMergeMode(merge);
+    setCurrentStep(2);
+  }
 
   return (
     <DashboardLayout tabletNavigation>
@@ -92,7 +99,7 @@ export default function NewProjectReportPage() {
                 2
               </div>
               <p className={`text-xs mt-1.5 ${currentStep === 2 ? "text-teal-700 dark:text-teal-400 font-bold" : "text-muted-foreground font-medium"}`}>
-                تعبئة التقرير
+                {currentStep === 2 && mergeMode ? "دمج التقرير" : "تعبئة التقرير"}
               </p>
             </div>
           </div>
@@ -127,6 +134,7 @@ export default function NewProjectReportPage() {
                           key={item.key}
                           type="button"
                           onClick={() => setSelectedType(item.key)}
+                          aria-pressed={isSelected}
                           className={`flex items-start gap-3 p-3.5 sm:p-4 min-h-20 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                             isSelected
                               ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
@@ -159,15 +167,21 @@ export default function NewProjectReportPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex justify-end gap-2">
-                <Button
-                  onClick={() => setCurrentStep(2)}
-                  className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 min-h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <span>التالي</span>
-                  <ArrowLeft className="h-4 w-4 shrink-0" />
-                </Button>
-              </CardFooter>
+              {selectedType && (
+                <CardFooter className="flex flex-wrap justify-end gap-2 border-t border-border/40 p-4 sm:px-6">
+                  {selectedType === "follow-up" && (
+                    <Button type="button" variant="outline" onClick={() => openReport(false)} className="w-full min-h-11 rounded-xl sm:w-auto">
+                      <FileText className="size-4" />
+                      إنشاء تقرير متابعة
+                    </Button>
+                  )}
+                  <Button type="button" onClick={() => openReport(selectedType === "follow-up")}
+                    className="w-full min-h-11 rounded-xl bg-teal-600 px-6 font-bold text-white hover:bg-teal-700 sm:w-auto">
+                    {selectedType === "follow-up" ? <><GitMerge className="size-4" /> دمج تقارير متابعة</>
+                      : <>التالي <ArrowLeft className="size-4" /></>}
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </div>
         ) : (
@@ -177,11 +191,13 @@ export default function NewProjectReportPage() {
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2 text-foreground text-sm sm:text-base font-bold">
                   <FileCheck className="h-4.5 w-4.5 text-teal-600 shrink-0" />
-                  <span className="break-words">الخطوة 2: تعبئة {selectedReport?.title}</span>
+                  <span className="break-words">{mergeMode ? "دمج تقارير متابعة" : `الخطوة 2: تعبئة ${selectedReport?.title}`}</span>
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground mt-0.5">
-                  قم بإدخال وتأكيد كافة بيانات وملاحظات التقرير
-                </CardDescription>
+                {!mergeMode && (
+                  <CardDescription className="text-right text-xs text-muted-foreground mt-0.5">
+                    قم بإدخال وتأكيد كافة بيانات وملاحظات التقرير
+                  </CardDescription>
+                )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                 <Button
@@ -196,7 +212,7 @@ export default function NewProjectReportPage() {
               </div>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 text-right min-w-0">
-              {selectedType === "follow-up" && <FollowUpReportPage showLayout={false} />}
+              {selectedType === "follow-up" && <FollowUpReportPage showLayout={false} mergeMode={mergeMode} />}
               {selectedType === "visit" && <VisitReportPage showLayout={false} />}
             </CardContent>
           </Card>

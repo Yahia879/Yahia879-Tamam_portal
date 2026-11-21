@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { format } from "date-fns";
-import { ArrowRight, CheckCircle2, GitMerge, Info, Loader2, Save, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, GitMerge, Info, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
@@ -90,7 +90,7 @@ interface FollowUpDraftFields {
   attachments: UploadedFile[];
 }
 
-function FollowUpForm({ existing, initialMergeMode = false }: { existing?: SavedReport; initialMergeMode?: boolean }) {
+function FollowUpForm({ existing, mergeMode = false }: { existing?: SavedReport; mergeMode?: boolean }) {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
   const { data: projectData, isLoading: loadingProjects } = trpc.projects.getAll.useQuery();
@@ -101,6 +101,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
   const busy = saving || previewMerge.isPending;
   const mergeInFlight = useRef(false);
   const draftBeforeMerge = useRef<FollowUpDraftFields | null>(null);
+  const reviewHeading = useRef<HTMLHeadingElement>(null);
   const [projectId, setProjectId] = useState(existing ? String(existing.projectId) : "");
   const [reportDate, setReportDate] = useState(followUpDateValue(existing?.reportDate) || format(new Date(), "yyyy-MM-dd"));
   const [from, setFrom] = useState(followUpDateValue(existing?.reportPeriodStart));
@@ -113,38 +114,26 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
     revision: 0,
   }));
 
-  const [mergeOpen, setMergeOpen] = useState(initialMergeMode && !existing);
   const [selectedSourceIds, setSelectedSourceIds] = useState<number[]>([]);
-  const [mergeFilterFrom, setMergeFilterFrom] = useState("");
-  const [mergeFilterTo, setMergeFilterTo] = useState("");
-
   const numericProjectId = Number(projectId) || 0;
-  const { data: approvedFollowUps = [], isLoading: loadingApproved } =
+  const selectingSources = mergeMode && !existing && !details.sourceReports?.length;
+  const reviewingMerge = mergeMode && !selectingSources;
+  const { data: approvedReports, isLoading: loadingApproved, isError: cannotLoadApproved } =
     trpc.progressReports.listApprovedFollowUps.useQuery(
       { projectId: numericProjectId },
-      { enabled: !existing && numericProjectId > 0 }
+      { enabled: selectingSources && numericProjectId > 0 }
     );
+  const approvedFollowUps = approvedReports?.filter(item => item.projectId === numericProjectId) ?? [];
+  const selectedApprovedIds = approvedFollowUps.filter(item => selectedSourceIds.includes(item.id)).map(item => item.id);
 
-  const filteredApprovedFollowUps = useMemo(() => {
-    return approvedFollowUps.filter(item => {
-      const itemStart = item.reportPeriodStart || item.reportDate;
-      const itemEnd = item.reportPeriodEnd || item.reportDate;
-      if (mergeFilterFrom && itemEnd && itemEnd < mergeFilterFrom) return false;
-      if (mergeFilterTo && itemStart && itemStart > mergeFilterTo) return false;
-      return true;
-    });
-  }, [approvedFollowUps, mergeFilterFrom, mergeFilterTo]);
-
-  const allFilteredSelected =
-    filteredApprovedFollowUps.length > 0 &&
-    filteredApprovedFollowUps.every(item => selectedSourceIds.includes(item.id));
+  useEffect(() => {
+    if (reviewingMerge) reviewHeading.current?.focus();
+  }, [reviewingMerge]);
 
   function handleProjectChange(nextProjectId: string) {
     if (busy || mergeInFlight.current || draftBeforeMerge.current || nextProjectId === projectId) return;
     setProjectId(nextProjectId);
     setSelectedSourceIds([]);
-    setMergeFilterFrom("");
-    setMergeFilterTo("");
   }
 
   function applyDraft(draft: FollowUpDraftFields) {
@@ -157,11 +146,10 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
     setAttachmentState(current => ({ files: draft.attachments, revision: current.revision + 1 }));
   }
 
-  function cancelMerge() {
+  function returnToSources() {
     if (busy || mergeInFlight.current || !draftBeforeMerge.current) return;
     applyDraft(draftBeforeMerge.current);
     draftBeforeMerge.current = null;
-    setSelectedSourceIds([]);
   }
 
   function toggleSourceSelection(id: number) {
@@ -170,34 +158,13 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
     );
   }
 
-  function toggleSelectAllFiltered() {
-    if (allFilteredSelected) {
-      const visibleIds = new Set(filteredApprovedFollowUps.map(item => item.id));
-      setSelectedSourceIds(current => current.filter(id => !visibleIds.has(id)));
-    } else {
-      setSelectedSourceIds(current => {
-        const merged = new Set(current);
-        filteredApprovedFollowUps.forEach(item => merged.add(item.id));
-        return Array.from(merged);
-      });
-    }
-  }
-
-  async function handleReadAndMerge() {
-    if (busy || mergeInFlight.current) return;
-    if (!numericProjectId) {
-      toast.error("يرجى اختيار المشروع أولاً.");
-      return;
-    }
-    if (selectedSourceIds.length < 2) {
-      toast.error("يرجى اختيار تقريري متابعة معتمدين على الأقل للدمج.");
-      return;
-    }
+  async function previewSelectedReports() {
+    if (!selectingSources || busy || mergeInFlight.current || !numericProjectId || selectedApprovedIds.length < 2) return;
     mergeInFlight.current = true;
     try {
       const merged = await previewMerge.mutateAsync({
         projectId: numericProjectId,
-        reportIds: selectedSourceIds,
+        reportIds: selectedApprovedIds,
       });
       draftBeforeMerge.current ??= { reportDate, from, to, planned, actual, details, attachments };
       applyDraft({
@@ -209,8 +176,6 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
         details: merged.followUpDetails,
         attachments: merged.attachments,
       });
-      const count = merged.followUpDetails.sourceReports?.length ?? selectedSourceIds.length;
-      toast.success(`تمت قراءة ودمج ${count} تقارير متابعة معتمدة. يمكنك المراجعة والتعديل قبل الحفظ.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذّر قراءة ودمج التقارير.");
     } finally {
@@ -293,8 +258,84 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
     );
   }
 
+  const projectField = (
+    <ReportField id="follow-up-project" label="المشروع" required>
+      <ProjectSearchSelect
+        id="follow-up-project"
+        projects={projectOptions}
+        value={projectId}
+        onValueChange={handleProjectChange}
+        disabled={Boolean(existing || details.sourceReports?.length) || busy}
+        isLoading={loadingProjects}
+      />
+    </ReportField>
+  );
+
+  if (selectingSources) {
+    return (
+      <ReportFormCard title="اختيار التقارير">
+        {projectField}
+        {numericProjectId > 0 && (
+          <div className="space-y-3 border-t border-border/60 pt-4">
+            <h3 className="text-sm font-bold">تقارير المتابعة المعتمدة</h3>
+            {loadingApproved ? (
+              <p role="status" className="text-sm text-muted-foreground">جارٍ تحميل تقارير المشروع…</p>
+            ) : cannotLoadApproved ? (
+              <p role="alert" className="text-sm text-destructive">تعذّر تحميل تقارير المشروع.</p>
+            ) : approvedFollowUps.length === 0 ? (
+              <p className="text-sm text-muted-foreground">لا توجد تقارير متابعة معتمدة لهذا المشروع.</p>
+            ) : (
+              <>
+                <div role="group" aria-label="تقارير المتابعة المعتمدة" className="grid max-h-80 gap-2 overflow-y-auto p-1 sm:grid-cols-2">
+                  {approvedFollowUps.map(item => {
+                    const checked = selectedSourceIds.includes(item.id);
+                    return (
+                      <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-xs
+                        ${checked ? "border-teal-600/50 bg-teal-50 dark:bg-teal-950/30" : "border-border/70 hover:bg-muted/40"}`}>
+                        <input type="checkbox" checked={checked} disabled={busy}
+                          onChange={() => toggleSourceSelection(item.id)} className="mt-0.5 size-4 shrink-0 accent-teal-600" />
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <bdi className="font-mono font-bold">{item.reportNumber}</bdi>
+                            {item.isMerged && <Badge variant="secondary">مدمج ({item.sourceReportsCount})</Badge>}
+                          </div>
+                          <p className="text-muted-foreground">
+                            من {formatShortDateAr(item.reportPeriodStart || item.reportDate)} إلى {formatShortDateAr(item.reportPeriodEnd || item.reportDate)}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    {selectedApprovedIds.length < 2 ? "اختر تقريرين على الأقل." : `التقارير المحددة (${selectedApprovedIds.length})`}
+                  </p>
+                  <Button type="button" onClick={previewSelectedReports} disabled={busy || selectedApprovedIds.length < 2}
+                    className="min-h-11 w-full gap-2 bg-teal-600 text-white hover:bg-teal-700 sm:w-auto">
+                    {previewMerge.isPending ? <Loader2 className="size-4 animate-spin" /> : <GitMerge className="size-4" />}
+                    {previewMerge.isPending ? "جارٍ إعداد المعاينة…" : "المعاينة والتعديل"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </ReportFormCard>
+    );
+  }
+
   return (
     <form onSubmit={save} dir="rtl" className="min-w-0 space-y-4 sm:space-y-6">
+      {reviewingMerge && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 ref={reviewHeading} tabIndex={-1} className="text-lg font-bold">المعاينة والتعديل</h2>
+          <Button type="button" variant="outline" onClick={returnToSources} disabled={busy}>
+            <ArrowRight className="size-4" />
+            العودة إلى اختيار التقارير
+          </Button>
+        </div>
+      )}
       <ReportFormCard title="بيانات التقرير والمشروع">
         {!projectId && (
           <p className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-50 p-3 text-xs font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
@@ -302,16 +343,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
             اختر المشروع لتعبئة اسم المدير ومرحلة المشروع تلقائيًا.
           </p>
         )}
-        <ReportField id="follow-up-project" label="المشروع" required>
-          <ProjectSearchSelect
-            id="follow-up-project"
-            projects={projectOptions}
-            value={projectId}
-            onValueChange={handleProjectChange}
-            disabled={Boolean(existing || details.sourceReports?.length) || busy}
-            isLoading={loadingProjects}
-          />
-        </ReportField>
+        {projectField}
         <div className="grid gap-4 sm:grid-cols-2">
           <ReportField id="follow-up-manager" label="مدير المشروع">
             <Input id="follow-up-manager" value={manager || ""} readOnly className="h-10 bg-muted/40" />
@@ -334,179 +366,6 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
         </div>
       </ReportFormCard>
 
-      {!existing && (
-        <Card className="min-w-0 gap-0 border-teal-600/30 bg-teal-50/30 dark:bg-teal-950/15 shadow-xs">
-          <CardHeader className="border-b border-border/60 px-4 pb-3 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <GitMerge className="size-4 shrink-0 text-teal-600" />
-                قراءة ودمج من تقارير متابعة معتمدة
-              </CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setMergeOpen(current => !current)}
-                className="h-8 text-xs font-semibold"
-              >
-                {mergeOpen ? "إخفاء قائمة الدمج" : "اختيار تقارير للدمج"}
-              </Button>
-            </div>
-          </CardHeader>
-          {mergeOpen && (
-            <CardContent className="min-w-0 space-y-4 px-4 pt-4 sm:px-6">
-              {!numericProjectId ? (
-                <p className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-50 p-3 text-xs font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                  <Info className="size-4 shrink-0" />
-                  اختر المشروع أعلاه لعرض تقارير المتابعة المعتمدة المتاحة للدمج.
-                </p>
-              ) : loadingApproved ? (
-                <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin text-teal-600" />
-                  جارٍ جلب تقارير المتابعة المعتمدة لهذا المشروع…
-                </div>
-              ) : approvedFollowUps.length === 0 ? (
-                <p className="rounded-xl border border-border/70 bg-background p-3 text-xs text-muted-foreground">
-                  لا توجد تقارير متابعة معتمدة لهذا المشروع حالياً. يُسمح بدمج تقارير المتابعة المعتمدة فقط.
-                </p>
-              ) : (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-end">
-                    <ReportField id="merge-filter-from" label="تصفية من تاريخ">
-                      <Input
-                        id="merge-filter-from"
-                        type="date"
-                        value={mergeFilterFrom}
-                        onChange={event => setMergeFilterFrom(event.target.value)}
-                        className="h-9 bg-background text-xs"
-                      />
-                    </ReportField>
-                    <ReportField id="merge-filter-to" label="تصفية إلى تاريخ">
-                      <Input
-                        id="merge-filter-to"
-                        type="date"
-                        value={mergeFilterTo}
-                        min={mergeFilterFrom || undefined}
-                        onChange={event => setMergeFilterTo(event.target.value)}
-                        className="h-9 bg-background text-xs"
-                      />
-                    </ReportField>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={toggleSelectAllFiltered}
-                        disabled={busy || filteredApprovedFollowUps.length === 0}
-                        className="h-9 text-xs font-semibold"
-                      >
-                        {allFilteredSelected ? "إلغاء تحديد الكل" : `تحديد الكل (${filteredApprovedFollowUps.length})`}
-                      </Button>
-                      {(mergeFilterFrom || mergeFilterTo) && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setMergeFilterFrom("");
-                            setMergeFilterTo("");
-                          }}
-                          className="h-9 text-xs text-muted-foreground"
-                        >
-                          مسح الفلتر
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {filteredApprovedFollowUps.length === 0 ? (
-                    <p className="rounded-xl border border-border/70 bg-background p-3 text-xs text-muted-foreground">
-                      لا توجد تقارير متابعة معتمدة ضمن نطاق التاريخ المحدد.
-                    </p>
-                  ) : (
-                    <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border/70 bg-background p-2.5">
-                      {filteredApprovedFollowUps.map(item => {
-                        const checked = selectedSourceIds.includes(item.id);
-                        return (
-                          <label
-                            key={item.id}
-                            className={`flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5 text-xs transition-colors ${
-                              checked
-                                ? "border-teal-600/60 bg-teal-50/70 dark:bg-teal-950/30"
-                                : "border-border/60 hover:bg-muted/40"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleSourceSelection(item.id)}
-                                disabled={busy}
-                                className="size-4 shrink-0 accent-teal-600 rounded"
-                              />
-                              <div className="min-w-0 space-y-0.5">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="font-mono font-bold text-teal-700 dark:text-teal-300">
-                                    <bdi>{item.reportNumber}</bdi>
-                                  </span>
-                                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-[10px]">
-                                    معتمد
-                                  </Badge>
-                                  {item.isMerged && (
-                                    <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200 text-[10px]">
-                                      <GitMerge className="size-3 shrink-0" />
-                                      مدمج ({item.sourceReportsCount})
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground">
-                                  الفترة: {formatShortDateAr(item.reportPeriodStart)} إلى {formatShortDateAr(item.reportPeriodEnd)} — بتاريخ {formatShortDateAr(item.reportDate)}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-[11px] font-semibold">
-                              {item.plannedProgress != null && (
-                                <span className="rounded bg-muted px-2 py-0.5">مخطط: {item.plannedProgress}٪</span>
-                              )}
-                              {item.actualProgress != null && (
-                                <span className="rounded bg-teal-600/10 px-2 py-0.5 text-teal-800 dark:text-teal-200">
-                                  فعلي: {item.actualProgress}٪
-                                </span>
-                              )}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                    <span className="text-xs text-muted-foreground">
-                      المحدد حالياً: <strong className="text-foreground">{selectedSourceIds.length}</strong> تقرير (الحد الأدنى تقريرين)
-                    </span>
-                    <Button
-                      type="button"
-                      onClick={handleReadAndMerge}
-                      disabled={selectedSourceIds.length < 2 || busy}
-                      className="gap-2 bg-teal-600 text-xs font-bold text-white hover:bg-teal-700"
-                    >
-                      {previewMerge.isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <GitMerge className="size-4" />
-                      )}
-                      {previewMerge.isPending
-                        ? "جارٍ القراءة والدمج…"
-                        : `قراءة ودمج التقارير المحددة (${selectedSourceIds.length})`}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          )}
-        </Card>
-      )}
-
       {details.sourceReports && details.sourceReports.length > 0 && (
         <div className="rounded-xl border border-teal-600/30 bg-teal-50/50 dark:bg-teal-950/20 p-3.5 sm:p-4 space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -514,23 +373,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
               <CheckCircle2 className="size-4 shrink-0 text-teal-600" />
               <span>تم الدمج من {details.sourceReports.length} تقارير متابعة معتمدة</span>
             </div>
-            {!existing && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={cancelMerge}
-                disabled={busy}
-                className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
-              >
-                <X className="size-3.5" />
-                إلغاء الدمج واستعادة المسودة
-              </Button>
-            )}
           </div>
-          {!existing && (
-            <p className="text-xs text-muted-foreground">لتغيير المشروع، ألغِ الدمج أولاً.</p>
-          )}
           <div className="flex flex-wrap gap-1.5">
             {details.sourceReports.map(source => (
               <Badge
@@ -633,14 +476,14 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
   );
 }
 
-export default function FollowUpReportPage({ showLayout = true }: { showLayout?: boolean }) {
+export default function FollowUpReportPage({ showLayout = true, mergeMode = false }: { showLayout?: boolean; mergeMode?: boolean }) {
   const search = useSearch();
   const params = new URLSearchParams(search);
   const editId = showLayout ? Number(params.get("editId")) : 0;
   const initialMergeMode = showLayout && editId === 0 && params.get("mode") === "merge";
   const { data: report, isPending } = trpc.progressReports.getById.useQuery({ id: editId }, { enabled: editId > 0 });
 
-  if (!showLayout) return <FollowUpForm />;
+  if (!showLayout) return <FollowUpForm mergeMode={mergeMode} />;
 
   return (
     <DashboardLayout tabletNavigation>
@@ -664,7 +507,7 @@ export default function FollowUpReportPage({ showLayout = true }: { showLayout?:
         </div>
         {editId > 0 && isPending ? <p>جارٍ تحميل التقرير…</p>
           : editId > 0 && (!report || !isFollowUpReport(report)) ? <p>تعذّر العثور على تقرير المتابعة.</p>
-          : <FollowUpForm key={report?.id ?? (initialMergeMode ? "merge" : "new")} existing={report ?? undefined} initialMergeMode={initialMergeMode} />}
+          : <FollowUpForm key={report?.id ?? (initialMergeMode ? "merge" : "new")} existing={report ?? undefined} mergeMode={initialMergeMode} />}
       </div>
     </DashboardLayout>
   );

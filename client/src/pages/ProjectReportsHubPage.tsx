@@ -296,28 +296,17 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
             </div>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">استعراض ومتابعة وتعبئة التقارير النصف شهرية والشهرية والربعية والزيارات الميدانية</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">تقارير متابعة المشاريع والزيارات الميدانية</p>
             </div>
           </div>
 
           {canCreateReports && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
-              <Link href="/project-reports/follow-up?mode=merge" className="w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto border-teal-600/40 text-teal-700 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-950/40 font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-4 rounded-xl shadow-2xs flex items-center justify-center gap-2"
-                >
-                  <GitMerge className="w-4 h-4 shrink-0" />
-                  <span>دمج تقارير متابعة</span>
-                </Button>
-              </Link>
-              <Link href="/project-reports/new" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-5 rounded-xl shadow-sm flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4 shrink-0" />
-                  <span>تقرير جديد</span>
-                </Button>
-              </Link>
-            </div>
+            <Link href="/project-reports/new" className="w-full shrink-0 sm:w-auto">
+              <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-5 rounded-xl shadow-sm flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>تقرير جديد</span>
+              </Button>
+            </Link>
           )}
         </div>
 
