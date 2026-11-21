@@ -6,17 +6,20 @@ interface RagIndicatorSelectProps {
   onChange: (val: string) => void;
   label?: string;
   disabled?: boolean;
+  allowClear?: boolean;
 }
 
-export function RagIndicatorSelect({ value, onChange, label, disabled = false }: RagIndicatorSelectProps) {
+export function RagIndicatorSelect({ value, onChange, label, disabled = false, allowClear = false }: RagIndicatorSelectProps) {
   return (
     <div className="w-full">
       {label && <label className="text-xs font-semibold text-foreground mb-1 block">{label}</label>}
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="w-full h-10 border-border/80 bg-background">
+      <Select value={allowClear && !value ? "unset" : value}
+        onValueChange={next => onChange(next === "unset" ? "" : next)} disabled={disabled}>
+        <SelectTrigger aria-label={label} className="w-full h-10 border-border/80 bg-background">
           <SelectValue placeholder="اختر مؤشر الرصد" />
         </SelectTrigger>
         <SelectContent>
+          {allowClear && <SelectItem value="unset">بدون مؤشر</SelectItem>}
           <SelectItem value="أخضر" className="text-xs font-medium">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />

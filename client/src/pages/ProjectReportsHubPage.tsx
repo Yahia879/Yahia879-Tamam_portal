@@ -25,9 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   FileText, 
-  Clock, 
-  Calendar, 
-  BarChart3, 
+  Calendar,
   MapPin, 
   Plus, 
   Printer,
@@ -97,7 +95,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
     isAdmin || 
     serverPermissions.includes("project_reports.create");
 
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType, setFilterType] = useState<"all" | "follow-up" | "visit">("all");
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedReportForPreview, setSelectedReportForPreview] = useState<any>(null);
 
@@ -236,9 +234,6 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
     return {
       total: reports.length,
       followUp: reports.filter((r) => r.typeKey === "follow-up").length,
-      semiMonthly: reports.filter((r) => r.typeKey === "semi-monthly").length,
-      monthly: reports.filter((r) => r.typeKey === "monthly").length,
-      quarterly: reports.filter((r) => r.typeKey === "quarterly").length,
       visit: reports.filter((r) => r.typeKey === "visit").length,
     };
   }, [reports]);
@@ -312,8 +307,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
           )}
         </div>
 
-        {/* 4 Pure Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
           <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] sm:text-xs font-bold text-muted-foreground">{FOLLOW_UP_REPORT_TITLE}</span>
@@ -323,49 +317,6 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
             </div>
             <span className="text-xl sm:text-2xl font-black text-foreground">{stats.followUp}</span>
           </div>
-          {/* Card 1: Semi-monthly */}
-          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير النصف شهرية</span>
-              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400 flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
-              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.semiMonthly}</span>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full">كل أسبوعين</span>
-            </div>
-          </div>
-
-          {/* Card 2: Monthly */}
-          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير الشهرية</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
-              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.monthly}</span>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">شهرياً</span>
-            </div>
-          </div>
-
-          {/* Card 3: Quarterly */}
-          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير الربعية</span>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
-              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.quarterly}</span>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">كل 3 أشهر</span>
-            </div>
-          </div>
-
-          {/* Card 4: Visits */}
           <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">تقارير الزيارات الميدانية</span>
@@ -393,11 +344,12 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60 w-full lg:w-auto max-w-full overflow-x-auto scrollbar-none">
+              <div role="group" aria-label="تصفية التقارير" className="flex flex-wrap items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60 w-fit">
                 <Button
                   variant={filterType === "all" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("all")}
+                  aria-pressed={filterType === "all"}
                   className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-bold px-3"
                 >
                   الكل ({stats.total})
@@ -406,38 +358,16 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   variant={filterType === "follow-up" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("follow-up")}
+                  aria-pressed={filterType === "follow-up"}
                   className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   {FOLLOW_UP_REPORT_TITLE}
                 </Button>
                 <Button
-                  variant={filterType === "semi-monthly" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("semi-monthly")}
-                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
-                >
-                  نصف شهري
-                </Button>
-                <Button
-                  variant={filterType === "monthly" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("monthly")}
-                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
-                >
-                  شهري
-                </Button>
-                <Button
-                  variant={filterType === "quarterly" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("quarterly")}
-                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
-                >
-                  ربعي
-                </Button>
-                <Button
                   variant={filterType === "visit" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("visit")}
+                  aria-pressed={filterType === "visit"}
                   className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   زيارة

@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useSearch } from "wouter";
 import { format } from "date-fns";
+import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
@@ -14,9 +15,12 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
 import { DynamicArrayTable } from "@/components/project-reports/DynamicArrayTable";
+import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 
@@ -34,6 +38,37 @@ export function followUpAttachments(value?: string | null): UploadedFile[] {
   } catch {
     return [];
   }
+}
+
+function ReportFormCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card className="min-w-0 gap-0 border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 px-4 pb-3 sm:px-6">
+        <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="size-2.5 shrink-0 rounded-full bg-teal-600" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="min-w-0 space-y-5 px-4 pt-5 sm:px-6">{children}</CardContent>
+    </Card>
+  );
+}
+
+function ReportField({ id, label, required, children }: {
+  id: string;
+  label: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <Label htmlFor={id} className="text-xs font-semibold">
+        {label}
+        {required && <span aria-hidden="true" className="font-bold text-red-500">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
 }
 
 function FollowUpForm({ existing }: { existing?: SavedReport }) {
@@ -118,11 +153,25 @@ function FollowUpForm({ existing }: { existing?: SavedReport }) {
     }
   }
 
+  function renderTable(key: keyof typeof followUpTables) {
+    const { title, columns } = followUpTables[key];
+    return (
+      <DynamicArrayTable key={key} title={title}
+        columns={[...columns]} rows={details[key] ?? []}
+        onChange={rows => setDetails(current => ({ ...current, [key]: rows }))} />
+    );
+  }
+
   return (
-    <form onSubmit={save} dir="rtl" className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-project">المشروع *</Label>
+    <form onSubmit={save} dir="rtl" className="min-w-0 space-y-4 sm:space-y-6">
+      <ReportFormCard title="بيانات التقرير والمشروع">
+        {!projectId && (
+          <p className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-50 p-3 text-xs font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+            <Info className="size-4 shrink-0" />
+            اختر المشروع لتعبئة اسم المدير ومرحلة المشروع تلقائيًا.
+          </p>
+        )}
+        <ReportField id="follow-up-project" label="المشروع" required>
           <ProjectSearchSelect
             id="follow-up-project"
             projects={projectOptions}
@@ -131,93 +180,104 @@ function FollowUpForm({ existing }: { existing?: SavedReport }) {
             disabled={Boolean(existing)}
             isLoading={loadingProjects}
           />
+        </ReportField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ReportField id="follow-up-manager" label="مدير المشروع">
+            <Input id="follow-up-manager" value={manager || ""} readOnly className="h-10 bg-muted/40" />
+          </ReportField>
+          <ReportField id="follow-up-stage" label="مرحلة المشروع">
+            <Input id="follow-up-stage" value={phase} readOnly className="h-10 bg-muted/40" />
+          </ReportField>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-manager">مدير المشروع</Label>
-          <Input id="follow-up-manager" value={manager || ""} readOnly />
+        <div className="grid gap-4 md:grid-cols-3">
+          {([
+            ["report-date", "تاريخ التقرير", reportDate, setReportDate],
+            ["from", "بداية الفترة (من)", from, setFrom],
+            ["to", "نهاية الفترة (إلى)", to, setTo],
+          ] as const).map(([id, label, value, onChange]) => (
+            <ReportField key={id} id={`follow-up-${id}`} label={label} required>
+              <Input id={`follow-up-${id}`} type="date" value={value} className="h-10 border-border/80"
+                onChange={event => onChange(event.target.value)} min={id === "to" ? from : undefined} required />
+            </ReportField>
+          ))}
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-stage">مرحلة المشروع</Label>
-          <Input id="follow-up-stage" value={phase} readOnly />
+      </ReportFormCard>
+
+      <ReportFormCard title="حالة التقدم والمعالم الرئيسية">
+        <div className="grid gap-4 md:grid-cols-3">
+          <ReportField id="follow-up-planned" label="نسبة الإنجاز المخططة %">
+            <Input id="follow-up-planned" type="number" min={0} max={100} value={planned}
+              onChange={event => setPlanned(event.target.value)} className="h-10 border-border/80 font-bold" />
+          </ReportField>
+          <ReportField id="follow-up-actual" label="نسبة الإنجاز الفعلية %">
+            <Input id="follow-up-actual" type="number" min={0} max={100} value={actual}
+              onChange={event => setActual(event.target.value)} className="h-10 border-border/80 font-bold" />
+          </ReportField>
+          <ReportField id="follow-up-gap" label="فرق الإنجاز (الفعلي − المخطط)">
+            <Input id="follow-up-gap" value={gap === null ? "" : `${gap}٪`} readOnly
+              className="h-10 bg-teal-50 font-bold text-teal-800 dark:bg-teal-950/30 dark:text-teal-200" />
+          </ReportField>
         </div>
-        {([
-          ["report-date", "تاريخ التقرير", reportDate, setReportDate],
-          ["from", "بداية الفترة (من)", from, setFrom],
-          ["to", "نهاية الفترة (إلى)", to, setTo],
-        ] as const).map(([id, label, value, onChange]) => (
-          <div key={id} className="space-y-1.5">
-            <Label htmlFor={`follow-up-${id}`}>{label} *</Label>
-            <Input id={`follow-up-${id}`} type="date" value={value}
-              onChange={event => onChange(event.target.value)} min={id === "to" ? from : undefined} required />
-          </div>
-        ))}
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-planned">الإنجاز المخطط %</Label>
-          <Input id="follow-up-planned" type="number" min={0} max={100} value={planned} onChange={event => setPlanned(event.target.value)} />
+        {renderTable("milestones")}
+      </ReportFormCard>
+
+      <ReportFormCard title="المؤشرات التشغيلية والمالية">
+        <div className="grid gap-4 md:grid-cols-3">
+          {followUpIndicators.map(([key, label]) => (
+            <RagIndicatorSelect key={key} label={label} value={details[key] ?? ""}
+              onChange={value => changeDetail(key, value)} allowClear />
+          ))}
+          <ReportField id="overallTrend" label="اتجاه الأداء">
+            <Select value={details.overallTrend || "unset"}
+              onValueChange={value => changeDetail("overallTrend", value === "unset" ? "" : value)}>
+              <SelectTrigger id="overallTrend" className="h-10 w-full border-border/80">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unset">غير محدد</SelectItem>
+                <SelectItem value="متحسّن">متحسّن</SelectItem>
+                <SelectItem value="ثابت">ثابت</SelectItem>
+                <SelectItem value="متراجع">متراجع</SelectItem>
+              </SelectContent>
+            </Select>
+          </ReportField>
+          {([["amountSpent", "المصروف التراكمي"], ["approvedBudget", "الميزانية المعتمدة"]] as const).map(([key, label]) => (
+            <ReportField key={key} id={key} label={label}>
+              <Input id={key} type="number" min={0} step="0.01" value={details[key] ?? ""}
+                onChange={event => changeDetail(key, event.target.value || undefined)} className="h-10 border-border/80" />
+            </ReportField>
+          ))}
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-actual">الإنجاز الفعلي %</Label>
-          <Input id="follow-up-actual" type="number" min={0} max={100} value={actual} onChange={event => setActual(event.target.value)} />
+      </ReportFormCard>
+
+      <ReportFormCard title="ملخص الأعمال والتوصيات">
+        <div className="grid gap-5 sm:grid-cols-2">
+          {followUpTextFields.map(([key, label]) => (
+            <ReportField key={key} id={key} label={label}>
+              <Textarea id={key} rows={3} value={details[key] ?? ""}
+                onChange={event => changeDetail(key, event.target.value)} className="border-border/80" />
+            </ReportField>
+          ))}
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="follow-up-gap">فرق الإنجاز</Label>
-          <Input id="follow-up-gap" value={gap === null ? "" : `${gap}٪`} readOnly />
-        </div>
-        {followUpIndicators.map(([key, label]) => (
-          <div key={key} className="space-y-1.5">
-            <Label htmlFor={key}>{label}</Label>
-            <select id={key} value={details[key] ?? ""} onChange={event => changeDetail(key, event.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">اختر مؤشرًا</option>
-              <option>أخضر</option>
-              <option>أصفر</option>
-              <option>أحمر</option>
-            </select>
-          </div>
-        ))}
-        <div className="space-y-1.5">
-          <Label htmlFor="overallTrend">اتجاه الأداء</Label>
-          <select id="overallTrend" value={details.overallTrend ?? ""}
-            onChange={event => changeDetail("overallTrend", event.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-            <option value="">اختر اتجاهًا</option>
-            <option>متحسّن</option>
-            <option>ثابت</option>
-            <option>متراجع</option>
-          </select>
-        </div>
-        {([["amountSpent", "المصروف التراكمي"], ["approvedBudget", "الميزانية المعتمدة"]] as const).map(([key, label]) => (
-          <div key={key} className="space-y-1.5">
-            <Label htmlFor={key}>{label}</Label>
-            <Input id={key} type="number" min={0} step="0.01" value={details[key] ?? ""}
-              onChange={event => changeDetail(key, event.target.value || undefined)} />
-          </div>
-        ))}
-        {followUpTextFields.map(([key, label]) => (
-          <div key={key} className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-            <Label htmlFor={key}>{label}</Label>
-            <Textarea id={key} value={details[key] ?? ""} onChange={event => changeDetail(key, event.target.value)} />
-          </div>
-        ))}
-      </div>
-      {followUpTableKeys.map(key => (
-        <DynamicArrayTable key={key} title={followUpTables[key].title}
-          columns={[...followUpTables[key].columns]} rows={details[key] ?? []}
-          onChange={rows => setDetails(current => ({ ...current, [key]: rows }))} />
-      ))}
-      <div className="space-y-1.5">
-        <Label htmlFor="follow-up-escalation">التصعيد الإداري</Label>
-        <select id="follow-up-escalation" value={details.escalation?.toString() ?? ""}
-          onChange={event => changeDetail("escalation", event.target.value === "" ? undefined : event.target.value === "true")}
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-auto">
-          <option value="">اختر حالة التصعيد</option>
-          <option value="true">نعم</option>
-          <option value="false">لا</option>
-        </select>
-      </div>
-      <FileUpload label="المرفقات والوثائق" existingFiles={attachments} onFilesSelected={setAttachments} disabled={saving} />
-      <div className="flex justify-end border-t pt-4">
-        <Button type="submit" disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ تقرير المتابعة"}</Button>
+      </ReportFormCard>
+
+      <ReportFormCard title="الانحرافات والمخاطر والإجراءات">
+        {renderTable("deviations")}
+        {renderTable("risks")}
+        {renderTable("correctiveActions")}
+      </ReportFormCard>
+
+      <ReportFormCard title="المرفقات والروابط">
+        {renderTable("links")}
+        <FileUpload label="رفع المرفقات والوثائق" existingFiles={attachments} onFilesSelected={setAttachments} disabled={saving} />
+      </ReportFormCard>
+
+      <div className="flex justify-end rounded-xl border border-border/80 bg-card p-3.5 shadow-xs sm:p-4">
+        <Button type="submit" disabled={saving}
+          className="min-h-11 w-full gap-2 bg-[#1a5f4a] text-xs font-bold text-white hover:bg-[#154d3c] sm:w-auto">
+          <Save className="size-4" />
+          {saving ? "جارٍ الحفظ…" : "حفظ تقرير المتابعة"}
+        </Button>
       </div>
     </form>
   );

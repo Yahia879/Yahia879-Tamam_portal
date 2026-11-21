@@ -1,4 +1,5 @@
 import { ArrowRight, Printer } from "lucide-react";
+import type { ReactNode } from "react";
 import { STAGE_LABELS } from "@shared/constants";
 import {
   FOLLOW_UP_REPORT_TITLE, followUpIndicators, followUpTableKeys, followUpTables, followUpTextFields,
@@ -13,52 +14,122 @@ interface Props {
   onPrint: () => void;
 }
 
+function printDate(value: string | Date | null) {
+  const date = followUpDateValue(value);
+  if (!date) return "";
+  const [year, month, day] = date.split("-");
+  return `${Number(day)}/${Number(month)}/${year}`;
+}
+
+function PrintSection({ title, children, projectDetails = false }: {
+  title: string;
+  children: ReactNode;
+  projectDetails?: boolean;
+}) {
+  return (
+    <section className="space-y-3">
+      <h2 className={`break-after-avoid-page rounded px-4 py-2 text-sm font-bold sm:text-base ${
+        projectDetails ? "bg-[#d4a574] text-[#5d4037]" : "bg-[#1a5f4a] text-white"
+      }`}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function PrintValues({ title, values, projectDetails }: {
+  title: string;
+  values: readonly (readonly [string, string | null | undefined])[];
+  projectDetails?: boolean;
+}) {
+  const filled = values.filter(([, value]) => value?.trim());
+  if (!filled.length) return null;
+  return (
+    <PrintSection title={title} projectDetails={projectDetails}>
+      <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+        <tbody>
+          {filled.map(([label, value]) => (
+            <tr key={label} className="break-inside-avoid border-b border-slate-200">
+              <th scope="row" className="w-2/5 bg-slate-50 px-3 py-2.5 text-right align-top font-semibold text-slate-700 sm:w-52">
+                {label}
+              </th>
+              <td className="whitespace-pre-wrap break-words px-3 py-2.5">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </PrintSection>
+  );
+}
+
 export function FollowUpReportPrint({ report, organization, onBack, onPrint }: Props) {
   const details = report.followUpDetails ?? {};
   const attachments = followUpAttachments(report.attachments);
   const phase = report.projectStage;
-  const values = [
-    ["المشروع", report.projectName],
-    ["مدير المشروع", report.projectManagerName],
-    ["مرحلة المشروع", phase ? STAGE_LABELS[phase] || phase : null],
-    ["تاريخ التقرير", followUpDateValue(report.reportDate)],
-    ["بداية الفترة (من)", followUpDateValue(report.reportPeriodStart)],
-    ["نهاية الفترة (إلى)", followUpDateValue(report.reportPeriodEnd)],
-    ["الإنجاز المخطط", report.plannedProgress == null ? null : `${report.plannedProgress}٪`],
-    ["الإنجاز الفعلي", report.actualProgress == null ? null : `${report.actualProgress}٪`],
-    ["فرق الإنجاز", report.variance == null ? null : `${report.variance}٪`],
-    ...followUpIndicators.map(([key, label]) => [label, details[key]]),
-    ["اتجاه الأداء", details.overallTrend],
-    ["المصروف التراكمي", details.amountSpent],
-    ["الميزانية المعتمدة", details.approvedBudget],
-    ...followUpTextFields.map(([key, label]) => [label, details[key]]),
-  ].filter(([, value]) => value?.trim());
+  const statusLabel = report.status === "draft" ? "مسودة" : report.status === "approved" ? "معتمد" : null;
 
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-8 print:bg-white print:p-0">
-      <style>{`@media print { @page { size: A4 portrait; margin: 12mm; } }`}</style>
-      <div className="mx-auto mb-4 flex max-w-3xl justify-between gap-3 print:hidden">
-        <Button variant="outline" onClick={onBack}><ArrowRight className="size-4" /> العودة</Button>
-        <Button onClick={onPrint}><Printer className="size-4" /> طباعة / حفظ PDF</Button>
+    <main dir="rtl" className="follow-up-print min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-8 dark:bg-slate-950 print:bg-white print:p-0">
+      <style>{`
+        .follow-up-print { font-family: 'Cairo', system-ui, sans-serif; }
+        @media print {
+          @page { size: A4 portrait; margin: 10mm 8mm; }
+          .follow-up-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .follow-up-print h2 { break-after: avoid; }
+        }
+      `}</style>
+      <div className="mx-auto mb-4 flex w-full max-w-[210mm] gap-2 print:hidden">
+        <Button variant="outline" onClick={onBack} className="gap-2 text-xs font-bold shadow-sm">
+          <ArrowRight className="size-4" /> رجوع
+        </Button>
+        <Button onClick={onPrint} className="gap-2 bg-[#1a5f4a] text-xs font-bold text-white shadow-sm hover:bg-[#154d3c]">
+          <Printer className="size-4" /> طباعة التقرير / PDF
+        </Button>
       </div>
-      <article className="mx-auto max-w-3xl space-y-5 rounded-lg bg-white p-5 shadow sm:p-8 print:max-w-none print:p-0 print:shadow-none">
-        <header className="flex items-center gap-4 border-b border-slate-300 pb-4">
-          {organization?.logoUrl && <img src={organization.logoUrl} alt="شعار الجمعية" className="h-14 w-auto max-w-28 object-contain" />}
-          <div>
-            <div className="text-sm text-slate-600">{organization?.officialReportsName || "جمعية عمارة المساجد (تمام)"}</div>
-            <h1 className="text-2xl font-bold">{FOLLOW_UP_REPORT_TITLE}</h1>
-            <div className="text-sm text-slate-600" dir="ltr">{report.reportNumber}</div>
-            {report.status === "draft" && <div className="text-xs text-slate-600">مسودة</div>}
-          </div>
-        </header>
-        <dl className="divide-y divide-slate-200">
-          {values.map(([label, value]) => (
-            <div key={label} className="grid gap-1 py-2 sm:grid-cols-[1fr_2fr]">
-              <dt className="text-sm font-semibold">{label}</dt>
-              <dd className="whitespace-pre-wrap break-words text-sm">{value}</dd>
+      <article className="mx-auto w-full max-w-[210mm] space-y-6 rounded-xl bg-white p-4 shadow-sm sm:p-8 print:max-w-none print:space-y-4 print:rounded-none print:p-0 print:shadow-none">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:flex-row print:justify-between">
+          <div className="flex items-center gap-3">
+            {organization?.logoUrl
+              ? <img src={organization.logoUrl} alt="شعار الجمعية" className="h-14 w-auto max-w-28 object-contain" />
+              : <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-[#1a5f4a]/10 text-xl font-bold text-[#1a5f4a]">تمام</span>}
+            <div>
+              <div className="text-base font-bold text-[#1a5f4a]">{organization?.officialReportsName || "جمعية عمارة المساجد (تمام)"}</div>
+              <div className="text-xs font-semibold text-slate-600">إدارة المشاريع والهندسة والصيانة</div>
             </div>
-          ))}
-        </dl>
+          </div>
+          <dl className="space-y-1 text-xs">
+            <div className="flex gap-2">
+              <dt className="font-bold text-slate-600">تاريخ التقرير</dt>
+              <dd className="border-b border-dotted border-slate-400 px-2 font-semibold"><bdi>{printDate(report.reportDate)}</bdi></dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="font-bold text-slate-600">رقم التقرير</dt>
+              <dd className="border-b border-dotted border-slate-400 px-2 font-mono font-bold text-[#1a5f4a]"><bdi>{report.reportNumber}</bdi></dd>
+            </div>
+          </dl>
+        </header>
+        <h1 className="rounded-lg bg-[#1a5f4a] px-6 py-4 text-center text-xl font-bold text-white sm:text-2xl">
+          {FOLLOW_UP_REPORT_TITLE}
+        </h1>
+        <PrintValues title="بيانات المشروع العامة" projectDetails values={[
+          ["المشروع", report.projectName],
+          ["مدير المشروع", report.projectManagerName],
+          ["مرحلة المشروع", phase ? STAGE_LABELS[phase] || phase : null],
+          ["بداية الفترة (من)", printDate(report.reportPeriodStart)],
+          ["نهاية الفترة (إلى)", printDate(report.reportPeriodEnd)],
+          ["حالة التقرير", statusLabel],
+        ]} />
+        <PrintValues title="حالة التقدم ونسبة الإنجاز" values={[
+          ["الإنجاز المخطط", report.plannedProgress == null ? null : `${report.plannedProgress}٪`],
+          ["الإنجاز الفعلي", report.actualProgress == null ? null : `${report.actualProgress}٪`],
+          ["فرق الإنجاز", report.variance == null ? null : `${report.variance}٪`],
+        ]} />
+        <PrintValues title="المؤشرات التشغيلية والمالية" values={[
+          ...followUpIndicators.map(([key, label]) => [label, details[key]] as const),
+          ["اتجاه الأداء", details.overallTrend],
+          ["المصروف التراكمي", details.amountSpent],
+          ["الميزانية المعتمدة", details.approvedBudget],
+        ]} />
+        <PrintValues title="ملخص الأعمال والتوصيات" values={followUpTextFields.map(([key, label]) => [label, details[key]])} />
         {followUpTableKeys.map(key => {
           const rows = details[key];
           if (!rows?.length) return null;
@@ -66,25 +137,24 @@ export function FollowUpReportPrint({ report, organization, onBack, onPrint }: P
           const populatedColumns = columns.filter(column => rows.some(row => row[column.key as keyof typeof row]));
           if (!populatedColumns.length) return null;
           return (
-            <div key={key}>
-              <h2 className="mb-2 text-sm font-bold">{title}</h2>
-              <table className="w-full table-fixed border-collapse text-sm">
-                <thead><tr>{populatedColumns.map(column => <th key={column.key} className="border border-slate-200 px-2 py-1 text-right">{column.label}</th>)}</tr></thead>
+            <PrintSection key={key} title={title}>
+              <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+                <thead className="bg-slate-100">
+                  <tr>{populatedColumns.map(column => <th key={column.key} scope="col" className="border border-slate-200 px-3 py-2 text-right">{column.label}</th>)}</tr>
+                </thead>
                 <tbody>
                   {rows.map((row, index) => (
                     <tr key={index} className="break-inside-avoid">
-                      {populatedColumns.map(column => <td key={column.key} className="break-words border border-slate-200 px-2 py-1">{row[column.key as keyof typeof row]}</td>)}
+                      {populatedColumns.map(column => <td key={column.key} className="break-words border border-slate-200 px-3 py-2">{row[column.key as keyof typeof row]}</td>)}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </PrintSection>
           );
         })}
-        {details.escalation !== undefined && <p className="text-sm"><strong>التصعيد الإداري</strong> {details.escalation ? "نعم" : "لا"}</p>}
         {attachments.length > 0 && (
-          <div>
-            <h2 className="mb-2 text-sm font-bold">المرفقات والوثائق</h2>
+          <PrintSection title="المرفقات والوثائق">
             <ul className="space-y-3">
               {attachments.map((file, index) => (
                 <li key={index} className="break-inside-avoid text-sm">
@@ -95,7 +165,7 @@ export function FollowUpReportPrint({ report, organization, onBack, onPrint }: P
                 </li>
               ))}
             </ul>
-          </div>
+          </PrintSection>
         )}
       </article>
     </main>
