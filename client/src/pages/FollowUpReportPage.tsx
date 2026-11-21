@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { format } from "date-fns";
 import { ArrowRight, CheckCircle2, GitMerge, Info, Loader2, Save, X } from "lucide-react";
@@ -80,6 +80,16 @@ function formatShortDateAr(value?: string | null) {
   return `${Number(day)}/${Number(month)}/${year}`;
 }
 
+interface FollowUpDraftFields {
+  reportDate: string;
+  from: string;
+  to: string;
+  planned: string;
+  actual: string;
+  details: FollowUpReportDetails;
+  attachments: UploadedFile[];
+}
+
 function FollowUpForm({ existing, initialMergeMode = false }: { existing?: SavedReport; initialMergeMode?: boolean }) {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
@@ -88,6 +98,9 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
   const update = trpc.progressReports.update.useMutation();
   const previewMerge = trpc.progressReports.previewFollowUpMerge.useMutation();
   const saving = create.isPending || update.isPending;
+  const busy = saving || previewMerge.isPending;
+  const mergeInFlight = useRef(false);
+  const draftBeforeMerge = useRef<FollowUpDraftFields | null>(null);
   const [projectId, setProjectId] = useState(existing ? String(existing.projectId) : "");
   const [reportDate, setReportDate] = useState(followUpDateValue(existing?.reportDate) || format(new Date(), "yyyy-MM-dd"));
   const [from, setFrom] = useState(followUpDateValue(existing?.reportPeriodStart));
@@ -95,7 +108,10 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
   const [planned, setPlanned] = useState(existing?.plannedProgress?.toString() ?? "");
   const [actual, setActual] = useState(existing?.actualProgress?.toString() ?? "");
   const [details, setDetails] = useState<FollowUpReportDetails>(existing?.followUpDetails ?? {});
-  const [attachments, setAttachments] = useState(() => followUpAttachments(existing?.attachments));
+  const [{ files: attachments, revision: attachmentRevision }, setAttachmentState] = useState(() => ({
+    files: followUpAttachments(existing?.attachments),
+    revision: 0,
+  }));
 
   const [mergeOpen, setMergeOpen] = useState(initialMergeMode && !existing);
   const [selectedSourceIds, setSelectedSourceIds] = useState<number[]>([]);
@@ -124,16 +140,28 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
     filteredApprovedFollowUps.every(item => selectedSourceIds.includes(item.id));
 
   function handleProjectChange(nextProjectId: string) {
+    if (busy || mergeInFlight.current || draftBeforeMerge.current || nextProjectId === projectId) return;
     setProjectId(nextProjectId);
     setSelectedSourceIds([]);
     setMergeFilterFrom("");
     setMergeFilterTo("");
-    setDetails(current => {
-      if (!current.sourceReports?.length) return current;
-      const next = { ...current };
-      delete next.sourceReports;
-      return next;
-    });
+  }
+
+  function applyDraft(draft: FollowUpDraftFields) {
+    setReportDate(draft.reportDate);
+    setFrom(draft.from);
+    setTo(draft.to);
+    setPlanned(draft.planned);
+    setActual(draft.actual);
+    setDetails(draft.details);
+    setAttachmentState(current => ({ files: draft.attachments, revision: current.revision + 1 }));
+  }
+
+  function cancelMerge() {
+    if (busy || mergeInFlight.current || !draftBeforeMerge.current) return;
+    applyDraft(draftBeforeMerge.current);
+    draftBeforeMerge.current = null;
+    setSelectedSourceIds([]);
   }
 
   function toggleSourceSelection(id: number) {
@@ -156,6 +184,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
   }
 
   async function handleReadAndMerge() {
+    if (busy || mergeInFlight.current) return;
     if (!numericProjectId) {
       toast.error("يرجى اختيار المشروع أولاً.");
       return;
@@ -164,22 +193,28 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
       toast.error("يرجى اختيار تقريري متابعة معتمدين على الأقل للدمج.");
       return;
     }
+    mergeInFlight.current = true;
     try {
       const merged = await previewMerge.mutateAsync({
         projectId: numericProjectId,
         reportIds: selectedSourceIds,
       });
-      setReportDate(merged.reportDate);
-      setFrom(merged.reportPeriodStart);
-      setTo(merged.reportPeriodEnd);
-      setPlanned(merged.plannedProgress !== undefined ? String(merged.plannedProgress) : "");
-      setActual(merged.actualProgress !== undefined ? String(merged.actualProgress) : "");
-      setDetails(merged.followUpDetails);
-      setAttachments(merged.attachments);
+      draftBeforeMerge.current ??= { reportDate, from, to, planned, actual, details, attachments };
+      applyDraft({
+        reportDate: merged.reportDate,
+        from: merged.reportPeriodStart,
+        to: merged.reportPeriodEnd,
+        planned: merged.plannedProgress?.toString() ?? "",
+        actual: merged.actualProgress?.toString() ?? "",
+        details: merged.followUpDetails,
+        attachments: merged.attachments,
+      });
       const count = merged.followUpDetails.sourceReports?.length ?? selectedSourceIds.length;
       toast.success(`تمت قراءة ودمج ${count} تقارير متابعة معتمدة. يمكنك المراجعة والتعديل قبل الحفظ.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذّر قراءة ودمج التقارير.");
+    } finally {
+      mergeInFlight.current = false;
     }
   }
 
@@ -199,7 +234,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving) return;
+    if (busy || mergeInFlight.current) return;
     if (!projectId) {
       toast.error("يرجى اختيار المشروع.");
       return;
@@ -273,7 +308,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
             projects={projectOptions}
             value={projectId}
             onValueChange={handleProjectChange}
-            disabled={Boolean(existing)}
+            disabled={Boolean(existing || details.sourceReports?.length) || busy}
             isLoading={loadingProjects}
           />
         </ReportField>
@@ -362,7 +397,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
                         variant="outline"
                         size="sm"
                         onClick={toggleSelectAllFiltered}
-                        disabled={filteredApprovedFollowUps.length === 0}
+                        disabled={busy || filteredApprovedFollowUps.length === 0}
                         className="h-9 text-xs font-semibold"
                       >
                         {allFilteredSelected ? "إلغاء تحديد الكل" : `تحديد الكل (${filteredApprovedFollowUps.length})`}
@@ -406,6 +441,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => toggleSourceSelection(item.id)}
+                                disabled={busy}
                                 className="size-4 shrink-0 accent-teal-600 rounded"
                               />
                               <div className="min-w-0 space-y-0.5">
@@ -451,7 +487,7 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
                     <Button
                       type="button"
                       onClick={handleReadAndMerge}
-                      disabled={selectedSourceIds.length < 2 || previewMerge.isPending}
+                      disabled={selectedSourceIds.length < 2 || busy}
                       className="gap-2 bg-teal-600 text-xs font-bold text-white hover:bg-teal-700"
                     >
                       {previewMerge.isPending ? (
@@ -483,20 +519,18 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() =>
-                  setDetails(current => {
-                    const next = { ...current };
-                    delete next.sourceReports;
-                    return next;
-                  })
-                }
+                onClick={cancelMerge}
+                disabled={busy}
                 className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
               >
                 <X className="size-3.5" />
-                إلغاء ربط المصادر
+                إلغاء الدمج واستعادة المسودة
               </Button>
             )}
           </div>
+          {!existing && (
+            <p className="text-xs text-muted-foreground">لتغيير المشروع، ألغِ الدمج أولاً.</p>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {details.sourceReports.map(source => (
               <Badge
@@ -582,11 +616,14 @@ function FollowUpForm({ existing, initialMergeMode = false }: { existing?: Saved
 
       <ReportFormCard title="المرفقات والروابط">
         {renderTable("links")}
-        <FileUpload label="رفع المرفقات والوثائق" existingFiles={attachments} onFilesSelected={setAttachments} disabled={saving} />
+        <FileUpload key={attachmentRevision} label="رفع المرفقات والوثائق" existingFiles={attachments} disabled={busy}
+          onFilesSelected={files => setAttachmentState(current =>
+            current.revision === attachmentRevision ? { ...current, files } : current
+          )} />
       </ReportFormCard>
 
       <div className="flex justify-end rounded-xl border border-border/80 bg-card p-3.5 shadow-xs sm:p-4">
-        <Button type="submit" disabled={saving}
+        <Button type="submit" disabled={busy}
           className="min-h-11 w-full gap-2 bg-[#1a5f4a] text-xs font-bold text-white hover:bg-[#154d3c] sm:w-auto">
           <Save className="size-4" />
           {saving ? "جارٍ الحفظ…" : "حفظ تقرير المتابعة"}

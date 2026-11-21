@@ -178,6 +178,27 @@ function formatArabicShortDate(isoDate: string): string {
   return `${Number(day)}/${Number(month)}/${year}`;
 }
 
+interface FollowUpTextBlock {
+  reportNumber: string;
+  header: string;
+  text: string;
+}
+
+function readMergedTextBlocks(block: FollowUpTextBlock, sourceNumbers: ReadonlySet<string>): FollowUpTextBlock[] {
+  // Saved merges store source headings in the editable text, including headings from older nested merges.
+  const headers = Array.from(block.text.matchAll(/^\[([^\]\n|]+?)(?: \| \d{1,2}\/\d{1,2}\/\d{4}(?: - \d{1,2}\/\d{1,2}\/\d{4})?)?\]$/gm))
+    .filter(([, reportNumber]) => sourceNumbers.has(reportNumber) || /^RPT-\d{4}-\d+$/.test(reportNumber));
+  if (headers.length === 0) return [block];
+
+  const leadingText = block.text.slice(0, headers[0].index).trim();
+  const result = leadingText ? [{ ...block, text: leadingText }] : [];
+  headers.forEach((match, index) => {
+    const text = block.text.slice(match.index + match[0].length, headers[index + 1]?.index).trim();
+    if (text) result.push({ reportNumber: match[1], header: match[0], text });
+  });
+  return result.length ? result : [block];
+}
+
 function normalizeTextKey(value?: string | null): string {
   return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -285,18 +306,32 @@ export function mergeFollowUpReports(
     mergedDetails.escalation = true;
   }
 
+  const sourceNumbers = new Set(parsedEntries.flatMap(({ report, details }) => [
+    report.reportNumber,
+    ...(details.sourceReports ?? []).map(source => source.reportNumber),
+  ]));
   for (const [fieldKey] of followUpTextFields) {
     const blocks: string[] = [];
+    const seen = new Set<string>();
     for (const entry of parsedEntries) {
-      const value = entry.details[fieldKey]?.trim();
-      if (!value) continue;
+      const text = entry.details[fieldKey]?.trim().replace(/\r\n?/g, "\n");
+      if (!text) continue;
       const periodLabel = entry.periodStart && entry.periodEnd
         ? `${formatArabicShortDate(entry.periodStart)} - ${formatArabicShortDate(entry.periodEnd)}`
         : formatArabicShortDate(entry.reportDate);
       const header = periodLabel
         ? `[${entry.report.reportNumber} | ${periodLabel}]`
         : `[${entry.report.reportNumber}]`;
-      blocks.push(`${header}\n${value}`);
+      const block = { reportNumber: entry.report.reportNumber, header, text };
+      const sourceBlocks = entry.details.sourceReports?.length
+        ? readMergedTextBlocks(block, sourceNumbers)
+        : [block];
+      for (const source of sourceBlocks) {
+        const key = JSON.stringify([source.reportNumber, source.text]);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        blocks.push(`${source.header}\n${source.text}`);
+      }
     }
     if (blocks.length > 0) {
       mergedDetails[fieldKey] = blocks.join("\n\n");

@@ -232,6 +232,52 @@ describe("mergeFollowUpReports", () => {
     expect(reMerged.actualProgress).toBe(78);
     expect(reMerged.followUpDetails.sourceReports?.map(source => source.id)).toEqual([20, 25]);
   });
+
+  it("keeps source text once when re-merging a saved merge alongside its original report", () => {
+    const first = mergeFollowUpReports([baseApprovedReport1, baseApprovedReport2]);
+    const savedMerge: MergeableFollowUpReport = {
+      ...baseApprovedReport1,
+      id: 20,
+      reportNumber: "RPT-2026-0020",
+      reportPeriodEnd: first.reportPeriodEnd,
+      followUpDetails: {
+        ...first.followUpDetails,
+        summary: `ملاحظة عند المراجعة\n\n[RPT-2026-0018 | 1/1/2026 - 31/1/2026]\n${first.followUpDetails.summary}`
+          .replaceAll("\n", "\r\n"),
+      },
+    };
+
+    const { followUpDetails } = mergeFollowUpReports([savedMerge, baseApprovedReport1]);
+
+    expect(followUpDetails.summary?.match(/أعمال الحفر والأساسات/g)).toHaveLength(1);
+    expect(followUpDetails.summary).toContain("صب الأعمدة والسقف الأول");
+    expect(followUpDetails.summary).toContain("[RPT-2026-0020 | 1/1/2026 - 31/1/2026]\nملاحظة عند المراجعة");
+    expect(followUpDetails.summary).not.toContain("[RPT-2026-0018");
+    expect(followUpDetails.sourceReports?.map(source => source.id)).toEqual([10, 20]);
+  });
+
+  it("preserves identical text from different reports and distinct edits to source text", () => {
+    const second = {
+      ...baseApprovedReport2,
+      followUpDetails: { summary: "أعمال الحفر والأساسات" },
+    };
+    const first = mergeFollowUpReports([baseApprovedReport1, second]);
+    const savedMerge: MergeableFollowUpReport = {
+      ...baseApprovedReport1,
+      id: 20,
+      reportNumber: "RPT-2026-0020",
+      reportPeriodEnd: first.reportPeriodEnd,
+      followUpDetails: {
+        ...first.followUpDetails,
+        summary: first.followUpDetails.summary?.replace("أعمال الحفر والأساسات", "تحديث أعمال الحفر"),
+      },
+    };
+
+    const { followUpDetails } = mergeFollowUpReports([baseApprovedReport1, second, savedMerge]);
+
+    expect(followUpDetails.summary?.match(/أعمال الحفر والأساسات/g)).toHaveLength(2);
+    expect(followUpDetails.summary).toContain("تحديث أعمال الحفر");
+  });
 });
 
 describe("progressReportsRouter follow-up merge procedures", () => {
