@@ -6,7 +6,14 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { isProgressInvoice } from "../../shared/progressInvoicePermissions";
 import { isAchievementProgressReport } from "../../shared/progressReportPermissions";
-import { FOLLOW_UP_REPORT_TITLE, followUpReportDetailsSchema, isFollowUpReport } from "../../shared/followUpReport";
+import {
+  FOLLOW_UP_REPORT_TITLE,
+  followUpReportDetailsSchema,
+  isFollowUpReport,
+  mergeFollowUpReports,
+  parseFollowUpDetails,
+  toFollowUpIsoDate,
+} from "../../shared/followUpReport";
 import { getDb } from "../db";
 import { progressReports, projects, mosqueRequests, users, disbursementRequests, disbursementOrders, contractPayments, payments, contracts, contractsEnhanced } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
@@ -53,6 +60,63 @@ function validateFollowUpDates(report: {
   if (to < from) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "يجب أن يكون تاريخ نهاية الفترة في يوم البداية أو بعده." });
   }
+}
+
+async function fetchAndValidateApprovedFollowUpSources(
+  db: any,
+  projectId: number,
+  reportIds: number[]
+) {
+  const uniqueIds = Array.from(new Set(reportIds));
+  if (uniqueIds.length === 0) return [];
+
+  const rows = await db
+    .select({
+      id: progressReports.id,
+      reportNumber: progressReports.reportNumber,
+      projectId: progressReports.projectId,
+      title: progressReports.title,
+      status: progressReports.status,
+      reportDate: progressReports.reportDate,
+      reportPeriodStart: progressReports.reportPeriodStart,
+      reportPeriodEnd: progressReports.reportPeriodEnd,
+      plannedProgress: progressReports.plannedProgress,
+      actualProgress: progressReports.actualProgress,
+      followUpDetails: progressReports.followUpDetails,
+      attachments: progressReports.attachments,
+    })
+    .from(progressReports)
+    .where(inArray(progressReports.id, uniqueIds));
+
+  if (rows.length !== uniqueIds.length) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "تعذّر العثور على أحد تقارير المتابعة المختارة للدمج.",
+    });
+  }
+
+  for (const row of rows) {
+    if (row.projectId !== projectId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "يجب أن تنتمي جميع التقارير المختارة إلى نفس المشروع.",
+      });
+    }
+    if (!isFollowUpReport(row)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "يُسمح بدمج تقارير المتابعة فقط.",
+      });
+    }
+    if (row.status !== "approved") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "يُسمح بدمج تقارير المتابعة المعتمدة فقط.",
+      });
+    }
+  }
+
+  return rows;
 }
 
 async function cancelLinkedDisbursements(
@@ -397,6 +461,7 @@ export const progressReportsRouter = router({
           createdAt: progressReports.createdAt,
           budgetSpent: progressReports.budgetSpent,
           workSummary: progressReports.workSummary,
+          followUpDetails: progressReports.followUpDetails,
           challenges: progressReports.challenges,
           nextSteps: progressReports.nextSteps,
           recommendations: progressReports.recommendations,
@@ -516,7 +581,7 @@ export const progressReportsRouter = router({
           milestones: progressReports.milestones,
           attachments: progressReports.attachments,
           followUpDetails: sql`${progressReports.followUpDetails}`.mapWith((value: unknown) =>
-            followUpReportDetailsSchema.parse(typeof value === "string" ? JSON.parse(value) : value)
+            parseFollowUpDetails(value)
           ),
           photos: progressReports.photos,
           status: progressReports.status,
@@ -618,6 +683,116 @@ export const progressReportsRouter = router({
       };
     }),
 
+  // قائمة تقارير المتابعة المعتمدة المتاحة للدمج لنفس المشروع
+  listApprovedFollowUps: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasAccess =
+        isAdmin ||
+        (await checkPermission(ctx.user.id, "project_reports.create")) ||
+        (await checkPermission(ctx.user.id, "project_reports.view")) ||
+        (await checkPermission(ctx.user.id, "progress_reports.add")) ||
+        (await checkPermission(ctx.user.id, "progress_reports.view")) ||
+        (await checkPermission(ctx.user.id, "reports.create")) ||
+        (await checkPermission(ctx.user.id, "reports.view"));
+
+      if (!hasAccess) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تقارير المتابعة المعتمدة" });
+      }
+
+      const db = await getDb();
+      if (!db) return [];
+
+      const rows = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          projectId: progressReports.projectId,
+          title: progressReports.title,
+          status: progressReports.status,
+          reportDate: progressReports.reportDate,
+          reportPeriodStart: progressReports.reportPeriodStart,
+          reportPeriodEnd: progressReports.reportPeriodEnd,
+          plannedProgress: progressReports.plannedProgress,
+          actualProgress: progressReports.actualProgress,
+          followUpDetails: progressReports.followUpDetails,
+          createdByName: users.name,
+        })
+        .from(progressReports)
+        .leftJoin(users, eq(progressReports.createdBy, users.id))
+        .where(
+          and(
+            eq(progressReports.projectId, input.projectId),
+            eq(progressReports.title, FOLLOW_UP_REPORT_TITLE),
+            eq(progressReports.status, "approved")
+          )
+        );
+
+      return rows
+        .map(row => {
+          const parsedDetails = parseFollowUpDetails(row.followUpDetails);
+          const sourceReportsCount = parsedDetails?.sourceReports?.length ?? 0;
+          return {
+            id: row.id,
+            reportNumber: row.reportNumber,
+            projectId: row.projectId,
+            title: row.title,
+            status: row.status,
+            reportDate: toFollowUpIsoDate(row.reportDate),
+            reportPeriodStart: toFollowUpIsoDate(row.reportPeriodStart),
+            reportPeriodEnd: toFollowUpIsoDate(row.reportPeriodEnd),
+            plannedProgress: row.plannedProgress,
+            actualProgress: row.actualProgress,
+            createdByName: row.createdByName,
+            sourceReportsCount,
+            isMerged: sourceReportsCount > 0,
+          };
+        })
+        .sort((a, b) => {
+          const startA = a.reportPeriodStart || a.reportDate;
+          const startB = b.reportPeriodStart || b.reportDate;
+          if (startA !== startB) return startA.localeCompare(startB);
+          if (a.reportDate !== b.reportDate) return a.reportDate.localeCompare(b.reportDate);
+          return a.id - b.id;
+        });
+    }),
+
+  // قراءة ودمج عدة تقارير متابعة معتمدة لنفس المشروع في مسودة واحدة
+  previewFollowUpMerge: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.number().int().positive(),
+        reportIds: z.array(z.number().int().positive()).min(2, "يرجى اختيار تقريري متابعة على الأقل للدمج."),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasCreate =
+        isAdmin ||
+        (await checkPermission(ctx.user.id, "project_reports.create")) ||
+        (await checkPermission(ctx.user.id, "progress_reports.add")) ||
+        (await checkPermission(ctx.user.id, "reports.create"));
+
+      if (!hasCreate) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لدمج وإنشاء تقارير المتابعة" });
+      }
+
+      const uniqueIds = Array.from(new Set(input.reportIds));
+      if (uniqueIds.length < 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يرجى اختيار تقريري متابعة مختلفين على الأقل للدمج.",
+        });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const rows = await fetchAndValidateApprovedFollowUpSources(db, input.projectId, uniqueIds);
+      return mergeFollowUpReports(rows);
+    }),
+
   // إنشاء تقرير جديد
   create: protectedProcedure
     .input(
@@ -664,6 +839,14 @@ export const progressReportsRouter = router({
 
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+
+      if (followUp && input.followUpDetails?.sourceReports?.length) {
+        await fetchAndValidateApprovedFollowUpSources(
+          db,
+          input.projectId,
+          input.followUpDetails.sourceReports.map(source => source.id)
+        );
+      }
 
       try {
         const isInvoice = !followUp && ((input.workSummary && input.workSummary.includes("[نوع: مستخلص")) || (input.title && input.title.includes("مستخلص")));
@@ -852,6 +1035,15 @@ export const progressReportsRouter = router({
           reportPeriodStart: input.reportPeriodStart === undefined ? existingReport.reportPeriodStart : input.reportPeriodStart,
           reportPeriodEnd: input.reportPeriodEnd === undefined ? existingReport.reportPeriodEnd : input.reportPeriodEnd,
         });
+        const existingSourceIds = new Set(
+          (parseFollowUpDetails(existingReport.followUpDetails)?.sourceReports ?? []).map(s => s.id)
+        );
+        const addedSourceIds = (input.followUpDetails?.sourceReports ?? [])
+          .map(s => s.id)
+          .filter(id => !existingSourceIds.has(id));
+        if (addedSourceIds.length > 0) {
+          await fetchAndValidateApprovedFollowUpSources(db, existingReport.projectId, addedSourceIds);
+        }
       }
 
       try {

@@ -117,7 +117,42 @@ export function FollowUpReportPrint({ report, organization, onBack, onPrint }: P
           ["بداية الفترة (من)", printDate(report.reportPeriodStart)],
           ["نهاية الفترة (إلى)", printDate(report.reportPeriodEnd)],
           ["حالة التقرير", statusLabel],
+          ["التقارير المدمجة", details.sourceReports?.length ? `مدمج من ${details.sourceReports.length} تقارير متابعة معتمدة` : null],
         ]} />
+        {details.sourceReports && details.sourceReports.length > 0 && (
+          <PrintSection title="التقارير المدمجة (المصادر وتطور الإنجاز)">
+            <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+              <thead className="bg-slate-100">
+                <tr>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">رقم التقرير</th>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">بداية الفترة</th>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">نهاية الفترة</th>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">تاريخ التقرير</th>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">المخطط</th>
+                  <th scope="col" className="border border-slate-200 px-3 py-2 text-right">الفعلي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {details.sourceReports.map(source => (
+                  <tr key={source.id} className="break-inside-avoid">
+                    <td className="break-words border border-slate-200 px-3 py-2 font-mono font-bold text-[#1a5f4a]">
+                      <bdi>{source.reportNumber}</bdi>
+                    </td>
+                    <td className="border border-slate-200 px-3 py-2">{printDate(source.reportPeriodStart ?? null) || "—"}</td>
+                    <td className="border border-slate-200 px-3 py-2">{printDate(source.reportPeriodEnd ?? null) || "—"}</td>
+                    <td className="border border-slate-200 px-3 py-2">{printDate(source.reportDate ?? null) || "—"}</td>
+                    <td className="border border-slate-200 px-3 py-2">
+                      {source.plannedProgress == null ? "—" : `${source.plannedProgress}٪`}
+                    </td>
+                    <td className="border border-slate-200 px-3 py-2">
+                      {source.actualProgress == null ? "—" : `${source.actualProgress}٪`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </PrintSection>
+        )}
         <PrintValues title="حالة التقدم ونسبة الإنجاز" values={[
           ["الإنجاز المخطط", report.plannedProgress == null ? null : `${report.plannedProgress}٪`],
           ["الإنجاز الفعلي", report.actualProgress == null ? null : `${report.actualProgress}٪`],

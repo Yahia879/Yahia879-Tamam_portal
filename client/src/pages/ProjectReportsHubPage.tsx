@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { FOLLOW_UP_REPORT_TITLE, isFollowUpReport } from "@shared/followUpReport";
+import { FOLLOW_UP_REPORT_TITLE, isFollowUpReport, parseFollowUpDetails } from "@shared/followUpReport";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
@@ -34,6 +34,7 @@ import {
   Edit,
   Sparkles,
   CheckCircle2,
+  GitMerge,
 } from "lucide-react";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 
@@ -214,6 +215,9 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
         statusLabel = "معتمد";
       }
 
+      const parsedFollowUpDetails = typeKey === "follow-up" ? parseFollowUpDetails((r as any).followUpDetails) : null;
+      const sourceReportsCount = parsedFollowUpDetails?.sourceReports?.length ?? 0;
+
       return {
         id: r.id,
         reportNumber: r.reportNumber,
@@ -225,6 +229,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
         date: formatDateArabic(r.reportDate),
         rag: ragLabel,
         status: statusLabel,
+        sourceReportsCount,
         raw: r,
       };
     });
@@ -296,7 +301,16 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
           </div>
 
           {canCreateReports && (
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
+              <Link href="/project-reports/follow-up?mode=merge" className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto border-teal-600/40 text-teal-700 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-950/40 font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-4 rounded-xl shadow-2xs flex items-center justify-center gap-2"
+                >
+                  <GitMerge className="w-4 h-4 shrink-0" />
+                  <span>دمج تقارير متابعة</span>
+                </Button>
+              </Link>
               <Link href="/project-reports/new" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-5 rounded-xl shadow-sm flex items-center justify-center gap-2">
                   <Plus className="w-4 h-4 shrink-0" />
@@ -398,6 +412,15 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                             <span className="text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded-md">
                               {report.type}
                             </span>
+                            {report.sourceReportsCount > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 bg-teal-50 text-teal-700 border border-teal-500/30 dark:bg-teal-950/50 dark:text-teal-300 text-[10px] font-bold"
+                              >
+                                <GitMerge className="w-3 h-3 shrink-0" />
+                                مدمج ({report.sourceReportsCount})
+                              </Badge>
+                            )}
                           </div>
                           <Badge
                             className={`shrink-0 ${
@@ -510,7 +533,20 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                         <TableCell className="font-mono text-xs font-bold text-primary">
                           {report.typeKey === "follow-up" ? <bdi>{report.reportNumber}</bdi> : report.id}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold">{report.type}</TableCell>
+                        <TableCell className="text-xs font-semibold">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{report.type}</span>
+                            {report.sourceReportsCount > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 bg-teal-50 text-teal-700 border border-teal-500/30 dark:bg-teal-950/50 dark:text-teal-300 text-[10px] font-bold"
+                              >
+                                <GitMerge className="w-3 h-3 shrink-0" />
+                                مدمج ({report.sourceReportsCount})
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-xs font-medium max-w-xs truncate">{report.project}</TableCell>
                         <TableCell>
                           <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-block border border-emerald-500/20 whitespace-nowrap">
