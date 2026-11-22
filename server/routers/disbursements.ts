@@ -2,6 +2,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
+import { getOrderBoqAllocations } from "../boqPayments";
+import { boqAllocationsSchema, boqQuantityUnits } from "../../shared/boqPayments";
 import {
   disbursementRequests,
   disbursementOrders,
@@ -3653,6 +3655,10 @@ export const disbursementsRouter = router({
           await lockFund(tx);
           const [request] = await tx.select().from(disbursementRequests)
             .where(eq(disbursementRequests.id, order.disbursementRequestId)).limit(1);
+          if (request?.contractPaymentId) {
+            await tx.select({ id: contractPayments.id }).from(contractPayments)
+              .where(eq(contractPayments.id, request.contractPaymentId)).for("update");
+          }
           if (request) await postFundDisbursement(tx, order, request, ctx.user.id);
           await tx.update(disbursementOrders)
             .set({
@@ -4226,6 +4232,42 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم إرسال الرد على الملاحظات بنجاح" };
     }),
 
+  getOrderBoqSettlement: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const canEdit = await checkPermission(ctx.user.id, "disbursements.create");
+      if (!isAdmin && !canEdit && !(await checkPermission(ctx.user.id, "disbursement_orders.view")) &&
+        !(await checkPermission(ctx.user.id, "disbursements.view"))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل أمر الصرف." });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      return { rows: await getOrderBoqAllocations(db, input.id), canEdit };
+    }),
+
+  saveOrderBoqSettlement: permissionProcedure("disbursements.create")
+    .input(z.object({ id: z.number().int().positive(), rows: boqAllocationsSchema }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      await db.transaction(async tx => {
+        const allowed = await getOrderBoqAllocations(tx, input.id, true);
+        if (!allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "تسجيل الكميات متاح لأمر صرف منفّذ مرتبط بدفعة لها بنود كميات." });
+        }
+        for (const row of input.rows) {
+          const item = allowed.find(candidate => candidate.quantityScheduleId === row.quantityScheduleId);
+          if (!item || boqQuantityUnits(row.quantity)! > boqQuantityUnits(item.limit)!) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "الكمية المسددة تتجاوز الكمية المتبقية المسجلة في الدفعة أو تشير إلى بند غير مرتبط بها." });
+          }
+        }
+        await tx.update(disbursementOrders).set({ boqSettlements: input.rows.length ? input.rows : null })
+          .where(eq(disbursementOrders.id, input.id));
+      });
+      return { success: true };
+    }),
+
   // تنفيذ أمر صرف (الدفع الفعلي)
   executeOrder: permissionProcedure("disbursements.create")
     .input(
@@ -4263,6 +4305,10 @@ export const disbursementsRouter = router({
         await lockFund(tx);
         const [fundedRequest] = await tx.select().from(disbursementRequests)
           .where(eq(disbursementRequests.id, order.disbursementRequestId)).limit(1);
+        if (fundedRequest?.contractPaymentId) {
+          await tx.select({ id: contractPayments.id }).from(contractPayments)
+            .where(eq(contractPayments.id, fundedRequest.contractPaymentId)).for("update");
+        }
         if (fundedRequest) await postFundDisbursement(tx, order, fundedRequest, ctx.user.id);
         await tx.update(disbursementOrders)
           .set({ status: "executed", executedBy: ctx.user.id, executedAt: new Date(), transactionReference: input.transactionReference })

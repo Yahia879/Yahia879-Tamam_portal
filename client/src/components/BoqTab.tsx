@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BoqFormDialog from "./BoqFormDialog";
 import { getStageOrder } from "../../../shared/constants";
+import { boqQuantityUnits, formatBoqQuantity } from "@shared/boqPayments";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
@@ -885,6 +886,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                         {items.map((item: any) => {
                           const itemMosque = mosquesList.find(m => m.id === item.mosqueId);
                           const isChangeOrderItem = Boolean(item.isChangeOrder || item.changeOrderId);
+                          const totalUnits = boqQuantityUnits(item.quantity) ?? 0;
+                          const paidUnits = Math.min(totalUnits, boqQuantityUnits(item.paidQuantity) ?? 0);
+                          const fullyPaid = paidUnits > 0 && paidUnits === totalUnits;
                           const showActionsCol = !itemChangesLocked && (canEdit || canDelete);
                           return (
                             <TableRow key={item.id} className={`hover:bg-muted/30 ${isChangeOrderItem ? "bg-indigo-50/20" : ""}`}>
@@ -898,7 +902,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                               <TableCell className="font-medium text-xs sm:text-sm">
                                 <div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <span>{item.itemName}</span>
+                                    <span className={fullyPaid ? "line-through" : undefined}>{item.itemName}</span>
+                                    {fullyPaid && <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400">مسدد بالكامل</Badge>}
                                     {isChangeOrderItem && (
                                       <Badge variant="outline" className="text-[10px] border-indigo-300 bg-indigo-50 text-indigo-800 font-bold">
                                         بند أمر تغيير (ثابت)
@@ -911,7 +916,15 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                                 </div>
                               </TableCell>
                               <TableCell className="text-xs">{item.unit}</TableCell>
-                              <TableCell className="text-xs font-bold">{item.quantity}</TableCell>
+                              <TableCell className="min-w-24 text-xs font-bold">
+                                <span className={fullyPaid ? "line-through" : undefined}>{item.quantity}</span>
+                                {paidUnits > 0 && !fullyPaid && (
+                                  <div className="mt-1 space-y-0.5 whitespace-nowrap text-[11px] font-medium">
+                                    <div className="text-emerald-700 dark:text-emerald-400">مسدد <s>{formatBoqQuantity(paidUnits)}</s></div>
+                                    <div className="text-muted-foreground">متبقٍ {formatBoqQuantity(totalUnits - paidUnits)}</div>
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="text-xs">
                                 {item.unitPrice && parseFloat(item.unitPrice) > 0 ? (
                                   <span className="inline-flex items-center gap-1">

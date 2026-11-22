@@ -1128,6 +1128,7 @@ export const contractPayments = mysqlTable("contract_payments", {
   paidBy: int("paidBy").references(() => users.id, { onDelete: "set null" }),
   notes: text("notes"),
   completionPercentage: int("completionPercentage"),
+  boqAllocations: json("boqAllocations").$type<import("../shared/boqPayments").BoqAllocation[]>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1284,6 +1285,7 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   executedBy: int("executedBy").references(() => users.id, { onDelete: "set null" }),
   executedAt: datetime("executedAt"),
   transactionReference: varchar("transactionReference", { length: 255 }),
+  boqSettlements: json("boqSettlements").$type<import("../shared/boqPayments").BoqAllocation[]>(),
   
   // الرفض
   rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),

@@ -7,6 +7,8 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
+import { lockBoqItems, parseBoqAllocationInput, validateBoqAllocationTotals } from "../boqPayments";
+import { paidBoqAllocations, readBoqAllocations, type BoqAllocation } from "../../shared/boqPayments";
 import {
   organizationSettings,
   contractsEnhanced,
@@ -37,11 +39,28 @@ import {
   disbursementRequests,
   disbursementOrders,
 } from "../../drizzle/schema";
-import { eq, desc, and, or, sql, asc, ne, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sql, asc, ne, isNull, isNotNull, inArray } from "drizzle-orm";
 import {
   notifyContractCreation,
   notifyContractApproval,
 } from "./notifications";
+
+type ContractWriteDb = Pick<NonNullable<Awaited<ReturnType<typeof getDb>>>, "select" | "insert" | "update" | "delete">;
+
+function newScheduledPayment(contractId: number, payment: any, phaseOrder: number, allocations?: BoqAllocation[]) {
+  const date = payment.dueDate ? String(payment.dueDate) : "";
+  return {
+    contractId,
+    phaseName: payment.name || payment.phaseName || `الدفعة ${phaseOrder + 1}`,
+    amount: String(payment.amount || 0),
+    phaseOrder,
+    dueDate: date ? new Date(date.includes("T") ? date : `${date}T12:00:00`) : null,
+    status: "pending" as const,
+    notes: payment.description || payment.notes || null,
+    completionPercentage: payment.completionPercentage != null ? Number(payment.completionPercentage) : null,
+    boqAllocations: allocations?.length ? allocations : null,
+  };
+}
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود وأوامر التغيير المعتمدة
 async function syncProjectActualCost(db: any, projectId: number) {
@@ -634,6 +653,7 @@ export const contractsRouter = router({
         if (manualPayments.length > 0) {
           const manualFormatted = manualPayments.map((p: any, idx: number) => ({
             id: p.id,
+            isManualPayment: true,
             contractId: input.id,
             phaseOrder: paymentsList.length + idx + 1,
             name: p.description || `الدفعة ${paymentsList.length + idx + 1}`,
@@ -837,6 +857,7 @@ export const contractsRouter = router({
               matchedDisb?.title ||
               "";
 
+            const boqAllocations = readBoqAllocations(p.boqAllocations);
             return {
               ...p,
               dueDate: formattedDueDate,
@@ -852,6 +873,13 @@ export const contractsRouter = router({
                   : p.status || "pending",
               isPaid: isPaid,
               isPartiallyPaid: isPartiallyPaid,
+              boqAllocations: boqAllocations.length ? boqAllocations : undefined,
+              boqPaidAllocations: boqAllocations.length ? paidBoqAllocations(p, disbs
+                .filter(d => d.contractPaymentId === p.id)
+                .map(d => ({
+                  ...d,
+                  orders: contractOrders.filter(order => order.disbursementRequestId === d.id),
+                }))) : [],
             };
           });
         } catch (disbErr) {
@@ -1299,7 +1327,30 @@ export const contractsRouter = router({
         "Contract data to insert:",
         JSON.stringify(contractData, null, 2)
       );
-      const [result] = await db.insert(contractsEnhanced).values(contractData);
+      const schedule = Array.isArray(contractData.paymentScheduleJson?.schedule)
+        ? contractData.paymentScheduleJson.schedule
+        : [];
+      const scheduleAllocations = schedule.map((payment: any) => parseBoqAllocationInput(payment?.boqAllocations));
+      const allocations = scheduleAllocations.flatMap((rows: BoqAllocation[] | undefined) => rows ?? []);
+      if (allocations.length && contractData.paymentScheduleJson?.paymentSystem === "milestones") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "ربط بنود جدول الكميات متاح لنظام الدفعات المجدولة." });
+      }
+      if (allocations.length) {
+        contractData.paymentScheduleJson = {
+          ...contractData.paymentScheduleJson,
+          schedule: schedule.map(({ boqAllocations, boqPaidAllocations, ...payment }: any) => payment),
+        };
+      }
+      const [result] = allocations.length ? await db.transaction(async tx => {
+        const scope = { projectId: contractData.projectId, requestId: contractData.requestId };
+        const items = await lockBoqItems(tx, scope, allocations);
+        const inserted = await tx.insert(contractsEnhanced).values(contractData);
+        await tx.insert(contractPayments).values(schedule.map((payment: any, index: number) =>
+          newScheduledPayment(inserted[0].insertId, payment, index, scheduleAllocations[index])
+        ));
+        await validateBoqAllocationTotals(tx, items, scope);
+        return inserted;
+      }) : await db.insert(contractsEnhanced).values(contractData);
 
       const contractId = result.insertId;
 
@@ -1319,7 +1370,7 @@ export const contractsRouter = router({
       }
 
       // إضافة الدفعات من paymentSchedule JSON فقط إذا كان العقد بنظام الدفعات المجدولة
-      if (input.paymentSchedule) {
+      if (input.paymentSchedule && allocations.length === 0) {
         try {
           const scheduleParsed =
             typeof input.paymentSchedule === "string"
@@ -1360,7 +1411,7 @@ export const contractsRouter = router({
         } catch (e) {
           console.error("خطأ في تحليل جدول الدفعات:", e);
         }
-      } else if (input.payments && input.payments.length > 0) {
+      } else if (!input.paymentSchedule && input.payments && input.payments.length > 0) {
         // التوافق مع الكود القديم
         await db.insert(contractPayments).values(
           input.payments.map(p => ({
@@ -1842,283 +1893,307 @@ export const contractsRouter = router({
         updates.signatoryId = input.signatoryId;
       }
 
-      await db
-        .update(contractsEnhanced)
-        .set(updates)
-        .where(eq(contractsEnhanced.id, id));
+      const scope = { projectId: contract.projectId, requestId: contract.requestId };
+      const config = updates.paymentScheduleJson as { schedule?: unknown; paymentSystem?: unknown } | undefined;
+      const proposedSchedule = paymentSchedule && Array.isArray(config?.schedule) ? config.schedule : [];
+      const scheduleAllocations = proposedSchedule.map(payment => parseBoqAllocationInput(payment?.boqAllocations));
+      const allocations = scheduleAllocations.flatMap(rows => rows ?? []);
+      const [savedAllocation] = paymentSchedule !== undefined || input.paymentSystem !== undefined
+        ? await db.select({ id: contractPayments.id }).from(contractPayments)
+          .where(and(eq(contractPayments.contractId, id), isNotNull(contractPayments.boqAllocations))).limit(1)
+        : [];
+      const savingBoq = Boolean(savedAllocation) || scheduleAllocations.some(rows => rows !== undefined);
+      if ((savedAllocation || allocations.length) && (input.paymentSystem === "milestones" || config?.paymentSystem === "milestones")) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "أزل ربط بنود جدول الكميات قبل تغيير نظام الدفعات." });
+      }
 
-      // تحديث الدفعات إذا تم توفير جدول جديد ولم يكن العقد بنظام المستخلصات
-      if (paymentSchedule) {
-        try {
-          const scheduleParsed =
-            typeof paymentSchedule === "string"
-              ? JSON.parse(paymentSchedule)
-              : paymentSchedule;
-          const isMilestonesSystem =
-            input.paymentSystem === "milestones" ||
-            (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
-          const schedule = Array.isArray(scheduleParsed)
-            ? scheduleParsed
-            : scheduleParsed?.schedule || [];
+      const saveContractAndPayments = async (db: ContractWriteDb) => {
+        await db
+          .update(contractsEnhanced)
+          .set(updates)
+          .where(eq(contractsEnhanced.id, id));
 
-          if (!isMilestonesSystem && Array.isArray(schedule)) {
-            let coContractPaymentIds = new Set<number>();
-            if (contract.projectId) {
-              const coRows = await db
-                .select({ contractPaymentId: projectChangeOrders.contractPaymentId })
-                .from(projectChangeOrders)
-                .where(eq(projectChangeOrders.projectId, contract.projectId));
-              coContractPaymentIds = new Set(
-                coRows
-                  .map(r => r.contractPaymentId)
-                  .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
-              );
-            }
+        // تحديث الدفعات إذا تم توفير جدول جديد ولم يكن العقد بنظام المستخلصات
+        if (paymentSchedule) {
+          try {
+            const scheduleParsed =
+              typeof paymentSchedule === "string"
+                ? JSON.parse(paymentSchedule)
+                : paymentSchedule;
+            const isMilestonesSystem =
+              input.paymentSystem === "milestones" ||
+              (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
+            const schedule = Array.isArray(scheduleParsed)
+              ? scheduleParsed
+              : scheduleParsed?.schedule || [];
 
-            // جلب الدفعات الحالية للعقد (مع استبعاد أي دفعات مرتبطة بأوامر التغيير)
-            const existingPayments = (
-              await db
+            if (!isMilestonesSystem && Array.isArray(schedule)) {
+              let coContractPaymentIds = new Set<number>();
+              if (contract.projectId) {
+                const coRows = await db
+                  .select({ contractPaymentId: projectChangeOrders.contractPaymentId })
+                  .from(projectChangeOrders)
+                  .where(eq(projectChangeOrders.projectId, contract.projectId));
+                coContractPaymentIds = new Set(
+                  coRows
+                    .map(r => r.contractPaymentId)
+                    .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
+                );
+              }
+
+              // جلب الدفعات الحالية للعقد (مع استبعاد أي دفعات مرتبطة بأوامر التغيير)
+              const paymentRows = db.select().from(contractPayments)
+                .where(eq(contractPayments.contractId, id)).orderBy(contractPayments.phaseOrder);
+              const existingPayments = (await (savingBoq ? paymentRows.for("update") : paymentRows))
+                .filter(ep => !coContractPaymentIds.has(ep.id));
+
+              // جلب طلبات وأوامر الصرف لمعرفة الدفعات المسددة
+              const requestRows = db
                 .select()
-                .from(contractPayments)
-                .where(eq(contractPayments.contractId, id))
-                .orderBy(contractPayments.phaseOrder)
-            ).filter(ep => !coContractPaymentIds.has(ep.id));
+                .from(disbursementRequests)
+                .where(
+                  contract.projectId
+                    ? or(
+                        eq(disbursementRequests.contractId, id),
+                        eq(disbursementRequests.projectId, contract.projectId)
+                      )
+                    : eq(disbursementRequests.contractId, id)
+                );
+              const contractDisbursements = await (savingBoq ? requestRows.for("update") : requestRows);
+              const disbIds = contractDisbursements.map(d => d.id);
+              const orderRows = disbIds.length ? db.select().from(disbursementOrders)
+                .where(inArray(disbursementOrders.disbursementRequestId, disbIds)) : null;
+              const contractOrders = orderRows ? await (savingBoq ? orderRows.for("update") : orderRows) : [];
 
-            // جلب طلبات وأوامر الصرف لمعرفة الدفعات المسددة
-            const contractDisbursements = await db
-              .select()
-              .from(disbursementRequests)
-              .where(
-                contract.projectId
-                  ? or(
-                      eq(disbursementRequests.contractId, id),
-                      eq(disbursementRequests.projectId, contract.projectId)
-                    )
-                  : eq(disbursementRequests.contractId, id)
-              );
-            const disbIds = contractDisbursements.map(d => d.id);
-            const contractOrders =
-              disbIds.length > 0
-                ? await db
-                    .select()
-                    .from(disbursementOrders)
-                    .where(
-                      inArray(disbursementOrders.disbursementRequestId, disbIds)
-                    )
-                : [];
+              const getPaymentPaidInfo = (ep: any) => {
+                const disbs = contractDisbursements.filter(
+                  d =>
+                    d.contractPaymentId === ep.id ||
+                    (ep.id && String(d.paymentId) === String(ep.id))
+                );
+                const pDisbIds = disbs.map(d => d.id);
+                const executed = contractOrders.filter(
+                  o =>
+                    pDisbIds.includes(o.disbursementRequestId) &&
+                    o.status === "executed"
+                );
+                const paidOrdersSum = executed.reduce(
+                  (sum, o) => sum + parseFloat(String(o.amount || 0)),
+                  0
+                );
 
-            const getPaymentPaidInfo = (ep: any) => {
-              const disbs = contractDisbursements.filter(
-                d =>
-                  d.contractPaymentId === ep.id ||
-                  (ep.id && String(d.paymentId) === String(ep.id))
-              );
-              const pDisbIds = disbs.map(d => d.id);
-              const executed = contractOrders.filter(
-                o =>
-                  pDisbIds.includes(o.disbursementRequestId) &&
-                  o.status === "executed"
-              );
-              const paidOrdersSum = executed.reduce(
-                (sum, o) => sum + parseFloat(String(o.amount || 0)),
-                0
-              );
+                const agreedAmt = parseFloat(String(ep.amount || 0));
+                let actualPaid =
+                  ep.status === "paid" && paidOrdersSum === 0
+                    ? agreedAmt
+                    : paidOrdersSum > 0
+                      ? paidOrdersSum
+                      : disbs.some(d => d.status === "paid")
+                        ? disbs
+                            .filter(d => d.status === "paid")
+                            .reduce(
+                              (s, d) => s + parseFloat(String(d.amount || 0)),
+                              0
+                            )
+                        : 0;
 
-              const agreedAmt = parseFloat(String(ep.amount || 0));
-              let actualPaid =
-                ep.status === "paid" && paidOrdersSum === 0
-                  ? agreedAmt
-                  : paidOrdersSum > 0
-                    ? paidOrdersSum
-                    : disbs.some(d => d.status === "paid")
-                      ? disbs
-                          .filter(d => d.status === "paid")
-                          .reduce(
-                            (s, d) => s + parseFloat(String(d.amount || 0)),
-                            0
-                          )
-                      : 0;
+                const isFullyPaid =
+                  ep.status === "paid" ||
+                  (actualPaid >= agreedAmt && agreedAmt > 0);
+                const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
+                const isPaid = isFullyPaid || isPartiallyPaid;
 
-              const isFullyPaid =
-                ep.status === "paid" ||
-                (actualPaid >= agreedAmt && agreedAmt > 0);
-              const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
-              const isPaid = isFullyPaid || isPartiallyPaid;
-
-              return {
-                isPaid,
-                isFullyPaid,
-                isPartiallyPaid,
-                actualPaid,
-                agreedAmt,
+                return {
+                  isPaid,
+                  isFullyPaid,
+                  isPartiallyPaid,
+                  actualPaid,
+                  agreedAmt,
+                };
               };
-            };
 
-            const isPaymentPaid = (ep: any) => getPaymentPaidInfo(ep).isPaid;
+              const isPaymentPaid = (ep: any) => getPaymentPaidInfo(ep).isPaid;
 
-            const existingMap = new Map(
-              existingPayments.map(ep => [ep.id, ep])
-            );
-            const processedIds = new Set<number>();
+              const existingMap = new Map(
+                existingPayments.map(ep => [ep.id, ep])
+              );
+              const processedIds = new Set<number>();
+              const itemsByPayment = new Map<number, unknown[]>();
 
-            // تحديث الدفعات القائمة أو إضافة دفعات جديدة
-            for (let i = 0; i < schedule.length; i++) {
-              const p = schedule[i];
-              let matchId: number | null = null;
-              if (p.id) {
-                const sId = String(p.id)
-                  .replace(/^cp-/, "")
-                  .replace(/^payment-/, "");
-                const num = Number(sId);
-                if (!isNaN(num) && existingMap.has(num)) {
-                  matchId = num;
+              // تحديث الدفعات القائمة أو إضافة دفعات جديدة
+              for (let i = 0; i < schedule.length; i++) {
+                const p = schedule[i];
+                const linked = scheduleAllocations[i];
+                if (savingBoq && p.isManualPayment) {
+                  if (linked?.length) throw new TRPCError({ code: "BAD_REQUEST", message: "ربط بنود جدول الكميات متاح للدفعات المجدولة في العقد." });
+                  continue;
                 }
-              }
-              if (
-                matchId === null &&
-                i < existingPayments.length &&
-                !processedIds.has(existingPayments[i].id)
-              ) {
-                matchId = existingPayments[i].id;
-              }
-
-              const existing =
-                matchId !== null ? existingMap.get(matchId) : null;
-              const paid = existing ? isPaymentPaid(existing) : false;
-
-              if (existing) {
-                processedIds.add(existing.id);
-                if (paid) {
-                  // الدفعة مسددة: لا يمكن تعديل مبلغها أو حالتها التعاقدية
-                  await db
-                    .update(contractPayments)
-                    .set({
-                      phaseOrder: i,
-                      notes: p.description || p.notes || existing.notes,
-                    })
-                    .where(eq(contractPayments.id, existing.id));
-                } else {
-                  // الدفعة غير مسددة: يمكن تعديلها
-                  const pData = {
-                    phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
-                    amount: String(p.amount || 0),
-                    phaseOrder: i,
-                    dueDate: p.dueDate
-                      ? String(p.dueDate).includes("T")
-                        ? new Date(p.dueDate)
-                        : new Date(`${p.dueDate}T12:00:00`)
-                      : null,
-                    notes: p.description || p.notes || null,
-                    completionPercentage:
-                      p.completionPercentage !== undefined &&
-                      p.completionPercentage !== null
-                        ? Number(p.completionPercentage)
-                        : null,
-                  };
-                  await db
-                    .update(contractPayments)
-                    .set(pData)
-                    .where(eq(contractPayments.id, existing.id));
+                let matchId: number | null = null;
+                if (p.id) {
+                  const sId = String(p.id)
+                    .replace(/^cp-/, "")
+                    .replace(/^payment-/, "");
+                  const num = Number(sId);
+                  if (!isNaN(num) && existingMap.has(num)) {
+                    if (savingBoq && processedIds.has(num)) {
+                      throw new TRPCError({ code: "BAD_REQUEST", message: "تكرر معرّف إحدى الدفعات." });
+                    }
+                    matchId = num;
+                  }
                 }
-              } else {
-                // إضافة دفعة جديدة
-                await db.insert(contractPayments).values({
-                  contractId: id,
-                  phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
-                  amount: String(p.amount || 0),
-                  phaseOrder: i,
-                  dueDate: p.dueDate
-                    ? String(p.dueDate).includes("T")
-                      ? new Date(p.dueDate)
-                      : new Date(`${p.dueDate}T12:00:00`)
-                    : null,
-                  notes: p.description || p.notes || null,
-                  completionPercentage:
-                    p.completionPercentage !== undefined &&
-                    p.completionPercentage !== null
-                      ? Number(p.completionPercentage)
-                      : null,
-                  status: "pending" as const,
-                });
-              }
-            }
+                if (
+                  !savingBoq && matchId === null &&
+                  i < existingPayments.length &&
+                  !processedIds.has(existingPayments[i].id)
+                ) {
+                  matchId = existingPayments[i].id;
+                }
 
-            // حذف أي دفعات زائدة لم تعد موجودة في الجدول الجديد بشرط ألا تكون مسددة
-            for (const excess of existingPayments) {
-              if (!processedIds.has(excess.id)) {
-                if (isPaymentPaid(excess)) {
-                  console.warn(
-                    `Cannot delete paid payment ${excess.id}, keeping it.`
-                  );
-                } else {
-                  try {
+                const existing =
+                  matchId !== null ? existingMap.get(matchId) : null;
+                const paid = existing ? isPaymentPaid(existing) : false;
+
+                if (existing) {
+                  processedIds.add(existing.id);
+                  if (savingBoq && Array.isArray(p.items)) itemsByPayment.set(existing.id, p.items);
+                  if (paid) {
+                    const previous = readBoqAllocations(existing.boqAllocations);
+                    if (linked && previous.length && (linked.length !== previous.length || linked.some(row =>
+                      !previous.some(saved => row.quantityScheduleId === saved.quantityScheduleId && row.quantity === saved.quantity)
+                    ))) {
+                      throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل ربط البنود بعد سداد الدفعة كليًا أو جزئيًا." });
+                    }
+                    // الدفعة مسددة: لا يمكن تعديل مبلغها أو حالتها التعاقدية
                     await db
-                      .delete(contractPayments)
-                      .where(eq(contractPayments.id, excess.id));
-                  } catch (delErr) {
+                      .update(contractPayments)
+                      .set({
+                        phaseOrder: i,
+                        notes: p.description || p.notes || existing.notes,
+                        boqAllocations: !previous.length && linked?.length ? linked : undefined,
+                      })
+                      .where(eq(contractPayments.id, existing.id));
+                  } else {
+                    // الدفعة غير مسددة: يمكن تعديلها
+                    const pData = {
+                      phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
+                      amount: String(p.amount || 0),
+                      phaseOrder: i,
+                      dueDate: p.dueDate
+                        ? String(p.dueDate).includes("T")
+                          ? new Date(p.dueDate)
+                          : new Date(`${p.dueDate}T12:00:00`)
+                        : null,
+                      notes: p.description || p.notes || null,
+                      boqAllocations: linked === undefined ? undefined : linked.length ? linked : null,
+                      completionPercentage:
+                        p.completionPercentage !== undefined &&
+                        p.completionPercentage !== null
+                          ? Number(p.completionPercentage)
+                          : null,
+                    };
+                    await db
+                      .update(contractPayments)
+                      .set(pData)
+                      .where(eq(contractPayments.id, existing.id));
+                  }
+                } else {
+                  // إضافة دفعة جديدة
+                  const [created] = await db.insert(contractPayments).values(newScheduledPayment(id, p, i, linked));
+                  if (savingBoq && Array.isArray(p.items)) itemsByPayment.set(created.insertId, p.items);
+                }
+              }
+
+              // حذف أي دفعات زائدة لم تعد موجودة في الجدول الجديد بشرط ألا تكون مسددة
+              for (const excess of existingPayments) {
+                if (!processedIds.has(excess.id)) {
+                  if (isPaymentPaid(excess)) {
                     console.warn(
-                      `Cannot delete excess payment ${excess.id} due to references:`,
-                      delErr
+                      `Cannot delete paid payment ${excess.id}, keeping it.`
                     );
+                  } else {
+                    try {
+                      await db
+                        .delete(contractPayments)
+                        .where(eq(contractPayments.id, excess.id));
+                    } catch (delErr) {
+                      console.warn(
+                        `Cannot delete excess payment ${excess.id} due to references:`,
+                        delErr
+                      );
+                    }
                   }
                 }
               }
-            }
 
-            // مزامنة الدفعات المحدثة فوراً في paymentScheduleJson لضمان التطابق التام دائماً
-            const freshPayments = (
+              // مزامنة الدفعات المحدثة فوراً في paymentScheduleJson لضمان التطابق التام دائماً
+              const freshPayments = (
+                await db
+                  .select()
+                  .from(contractPayments)
+                  .where(eq(contractPayments.contractId, id))
+                  .orderBy(contractPayments.phaseOrder)
+              ).filter(fp => !coContractPaymentIds.has(fp.id));
+
+              const syncedSchedule = freshPayments.map(fp => {
+                const {
+                  isPaid,
+                  isFullyPaid,
+                  isPartiallyPaid,
+                  actualPaid,
+                  agreedAmt,
+                } = getPaymentPaidInfo(fp);
+                return {
+                  id: `payment-${fp.id}`,
+                  name: fp.phaseName,
+                  phaseName: fp.phaseName,
+                  amount: agreedAmt,
+                  agreedAmount: agreedAmt,
+                  paidAmount: actualPaid,
+                  status: isFullyPaid
+                    ? "paid"
+                    : isPartiallyPaid
+                      ? "partially_paid"
+                      : fp.status,
+                  isPaid: isPaid,
+                  isPartiallyPaid: isPartiallyPaid,
+                  dueDate: fp.dueDate
+                    ? new Intl.DateTimeFormat("en-CA", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      }).format(new Date(fp.dueDate))
+                    : "",
+                  notes: fp.notes,
+                  description: fp.notes,
+                  completionPercentage: fp.completionPercentage,
+                  ...(itemsByPayment.has(fp.id) ? { items: itemsByPayment.get(fp.id) } : {}),
+                };
+              });
+
               await db
-                .select()
-                .from(contractPayments)
-                .where(eq(contractPayments.contractId, id))
-                .orderBy(contractPayments.phaseOrder)
-            ).filter(fp => !coContractPaymentIds.has(fp.id));
-
-            const syncedSchedule = freshPayments.map(fp => {
-              const {
-                isPaid,
-                isFullyPaid,
-                isPartiallyPaid,
-                actualPaid,
-                agreedAmt,
-              } = getPaymentPaidInfo(fp);
-              return {
-                id: `payment-${fp.id}`,
-                name: fp.phaseName,
-                phaseName: fp.phaseName,
-                amount: agreedAmt,
-                agreedAmount: agreedAmt,
-                paidAmount: actualPaid,
-                status: isFullyPaid
-                  ? "paid"
-                  : isPartiallyPaid
-                    ? "partially_paid"
-                    : fp.status,
-                isPaid: isPaid,
-                isPartiallyPaid: isPartiallyPaid,
-                dueDate: fp.dueDate
-                  ? new Intl.DateTimeFormat("en-CA", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                    }).format(new Date(fp.dueDate))
-                  : "",
-                notes: fp.notes,
-                description: fp.notes,
-                completionPercentage: fp.completionPercentage,
-              };
-            });
-
-            await db
-              .update(contractsEnhanced)
-              .set({
-                paymentScheduleJson: JSON.stringify(syncedSchedule),
-              })
-              .where(eq(contractsEnhanced.id, id));
+                .update(contractsEnhanced)
+                .set({
+                  paymentScheduleJson: savingBoq
+                    ? { ...config, paymentSystem: "installments", schedule: syncedSchedule }
+                    : JSON.stringify(syncedSchedule),
+                })
+                .where(eq(contractsEnhanced.id, id));
+            }
+          } catch (e) {
+            if (savingBoq) throw e;
+            console.error("خطأ في تحديث جدول الدفعات:", e);
           }
-        } catch (e) {
-          console.error("خطأ في تحديث جدول الدفعات:", e);
         }
+      };
+
+      if (savingBoq) {
+        await db.transaction(async tx => {
+          const items = await lockBoqItems(tx, scope, allocations);
+          await saveContractAndPayments(tx);
+          await validateBoqAllocationTotals(tx, items, scope);
+        });
+      } else {
+        await saveContractAndPayments(db);
       }
 
       // تحديث البنود إذا تم توفير قيم جديدة

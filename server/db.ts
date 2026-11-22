@@ -17,8 +17,15 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (followUpCols.length === 0) {
       await promisePool.query("ALTER TABLE progress_reports ADD COLUMN followUpDetails JSON");
     }
+    const [boqAllocationCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM contract_payments LIKE 'boqAllocations'");
+    if (boqAllocationCols.length === 0) {
+      await promisePool.query("ALTER TABLE contract_payments ADD COLUMN boqAllocations JSON");
+    }
     const [cols] = await promisePool.query("SHOW COLUMNS FROM disbursement_orders") as any[];
     const colNames = Array.isArray(cols) ? cols.map((c: any) => c.Field) : [];
+    if (!colNames.includes("boqSettlements")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN boqSettlements JSON");
+    }
     if (!colNames.includes("executiveNotes")) {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotes TEXT");
     }

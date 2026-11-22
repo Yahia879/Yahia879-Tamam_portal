@@ -1,4 +1,5 @@
 import { isApprovedContract } from "@shared/contractPermissions";
+import { boqQuantityUnits, readBoqAllocations, type BoqAllocation } from "@shared/boqPayments";
 import { usePermission } from "@/hooks/usePermission";
 import React, { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
+import { BoqInstallmentAllocations } from "@/components/BoqInstallmentAllocations";
 import {
   FileText,
   Building2,
@@ -234,6 +236,9 @@ interface PaymentScheduleItem {
   description: string;
   completionPercentage?: number;
   items?: PaymentScheduleContractItem[];
+  boqAllocations?: BoqAllocation[];
+  boqPaidAllocations?: BoqAllocation[];
+  isManualPayment?: boolean;
   isPaid?: boolean;
   status?: string;
   agreedAmount?: number;
@@ -761,6 +766,10 @@ export default function ContractForm() {
     { requestId: effectiveRequestId! },
     { enabled: !!effectiveRequestId && effectiveRequestId > 0 }
   );
+  const { data: allocationBoq } = trpc.projects.getBOQ.useQuery(
+    { requestId: effectiveRequestId || undefined, projectId: targetProjectId || undefined },
+    { enabled: paymentSystem === "installments" && Boolean(effectiveRequestId || targetProjectId) }
+  );
 
   // تحديد ما إذا كان العقد يخص برنامج سدانة حصراً
   const isSedanaProgram = useMemo(() => {
@@ -1052,6 +1061,27 @@ export default function ContractForm() {
     { enabled: !!editContractId }
   );
 
+  const savedBoqByPayment = useMemo(() => new Map<string, BoqAllocation[]>(
+    (existingContract?.payments ?? []).filter(p => !p.isManualPayment)
+      .map(p => [String(p.id), readBoqAllocations(p.boqAllocations)])
+  ), [existingContract?.payments]);
+  const savedBoqTotals = useMemo(() => {
+    const totals = new Map<number, number>();
+    savedBoqByPayment.forEach(rows => rows.forEach(row => totals.set(
+      row.quantityScheduleId, (totals.get(row.quantityScheduleId) ?? 0) + (boqQuantityUnits(row.quantity) ?? 0)
+    )));
+    return totals;
+  }, [savedBoqByPayment]);
+  const formBoqTotals = useMemo(() => {
+    const totals = new Map<number, number>();
+    for (const payment of paymentSchedule) {
+      for (const row of payment.boqAllocations ?? []) {
+        totals.set(row.quantityScheduleId, (totals.get(row.quantityScheduleId) ?? 0) + (boqQuantityUnits(row.quantity) ?? 0));
+      }
+    }
+    return totals;
+  }, [paymentSchedule]);
+
   // تعبئة النموذج ببيانات العقد الحالي عند فتح وضع التعديل
   useEffect(() => {
     if (isEditMode && existingContract?.contract && !editDataLoaded) {
@@ -1238,6 +1268,9 @@ export default function ContractForm() {
             description: p.notes || p.description || p.condition || jsonMatch?.description || "",
             completionPercentage: comp ?? jsonMatch?.completionPercentage,
             items: Array.isArray(p.items) ? p.items : (Array.isArray(jsonMatch?.items) ? jsonMatch.items : []),
+            boqAllocations: p.boqAllocations == null ? undefined : readBoqAllocations(p.boqAllocations),
+            boqPaidAllocations: readBoqAllocations(p.boqPaidAllocations),
+            isManualPayment: p.isManualPayment === true,
             status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
             isPaid: isPaid,
             isPartiallyPaid: isPartiallyPaid,
@@ -1292,6 +1325,9 @@ export default function ContractForm() {
             isPartiallyPaid: isPartiallyPaid,
           };
         });
+      }
+      if (!detectedPaymentSystem && parsedSchedule.some(payment => payment.boqAllocations?.length)) {
+        setPaymentSystem("installments");
       }
       setPaymentSchedule(sortPaymentsByDate(parsedSchedule));
 
@@ -4100,6 +4136,24 @@ export default function ContractForm() {
                                 </div>
                               </div>
 
+
+                            {!payment.isManualPayment && Boolean(allocationBoq?.items.length || payment.boqAllocations?.length) && (
+                              <BoqInstallmentAllocations
+                                items={(allocationBoq?.items ?? []).map(item => {
+                                  const own = payment.boqAllocations?.find(row => row.quantityScheduleId === item.id);
+                                  const alreadyAllocated = boqQuantityUnits(item.allocatedToPayments) ?? 0;
+                                  const outsideContract = Math.max(0, alreadyAllocated - (savedBoqTotals.get(item.id) ?? 0));
+                                  const inOtherPayments = (formBoqTotals.get(item.id) ?? 0) - (boqQuantityUnits(own?.quantity) ?? 0);
+                                  return { ...item, available: Math.max(0, (boqQuantityUnits(item.quantity) ?? 0) - outsideContract - inOtherPayments) };
+                                })}
+                                value={payment.boqAllocations ?? []}
+                                paid={payment.boqPaidAllocations ?? []}
+                                locked={isPaid && Boolean(savedBoqByPayment.get(payment.id)?.length)}
+                                onChange={rows => setPaymentSchedule(current => current.map(entry =>
+                                  entry.id === payment.id && !entry.isManualPayment ? { ...entry, boqAllocations: rows } : entry
+                                ))}
+                              />
+                            )}
 
                             {/* قسم ربط الأصناف والبنود الموردة في هذه الدفعة - خاص ببرنامج سدانة فقط */}
                             {isSedanaProgram && (

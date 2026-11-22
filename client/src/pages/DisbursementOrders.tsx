@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
+import { BoqOrderSettlement } from "@/components/BoqOrderSettlement";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
@@ -268,6 +269,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
       setShowExecuteDialog(false);
       setTransactionReference("");
       refetchOrders();
+      void utils.projects.getBOQ.invalidate();
+      void utils.contracts.getById.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تنفيذ أمر الصرف");
@@ -311,6 +314,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
       setShowConfirmCancelDialog(false);
       setSelectedOrder(null);
       refetchOrders();
+      void utils.projects.getBOQ.invalidate();
+      void utils.contracts.getById.invalidate();
+      void utils.disbursements.getOrderBoqSettlement.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تأكيد إلغاء الاعتماد");
@@ -1679,6 +1685,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   <p className="whitespace-pre-wrap leading-relaxed text-rose-950 dark:text-rose-100">{selectedOrder.rejectionReason}</p>
                 </div>
               )}
+
+              {selectedOrder?.status === "executed" && <BoqOrderSettlement key={selectedOrder.id} orderId={selectedOrder.id} />}
 
               {(() => {
                 const parsedAttachments = (() => {

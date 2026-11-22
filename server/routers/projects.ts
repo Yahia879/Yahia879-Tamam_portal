@@ -6,6 +6,8 @@ import {
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
+import { getBoqPaymentCoverage, validateBoqAllocationTotals } from "../boqPayments";
+import { formatBoqQuantity } from "../../shared/boqPayments";
 import { projectAccess } from "../../shared/projectPermissions";
 import {
   projects,
@@ -2603,10 +2605,17 @@ export const projectsRouter = router({
       if (totalPrice !== null) updateValues.totalPrice = totalPrice.toString();
       if (updateData.category) updateValues.category = updateData.category;
 
-      await db
-        .update(quantitySchedules)
-        .set(updateValues)
-        .where(eq(quantitySchedules.id, id));
+      if (updateData.quantity !== undefined || (updateData.unit && updateData.unit !== currentItem.unit)) {
+        await db.transaction(async tx => {
+          const [item] = await tx.select().from(quantitySchedules).where(eq(quantitySchedules.id, id)).for("update");
+          if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
+          const quantity = updateData.unit && updateData.unit !== item.unit ? "0" : updateValues.quantity ?? item.quantity;
+          await validateBoqAllocationTotals(tx, [{ ...item, quantity }], item);
+          await tx.update(quantitySchedules).set(updateValues).where(eq(quantitySchedules.id, id));
+        });
+      } else {
+        await db.update(quantitySchedules).set(updateValues).where(eq(quantitySchedules.id, id));
+      }
 
       // إذا كان البند مرتبطاً بأمر تغيير، تتم مزامنة قيمة أمر التغيير واعتماده تلقائياً عند تسعير البند
       if (currentItem.changeOrderId) {
@@ -2794,9 +2803,12 @@ export const projectsRouter = router({
         }
       }
 
-      await db
-        .delete(quantitySchedules)
-        .where(eq(quantitySchedules.id, input.id));
+      await db.transaction(async tx => {
+        const [item] = await tx.select().from(quantitySchedules).where(eq(quantitySchedules.id, input.id)).for("update");
+        if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
+        await validateBoqAllocationTotals(tx, [{ ...item, quantity: "0" }], item);
+        await tx.delete(quantitySchedules).where(eq(quantitySchedules.id, input.id));
+      });
       return { success: true };
     }),
 
@@ -3020,8 +3032,15 @@ export const projectsRouter = router({
         }
       }
 
+      const coverage = await getBoqPaymentCoverage(db, itemsList, { projectId: queryProjectId, requestId: queryRequestId });
+      const itemsWithPayments = itemsList.map(item => ({
+        ...item,
+        allocatedToPayments: formatBoqQuantity(coverage.planned.get(item.id) ?? 0),
+        paidQuantity: formatBoqQuantity(coverage.paid.get(item.id) ?? 0),
+      }));
+
       // حساب الإجمالي الكلي
-      const total = itemsList.reduce((sum, item) => {
+      const total = itemsWithPayments.reduce((sum, item) => {
         return sum + (item.totalPrice ? parseFloat(item.totalPrice) : 0);
       }, 0);
 
@@ -3031,11 +3050,11 @@ export const projectsRouter = router({
         {
           mosqueId: number | null;
           mosqueName: string | null;
-          items: typeof itemsList;
+          items: typeof itemsWithPayments;
           total: number;
         }
       > = {};
-      for (const item of itemsList) {
+      for (const item of itemsWithPayments) {
         const mKey = item.mosqueId ?? "unassigned";
         if (!byMosque[mKey]) {
           byMosque[mKey] = {
@@ -3051,7 +3070,7 @@ export const projectsRouter = router({
           : 0;
       }
 
-      return { items: itemsList, total, byMosque };
+      return { items: itemsWithPayments, total, byMosque };
     }),
 
   // ==================== العقود ====================

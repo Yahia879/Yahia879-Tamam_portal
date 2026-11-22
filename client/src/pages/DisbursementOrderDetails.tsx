@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
+import { BoqOrderSettlement } from "@/components/BoqOrderSettlement";
 import { ArrowRight, Printer, CheckCircle, XCircle, Clock, Banknote, Building2, CreditCard, FileText, ExternalLink } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +60,8 @@ export default function DisbursementOrderDetails() {
     onSuccess: () => {
       toast.success("تم تنفيذ أمر الصرف بنجاح");
       utils.disbursements.getOrderById.invalidate({ id: Number(id) });
+      void utils.projects.getBOQ.invalidate();
+      void utils.contracts.getById.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تنفيذ أمر الصرف");
@@ -183,6 +186,8 @@ export default function DisbursementOrderDetails() {
             )}
           </div>
         </div>
+
+        {order.status === "executed" && <BoqOrderSettlement key={order.id} orderId={order.id} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* بيانات أمر الصرف */}
