@@ -823,7 +823,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const showIconLinks = isCollapsed && !isMobile;
   const menuGroupId = useId();
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>();
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
@@ -873,6 +873,7 @@ function DashboardLayoutContent({
     ? getMenuGroupsFromPermissions(userPermissions, menuRole, isEn, customRoleNameAr, customRoleNameEn)
     : getMenuGroups(menuRole, isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
+  const expandedGroup = selectedGroup === undefined ? menuGroups.find(group => group.label)?.label : selectedGroup;
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => isItemActive(item.path, location, menuItems));
 
@@ -1079,14 +1080,14 @@ function DashboardLayoutContent({
                   {group.label && !showIconLinks && (
                     <button
                       type="button"
-                      className="flex w-full cursor-pointer items-center justify-between gap-2 overflow-hidden whitespace-nowrap px-4 py-1.5 text-right text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 select-none hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring aria-expanded:[&>svg]:rotate-180"
+                      className={`flex w-full cursor-pointer items-center justify-between gap-2 overflow-hidden whitespace-nowrap px-4 text-right text-sm font-semibold text-sidebar-foreground select-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring aria-expanded:[&>svg]:rotate-180 ${tabletNavigation && isMobile ? "h-11" : "h-9"}`}
                       title={group.label}
                       aria-expanded={isExpanded}
                       aria-controls={panelId}
-                      onClick={() => setExpandedGroup(current => current === group.label ? null : group.label)}
+                      onClick={() => setSelectedGroup(isExpanded ? null : group.label)}
                     >
                       <span className="truncate">{group.label}</span>
-                      <ChevronDown aria-hidden="true" className="size-3 shrink-0 transition-transform duration-200" />
+                      <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform duration-200" />
                     </button>
                   )}
                   <div id={panelId} hidden={Boolean(group.label) && !isExpanded && !showIconLinks}>
