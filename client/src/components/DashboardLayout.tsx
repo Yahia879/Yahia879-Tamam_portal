@@ -68,7 +68,7 @@ import {
   FileSpreadsheet,
   X,
 } from "lucide-react";
-import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -821,6 +821,9 @@ function DashboardLayoutContent({
   const isEn = isQuickResponseUser && lang === "en";
   const { state, toggleSidebar, setOpenMobile, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const showIconLinks = isCollapsed && !isMobile;
+  const menuGroupId = useId();
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
@@ -900,7 +903,7 @@ function DashboardLayoutContent({
         '[data-sidebar-item-active="true"], [data-active="true"]'
       ) as HTMLElement | null;
 
-      if (activeEl) {
+      if (activeEl && !activeEl.closest("[hidden]")) {
         activeEl.scrollIntoView({
           block: "nearest",
           inline: "nearest",
@@ -1065,20 +1068,28 @@ function DashboardLayoutContent({
             className="gap-0 py-2 overflow-y-auto overflow-x-hidden"
           >
             {menuGroups.map((group, groupIdx) => {
+              const isExpanded = expandedGroup === group.label;
+              const panelId = `${menuGroupId}-${groupIdx}`;
+
               return (
                 <div key={group.label}>
                   {groupIdx > 0 && (
                     <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
                   )}
-                  {group.label && (
-                    <div
-                      className="w-full flex items-center px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider transition-all duration-200 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap select-none text-right"
+                  {group.label && !showIconLinks && (
+                    <button
+                      type="button"
+                      className="flex w-full cursor-pointer items-center justify-between gap-2 overflow-hidden whitespace-nowrap px-4 py-1.5 text-right text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 select-none hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring aria-expanded:[&>svg]:rotate-180"
                       title={group.label}
+                      aria-expanded={isExpanded}
+                      aria-controls={panelId}
+                      onClick={() => setExpandedGroup(current => current === group.label ? null : group.label)}
                     >
                       <span className="truncate">{group.label}</span>
-                    </div>
+                      <ChevronDown aria-hidden="true" className="size-3 shrink-0 transition-transform duration-200" />
+                    </button>
                   )}
-                  <div>
+                  <div id={panelId} hidden={Boolean(group.label) && !isExpanded && !showIconLinks}>
                     <SidebarMenu className="px-2 py-0.5">
                       {group.items.map(item => {
                         const isActive = isItemActive(item.path, location, menuItems);
