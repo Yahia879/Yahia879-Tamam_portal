@@ -5514,6 +5514,35 @@ export const requestsRouter = router({
           updatedAt: new Date(),
         }).where(eq(quickResponseReports.requestId, input.requestId));
       }
+      if (
+        request[0].programType === 'sedana' &&
+        ['submitted', 'initial_review', 'technical_eval'].includes(previousStage)
+      ) {
+        let currentProgramData: Record<string, any> = {};
+        try {
+          let pData: any = request[0].programData;
+          while (typeof pData === "string") {
+            try {
+              pData = JSON.parse(pData);
+            } catch {
+              break;
+            }
+          }
+          if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+            currentProgramData = { ...pData };
+          }
+        } catch {
+          currentProgramData = {};
+        }
+
+        if (currentProgramData.approvedPlan && typeof currentProgramData.approvedPlan === "object") {
+          currentProgramData.approvedPlan = {
+            ...currentProgramData.approvedPlan,
+            approvedAt: null,
+          };
+          updateData.programData = currentProgramData;
+        }
+      }
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب

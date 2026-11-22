@@ -67,7 +67,10 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
   }
 
   const existingApprovedPlan = programData.approvedPlan;
-  const isAlreadyApproved = Boolean(existingApprovedPlan?.approvedAt);
+  const isInSedanaEvaluationStage =
+    request.programType === 'sedana' &&
+    ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage);
+  const isAlreadyApproved = Boolean(existingApprovedPlan?.approvedAt) && !isInSedanaEvaluationStage;
 
   const mosqueArea = Number(programData.mosqueArea ?? request.mosque?.area ?? 250);
   const worshippers = Number(programData.actualWorshippers ?? request.mosque?.capacity ?? 150);
