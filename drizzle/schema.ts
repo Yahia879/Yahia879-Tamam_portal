@@ -1,5 +1,6 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext, longtext, date, unique, datetime, foreignKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
+export { mawasimGrants, mawasimRequests, mawasimSeasons } from "./mawasim";
 
 // ==================== الأدوار والحالات ====================
 

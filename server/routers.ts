@@ -37,6 +37,7 @@ import { sedanaExecutionRouter } from "./routers/sedanaExecution";
 import { approvalsRouter } from "./routers/approvals";
 import { fundRouter } from "./routers/fund";
 import { projectChangeOrdersRouter } from "./routers/projectChangeOrders";
+import { mawasimRouter } from "./routers/mawasim";
 
 export const appRouter = router({
   system: systemRouter,
@@ -61,6 +62,7 @@ export const appRouter = router({
 
   // إدارة البرامج
   programs: programsRouter,
+  mawasim: mawasimRouter,
 
   // الدعم الفني
   supportTickets: supportTicketsRouter,

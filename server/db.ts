@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
 import { InsertUser, users, UserRole } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { ensureMawasimSchema } from "./mawasim-schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let pool: mysql.Pool | null = null;
@@ -13,6 +14,7 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
   _migrationPromise = (async () => {
     try {
       const promisePool = p.promise();
+      await ensureMawasimSchema(promisePool).catch(error => console.warn("[Database] Mawasim schema warning:", error));
     const [followUpCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM progress_reports LIKE 'followUpDetails'");
     if (followUpCols.length === 0) {
       await promisePool.query("ALTER TABLE progress_reports ADD COLUMN followUpDetails JSON");

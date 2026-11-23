@@ -123,6 +123,12 @@ export default function RequesterDashboard() {
         </div>
       </div>
 
+      <Link href="/requester/mawasim" className="mb-6 flex items-center gap-3 rounded-2xl border bg-card p-4 font-semibold hover:bg-muted">
+        <Sparkles className="size-5 text-primary" aria-hidden="true" />
+        برنامج مواسم لتأهيل المساجد لاستقبال رمضان
+        <ChevronLeft className="ms-auto size-4" aria-hidden="true" />
+      </Link>
+
       {/* تنبيه مراجعة الحساب إن كان قيد الانتظار */}
       {user?.status === "pending" && (
         <div className="mb-6 sm:mb-8 dir-rtl">
