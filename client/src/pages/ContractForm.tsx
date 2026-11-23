@@ -767,9 +767,10 @@ export default function ContractForm() {
     { enabled: !!effectiveRequestId && effectiveRequestId > 0 }
   );
   const { data: allocationBoq } = trpc.projects.getBOQ.useQuery(
-    { requestId: effectiveRequestId || undefined, projectId: targetProjectId || undefined },
-    { enabled: paymentSystem === "installments" && Boolean(effectiveRequestId || targetProjectId) }
+    { requestId: effectiveRequestId || undefined, projectId: targetProjectId || undefined, includeAllocationLock: true },
+    { enabled: paymentSystem === "installments" && Boolean(effectiveRequestId || targetProjectId), refetchOnWindowFocus: "always" }
   );
+  const boqAllocationsLocked = allocationBoq?.allocationsLocked === true;
 
   // تحديد ما إذا كان العقد يخص برنامج سدانة حصراً
   const isSedanaProgram = useMemo(() => {
@@ -1944,6 +1945,10 @@ export default function ContractForm() {
     const target = paymentSchedule.find(p => p.id === id);
     if (target && (target.isPaid || target.status === "paid" || Number(target.paidAmount || 0) > 0)) {
       toast.error("لا يمكن حذف دفعة مسددة نهائياً");
+      return;
+    }
+    if (boqAllocationsLocked && savedBoqByPayment.get(id)?.length) {
+      toast.error("لا يمكن حذف دفعة مرتبطة ببنود جدول الكميات بعد بدء السداد في المشروع.");
       return;
     }
     const filtered = paymentSchedule.filter(p => p.id !== id);
@@ -3422,6 +3427,12 @@ export default function ContractForm() {
                 {/* في حال اختيار نظام الدفعات: يظهر جدول الدفعات المجدولة */}
                 {paymentSystem === "installments" && (
                   <div className="space-y-6">
+                    {boqAllocationsLocked && (
+                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Lock className="size-4 shrink-0" aria-hidden="true" />
+                        ربط بنود جدول الكميات مقفل بعد بدء السداد في المشروع.
+                      </p>
+                    )}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="font-medium flex items-center gap-2">
@@ -3618,7 +3629,7 @@ export default function ContractForm() {
                                   )}
                                 </div>
                               </div>
-                              {!isPaid && (
+                              {!isPaid && !(boqAllocationsLocked && savedBoqByPayment.get(payment.id)?.length) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -4137,7 +4148,7 @@ export default function ContractForm() {
                               </div>
 
 
-                            {!payment.isManualPayment && Boolean(allocationBoq?.items.length || payment.boqAllocations?.length) && (
+                            {!payment.isManualPayment && Boolean(payment.boqAllocations?.length || (!boqAllocationsLocked && !isPaid && allocationBoq?.items.length)) && (
                               <BoqInstallmentAllocations
                                 items={(allocationBoq?.items ?? []).map(item => {
                                   const own = payment.boqAllocations?.find(row => row.quantityScheduleId === item.id);
@@ -4148,7 +4159,7 @@ export default function ContractForm() {
                                 })}
                                 value={payment.boqAllocations ?? []}
                                 paid={payment.boqPaidAllocations ?? []}
-                                locked={isPaid && Boolean(savedBoqByPayment.get(payment.id)?.length)}
+                                locked={boqAllocationsLocked || isPaid}
                                 onChange={rows => setPaymentSchedule(current => current.map(entry =>
                                   entry.id === payment.id && !entry.isManualPayment ? { ...entry, boqAllocations: rows } : entry
                                 ))}
@@ -4320,7 +4331,7 @@ export default function ContractForm() {
 
                               )}
                             </div>
-                            {!isPaid && (
+                            {!isPaid && !(boqAllocationsLocked && savedBoqByPayment.get(payment.id)?.length) && (
                               <Button
                                 variant="ghost"
                                 size="icon"

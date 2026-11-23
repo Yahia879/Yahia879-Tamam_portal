@@ -6,7 +6,7 @@ import {
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { getBoqPaymentCoverage, validateBoqAllocationTotals } from "../boqPayments";
+import { getBoqPaymentCoverage, hasProjectPayment, validateBoqAllocationTotals } from "../boqPayments";
 import { formatBoqQuantity } from "../../shared/boqPayments";
 import { projectAccess } from "../../shared/projectPermissions";
 import {
@@ -2819,6 +2819,7 @@ export const projectsRouter = router({
         projectId: z.number().optional(),
         requestId: z.number().optional(),
         mosqueId: z.number().optional(),
+        includeAllocationLock: z.boolean().optional(),
       })
     )
     .query(async ({ input }) => {
@@ -3070,7 +3071,12 @@ export const projectsRouter = router({
           : 0;
       }
 
-      return { items: itemsWithPayments, total, byMosque };
+      return {
+        items: itemsWithPayments, total, byMosque,
+        allocationsLocked: input.includeAllocationLock
+          ? await hasProjectPayment(db, { projectId: queryProjectId, requestId: queryRequestId })
+          : undefined,
+      };
     }),
 
   // ==================== العقود ====================

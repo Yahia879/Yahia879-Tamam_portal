@@ -1,12 +1,77 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
-import { contractPayments, contractsEnhanced, disbursementOrders, disbursementRequests, projects, quantitySchedules } from "../drizzle/schema";
+import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { contractPayments, contractsEnhanced, disbursementOrders, disbursementRequests, payments, projects, quantitySchedules } from "../drizzle/schema";
 import { boqAllocationsSchema, boqQuantityUnits, formatBoqQuantity, paidBoqAllocations, readBoqAllocations, type BoqAllocation } from "../shared/boqPayments";
 import type { getDb } from "./db";
 
 type ReadDb = Pick<NonNullable<Awaited<ReturnType<typeof getDb>>>, "select">;
 type BoqScope = { projectId?: number | null; requestId?: number | null };
 type BoqItem = Pick<typeof quantitySchedules.$inferSelect, "id" | "itemName" | "quantity" | "projectId" | "requestId">;
+
+export const boqAllocationLockMessage = "لا يمكن تغيير ربط بنود جدول الكميات بعد سداد أي دفعة في المشروع كليًا أو جزئيًا.";
+
+export async function hasProjectPayment(db: ReadDb, scope: BoqScope, lock = false) {
+  if (!scope.projectId && !scope.requestId) return false;
+
+  const projectRows = await db.select({ id: projects.id, requestId: projects.requestId }).from(projects)
+    .where(scope.projectId ? eq(projects.id, scope.projectId) : eq(projects.requestId, scope.requestId!));
+  const projectIds = scope.projectId ? [scope.projectId] : projectRows.map(project => project.id);
+  const requestId = projectRows[0]?.requestId ?? scope.requestId;
+
+  const read = <T>(query: PromiseLike<T> & { for(strength: "update"): PromiseLike<T> }) =>
+    lock ? query.for("update") : query;
+  const contracts = await read(db.select({ id: contractsEnhanced.id }).from(contractsEnhanced)
+    .where(or(
+      projectIds.length ? inArray(contractsEnhanced.projectId, projectIds) : undefined,
+      requestId ? and(isNull(contractsEnhanced.projectId), eq(contractsEnhanced.requestId, requestId)) : undefined,
+    )).orderBy(contractsEnhanced.id));
+  const contractIds = contracts.map(contract => contract.id);
+  const installments = contractIds.length ? await read(db.select({
+    id: contractPayments.id, status: contractPayments.status, amount: contractPayments.amount,
+  }).from(contractPayments).where(inArray(contractPayments.contractId, contractIds)).orderBy(contractPayments.id)) : [];
+  if (installments.some(payment => payment.status === "paid" && Number(payment.amount) > 0)) return true;
+
+  const manual = projectIds.length || contractIds.length ? await read(db.select({
+    id: payments.id, status: payments.status, amount: payments.amount,
+  }).from(payments).where(or(
+    projectIds.length ? inArray(payments.projectId, projectIds) : undefined,
+    contractIds.length ? inArray(payments.contractId, contractIds) : undefined,
+  )).orderBy(payments.id)) : [];
+  if (manual.some(payment => payment.status === "paid" && Number(payment.amount) > 0)) return true;
+  if (!installments.length && !manual.length) return false;
+
+  const requests = await read(db.select({
+    id: disbursementRequests.id, status: disbursementRequests.status, amount: disbursementRequests.amount,
+  }).from(disbursementRequests).where(or(
+    installments.length ? inArray(disbursementRequests.contractPaymentId, installments.map(payment => payment.id)) : undefined,
+    // Older requests may store the installment ID in paymentId.
+    installments.length ? and(
+      isNull(disbursementRequests.contractPaymentId),
+      inArray(disbursementRequests.paymentId, installments.map(payment => payment.id)),
+      or(
+        inArray(disbursementRequests.contractId, contractIds),
+        projectIds.length ? inArray(disbursementRequests.projectId, projectIds) : undefined,
+      ),
+    ) : undefined,
+    manual.length ? inArray(disbursementRequests.paymentId, manual.map(payment => payment.id)) : undefined,
+  )).orderBy(disbursementRequests.id));
+  if (requests.some(request => request.status === "paid" && Number(request.amount) > 0)) return true;
+  if (!requests.length) return false;
+
+  const orders = await read(db.select({
+    status: disbursementOrders.status, amount: disbursementOrders.amount, executedAt: disbursementOrders.executedAt,
+  }).from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, requests.map(request => request.id)))
+    .orderBy(disbursementOrders.id));
+  // An execution timestamp preserves the first-payment lock even if that order is later cancelled.
+  return orders.some(order => (order.status === "executed" || order.executedAt) && Number(order.amount) > 0);
+}
+
+export function assertBoqAllocationsUnchanged(saved: BoqAllocation[], proposed: BoqAllocation[]) {
+  const quantities = new Map(saved.map(row => [row.quantityScheduleId, row.quantity]));
+  if (saved.length !== proposed.length || proposed.some(row => quantities.get(row.quantityScheduleId) !== row.quantity)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: boqAllocationLockMessage });
+  }
+}
 
 export function parseBoqAllocationInput(value: unknown): BoqAllocation[] | undefined {
   if (value === undefined) return undefined;

@@ -7,7 +7,14 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
-import { lockBoqItems, parseBoqAllocationInput, validateBoqAllocationTotals } from "../boqPayments";
+import {
+  assertBoqAllocationsUnchanged,
+  boqAllocationLockMessage,
+  hasProjectPayment,
+  lockBoqItems,
+  parseBoqAllocationInput,
+  validateBoqAllocationTotals,
+} from "../boqPayments";
 import { paidBoqAllocations, readBoqAllocations, type BoqAllocation } from "../../shared/boqPayments";
 import {
   organizationSettings,
@@ -1344,6 +1351,9 @@ export const contractsRouter = router({
       const [result] = allocations.length ? await db.transaction(async tx => {
         const scope = { projectId: contractData.projectId, requestId: contractData.requestId };
         const items = await lockBoqItems(tx, scope, allocations);
+        if (await hasProjectPayment(tx, scope, true)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: boqAllocationLockMessage });
+        }
         const inserted = await tx.insert(contractsEnhanced).values(contractData);
         await tx.insert(contractPayments).values(schedule.map((payment: any, index: number) =>
           newScheduledPayment(inserted[0].insertId, payment, index, scheduleAllocations[index])
@@ -1907,7 +1917,7 @@ export const contractsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "أزل ربط بنود جدول الكميات قبل تغيير نظام الدفعات." });
       }
 
-      const saveContractAndPayments = async (db: ContractWriteDb) => {
+      const saveContractAndPayments = async (db: ContractWriteDb, allocationsLocked = false) => {
         await db
           .update(contractsEnhanced)
           .set(updates)
@@ -2052,24 +2062,20 @@ export const contractsRouter = router({
                 const existing =
                   matchId !== null ? existingMap.get(matchId) : null;
                 const paid = existing ? isPaymentPaid(existing) : false;
+                if ((allocationsLocked || paid) && linked !== undefined) {
+                  assertBoqAllocationsUnchanged(readBoqAllocations(existing?.boqAllocations), linked);
+                }
 
                 if (existing) {
                   processedIds.add(existing.id);
                   if (savingBoq && Array.isArray(p.items)) itemsByPayment.set(existing.id, p.items);
                   if (paid) {
-                    const previous = readBoqAllocations(existing.boqAllocations);
-                    if (linked && previous.length && (linked.length !== previous.length || linked.some(row =>
-                      !previous.some(saved => row.quantityScheduleId === saved.quantityScheduleId && row.quantity === saved.quantity)
-                    ))) {
-                      throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل ربط البنود بعد سداد الدفعة كليًا أو جزئيًا." });
-                    }
                     // الدفعة مسددة: لا يمكن تعديل مبلغها أو حالتها التعاقدية
                     await db
                       .update(contractPayments)
                       .set({
                         phaseOrder: i,
                         notes: p.description || p.notes || existing.notes,
-                        boqAllocations: !previous.length && linked?.length ? linked : undefined,
                       })
                       .where(eq(contractPayments.id, existing.id));
                   } else {
@@ -2084,7 +2090,7 @@ export const contractsRouter = router({
                           : new Date(`${p.dueDate}T12:00:00`)
                         : null,
                       notes: p.description || p.notes || null,
-                      boqAllocations: linked === undefined ? undefined : linked.length ? linked : null,
+                      boqAllocations: allocationsLocked || linked === undefined ? undefined : linked.length ? linked : null,
                       completionPercentage:
                         p.completionPercentage !== undefined &&
                         p.completionPercentage !== null
@@ -2106,6 +2112,9 @@ export const contractsRouter = router({
               // حذف أي دفعات زائدة لم تعد موجودة في الجدول الجديد بشرط ألا تكون مسددة
               for (const excess of existingPayments) {
                 if (!processedIds.has(excess.id)) {
+                  if (allocationsLocked && readBoqAllocations(excess.boqAllocations).length) {
+                    throw new TRPCError({ code: "BAD_REQUEST", message: boqAllocationLockMessage });
+                  }
                   if (isPaymentPaid(excess)) {
                     console.warn(
                       `Cannot delete paid payment ${excess.id}, keeping it.`
@@ -2189,8 +2198,9 @@ export const contractsRouter = router({
       if (savingBoq) {
         await db.transaction(async tx => {
           const items = await lockBoqItems(tx, scope, allocations);
-          await saveContractAndPayments(tx);
-          await validateBoqAllocationTotals(tx, items, scope);
+          const allocationsLocked = await hasProjectPayment(tx, scope, true);
+          await saveContractAndPayments(tx, allocationsLocked);
+          if (!allocationsLocked) await validateBoqAllocationTotals(tx, items, scope);
         });
       } else {
         await saveContractAndPayments(db);
@@ -2739,7 +2749,12 @@ export const contractsRouter = router({
           try {
             await db
               .delete(contractPayments)
-              .where(eq(contractPayments.id, excess.id));
+              .where(and(
+                eq(contractPayments.id, excess.id),
+                // This legacy endpoint does not accept allocation changes.
+                isNull(contractPayments.boqAllocations),
+                or(isNull(contractPayments.status), ne(contractPayments.status, "paid")),
+              ));
           } catch (delErr) {
             console.warn(`Cannot delete excess payment ${excess.id}:`, delErr);
           }
