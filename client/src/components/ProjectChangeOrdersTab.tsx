@@ -194,7 +194,7 @@ export function ProjectChangeOrdersTab({
   const originalCost = Number(data?.funding?.originalProjectCost || 0);
   const currentActiveTotal = Number(data?.activeTotal || 0);
   const totalProjectValue = originalCost + currentActiveTotal;
-  const surplusAvailable = Number(data?.funding?.surplusAvailable || 0);
+  const surplusAvailable = data?.funding?.projectSurplus ?? 0;
   const creationLocked = closed;
   const canCreateOrder = !creationLocked && pricedDraft.total > 0;
 

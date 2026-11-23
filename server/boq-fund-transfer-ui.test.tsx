@@ -49,7 +49,7 @@ vi.mock("@/lib/trpc", () => {
   }
   return { trpc: proxy() };
 });
-let BoqTab: any, NewFundTransferPage: () => React.ReactNode, FundPage: () => React.ReactNode, NewLinkedRequest: () => React.ReactNode, ProjectDetailsPage: () => React.ReactNode;
+let BoqTab: any, NewFundTransferPage: () => React.ReactNode, FundPage: () => React.ReactNode, NewLinkedRequest: () => React.ReactNode, ProjectDetailsPage: () => React.ReactNode, ProjectChangeOrdersTab: typeof import("../client/src/components/ProjectChangeOrdersTab").default;
 beforeAll(async () => {
   vi.stubGlobal("React", React);
   BoqTab = (await import("../client/src/components/BoqTab")).default;
@@ -57,6 +57,7 @@ beforeAll(async () => {
   FundPage = (await import("../client/src/pages/FundPage")).default;
   NewLinkedRequest = (await import("../client/src/pages/NewLinkedDisbursementRequest")).default;
   ProjectDetailsPage = (await import("../client/src/pages/ProjectDetailsPage")).default;
+  ProjectChangeOrdersTab = (await import("../client/src/components/ProjectChangeOrdersTab")).default;
 });
 beforeEach(() => {
   state.slots = []; state.cursor = 0; state.effects = []; state.dirty = false; state.errors = []; state.navigation = []; state.mutations = [];
@@ -174,6 +175,7 @@ describe("project change-order tab visibility", () => {
   it.each([
     ["bunyan", "bunyan", true], ["sedana", "bunyan", false], ["bunyan", "sedana", false],
   ])("handles project program %s and request program %s", (programType, requestProgram, visible) => {
+    state.data["permissions.getUserPermissions"] = ["projects.view", "projects.view_details", "projects.financials"];
     state.data["projects.getById"] = {
       id: 19, projectNumber: "PRJ-19", name: "Project", status: "in_progress", programType,
       request: { id: 19, requestNumber: "REQ-19", programType: requestProgram, currentStage: "execution" },
@@ -183,12 +185,33 @@ describe("project change-order tab visibility", () => {
     expect(text(tree).includes("أوامر التغيير")).toBe(visible);
     expect(elements(tree).some(el => el.props.value === "change_orders")).toBe(visible);
   });
-  it("hides the financial-only change-order shortcut for Sedana projects", () => {
-    state.userPermissions = ["projects.financials"];
-    state.data["projects.getById"] = { id: 19, name: "Sedana", programType: "sedana", phases: [], payments: [], contracts: [], quotations: [] };
+  it.each([["bunyan", true], ["sedana", false]])("handles the financial-only shortcut for %s projects", (programType, visible) => {
+    state.data["permissions.getUserPermissions"] = ["projects.view", "projects.financials"];
+    state.data["projects.getById"] = { id: 19, name: "Project", programType, phases: [], payments: [], contracts: [], quotations: [] };
     const tree = render(ProjectDetailsPage);
-    expect(text(tree)).not.toContain("أوامر التغيير");
-    expect(elements(tree).some(el => el.props.value === "change_orders")).toBe(false);
+    expect(text(tree)).toContain("Project");
+    expect(text(tree).includes("أوامر التغيير")).toBe(visible);
+    expect(elements(tree).some(el => el.props.value === "change_orders")).toBe(visible);
+  });
+});
+
+describe("change-order creation funding message", () => {
+  it.each([
+    { projectSurplus: 1500, fundSurplus: 0, available: 500, coversDraft: true },
+    { projectSurplus: 0, fundSurplus: 1500, available: 0, coversDraft: false },
+  ])("uses project surplus for an order of 1000 (project surplus $projectSurplus)", ({ coversDraft, ...funding }) => {
+    state.data["projectChangeOrders.list"] = { orders: [], funding: { ...funding, originalProjectCost: 25000 } };
+    const renderTab = () => render(() => ProjectChangeOrdersTab({ projectId: 19 }));
+    let tree = renderTab();
+    elements(tree).find(el => el.props.onClick && text(el) === "إضافة بند لجدول الكميات")!.props.onClick();
+    const dialog = elements(renderTab()).find(el => typeof el.props.onSaveItem === "function");
+    dialog!.props.onSaveItem({
+      itemName: "بند اختباري", itemDescription: "", unit: "عدد", quantity: 1, unitPrice: 1000, category: "other",
+    });
+    tree = renderTab();
+    expect(text(tree).includes("سيتم تحويل مبلغ أمر التغيير من فائض المشروع")).toBe(coversDraft);
+    expect(text(tree).includes("سيتم زيادة التكلفة الفعلية للمشروع بقيمة أمر التغيير")).toBe(!coversDraft);
+    expect(elements(tree).some(el => el.props.placeholder === "اسم المورد / المقاول")).toBe(coversDraft);
   });
 });
 
