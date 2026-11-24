@@ -1,16 +1,33 @@
-import type { Pool } from "mysql2/promise";
+import { escapeId } from "mysql2";
+import type { Pool, RowDataPacket } from "mysql2/promise";
 
 export async function ensureMawasimSchema(db: Pick<Pool, "query">) {
   await db.query(`
     CREATE TABLE IF NOT EXISTS mawasim_seasons (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      hijriYear INT NOT NULL UNIQUE,
+      hijriYear INT NOT NULL,
       title VARCHAR(160) NOT NULL,
       isOpen BOOLEAN NOT NULL DEFAULT FALSE,
       settings JSON NOT NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+  const [yearIndexes] = await db.query<(RowDataPacket & { indexName: string })[]>(`
+    SELECT INDEX_NAME AS indexName
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mawasim_seasons' AND NON_UNIQUE = 0
+    GROUP BY INDEX_NAME
+    HAVING COUNT(*) = 1 AND MAX(COLUMN_NAME) = 'hijriYear'
+  `);
+  for (const { indexName } of yearIndexes) {
+    try {
+      await db.query(`ALTER TABLE mawasim_seasons DROP INDEX ${escapeId(indexName, true)}`);
+    } catch (error) {
+      // Another instance may have removed the index after the lookup.
+      if (!(error instanceof Error && "code" in error && error.code === "ER_CANT_DROP_FIELD_OR_KEY")) throw error;
+    }
+  }
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS mawasim_requests (
       id INT AUTO_INCREMENT PRIMARY KEY,

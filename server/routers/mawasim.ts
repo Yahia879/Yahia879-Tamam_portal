@@ -81,7 +81,8 @@ export const mawasimRouter = router({
 
   staff: mawasimProcedure.input(seasonInput.optional()).query(async ({ input }) => {
     const db = await database();
-    const seasons = await db.select().from(mawasimSeasons).orderBy(desc(mawasimSeasons.hijriYear));
+    const seasons = await db.select().from(mawasimSeasons)
+      .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
     const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
     if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [] };
     const requests = await db.select({
@@ -136,20 +137,15 @@ export const mawasimRouter = router({
     }
     const db = await database();
     const { id: seasonId, ...values } = input;
-    try {
-      return await db.transaction(async tx => {
-        if (!seasonId) return (await tx.insert(mawasimSeasons).values(values).$returningId())[0];
-        await lockedSeason(tx, seasonId);
-        if (summarizeSeasonalCapacity(values.settings, await usage(tx, seasonId)).some(row => row.limit < row.reserved)) {
-          invalid("السعة الجديدة أقل من الكميات المحجوزة أو المنفّذة.");
-        }
-        await tx.update(mawasimSeasons).set(values).where(eq(mawasimSeasons.id, seasonId));
-        return { id: seasonId };
-      });
-    } catch (error) {
-      if (isDuplicate(error)) invalid("يوجد موسم محفوظ لهذا العام الهجري.");
-      throw error;
-    }
+    return db.transaction(async tx => {
+      if (!seasonId) return (await tx.insert(mawasimSeasons).values(values).$returningId())[0];
+      await lockedSeason(tx, seasonId);
+      if (summarizeSeasonalCapacity(values.settings, await usage(tx, seasonId)).some(row => row.limit < row.reserved)) {
+        invalid("السعة الجديدة أقل من الكميات المحجوزة أو المنفّذة.");
+      }
+      await tx.update(mawasimSeasons).set(values).where(eq(mawasimSeasons.id, seasonId));
+      return { id: seasonId };
+    });
   }),
 
   grant: mawasimProcedure.input(seasonInput.extend({

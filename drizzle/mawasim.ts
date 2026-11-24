@@ -13,7 +13,7 @@ function seasonalJson<T>(name: string) {
 
 export const mawasimSeasons = mysqlTable("mawasim_seasons", {
   id: int("id").autoincrement().primaryKey(),
-  hijriYear: int("hijriYear").notNull().unique(),
+  hijriYear: int("hijriYear").notNull(),
   title: varchar("title", { length: 160 }).notNull(),
   isOpen: boolean("isOpen").notNull().default(false),
   settings: seasonalJson<SeasonalSettings>("settings").notNull(),
