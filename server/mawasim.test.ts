@@ -82,8 +82,8 @@ describe("Mawasim access and submission", () => {
     pledge: true as const,
   };
 
-  it.each(["system_admin", "projects_office", "project_manager", "field_team", "service_requester"])(
-    "hides Mawasim from %s and blocks direct access",
+  it.each(["projects_office", "project_manager", "field_team", "service_requester"])(
+    "hides Mawasim from non-admin role %s and blocks direct access by default",
     async role => {
       expect(getMenuGroupsFromPermissions(["*"], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(false);
       expect(hasRouteAccess("/mawasim", role, ["*"], true)).toBe(false);
@@ -98,6 +98,24 @@ describe("Mawasim access and submission", () => {
       }
     },
   );
+
+  it.each(["super_admin", "system_admin"])(
+    "shows Mawasim for admin role %s by default and allows route access",
+    role => {
+      expect(getMenuGroupsFromPermissions([], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
+      expect(hasRouteAccess("/mawasim", role, [], false)).toBe(true);
+      expect(hasRouteAccess("/requests/seasonal/", role, [], false)).toBe(true);
+    },
+  );
+
+  it("shows Mawasim and grants access to staff role once granted mawasim.view or mawasim.manage", () => {
+    expect(getMenuGroupsFromPermissions(["mawasim.view"], "projects_office").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
+    expect(hasRouteAccess("/mawasim", "projects_office", ["mawasim.view"], false)).toBe(true);
+    expect(hasRouteAccess("/requests/seasonal", "projects_office", ["mawasim.view"], false)).toBe(true);
+
+    expect(getMenuGroupsFromPermissions(["mawasim.manage"], "projects_office").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
+    expect(hasRouteAccess("/mawasim", "projects_office", ["mawasim.manage"], false)).toBe(true);
+  });
 
   it("accepts a water-only request without prayer hall data or applicant details", async () => {
     expect(getMenuGroupsFromPermissions([], "super_admin").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
