@@ -45,26 +45,26 @@ function notFound(): never {
   throw new TRPCError({ code: "NOT_FOUND", message: "لم يُعثر على السجل في برنامج مواسم." });
 }
 
+async function userCanCreate(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  return checkPermission(user.id, "mawasim.create").catch(() => false);
+}
+
 async function userCanManage(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
-  if (["super_admin", "system_admin"].includes(user.role)) return true;
   return checkPermission(user.id, "mawasim.manage").catch(() => false);
 }
+
 async function userCanView(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
-  if (["super_admin", "system_admin"].includes(user.role)) return true;
-  const manage = await checkPermission(user.id, "mawasim.manage").catch(() => false);
-  if (manage) return true;
-  return checkPermission(user.id, "mawasim.view").catch(() => false);
+  const [view, create, manage] = await Promise.all([
+    checkPermission(user.id, "mawasim.view").catch(() => false),
+    checkPermission(user.id, "mawasim.create").catch(() => false),
+    checkPermission(user.id, "mawasim.manage").catch(() => false),
+  ]);
+  return view || create || manage;
 }
 
 const mawasimProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
   if (!(await userCanView(ctx.user))) denied();
-  return next();
-});
-
-const mawasimManageProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
-  if (!(await userCanManage(ctx.user))) denied();
   return next();
 });
 
@@ -154,10 +154,15 @@ export const mawasimRouter = router({
     return request ?? notFound();
   }),
 
-  saveSeason: mawasimManageProcedure.input(z.object({
+  saveSeason: mawasimProcedure.input(z.object({
     id: id.optional(), hijriYear: z.number().int().min(1400).max(1600),
     title: z.string().trim().min(3).max(160), isOpen: z.boolean(), settings: seasonalSettingsSchema,
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
+    if (!input.id) {
+      if (!(await userCanCreate(ctx.user))) denied();
+    } else {
+      if (!(await userCanManage(ctx.user))) denied();
+    }
     if (input.isOpen && !seasonalServiceIds.some(service => input.settings.services[service].enabled)) {
       invalid("فعّل خدمة واحدة على الأقل قبل فتح التسجيل.");
     }
