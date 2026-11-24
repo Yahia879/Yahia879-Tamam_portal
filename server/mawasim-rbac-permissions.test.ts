@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getMenuGroupsFromPermissions } from "../client/src/components/DashboardLayout";
 import { hasRouteAccess } from "../client/src/lib/routePermissions";
 import {
+  canCreateMawasim,
   canManageMawasim,
   canViewMawasim,
   isMawasimPermission,
@@ -16,39 +17,70 @@ import {
 import { isStrictPermission } from "../client/src/hooks/usePermission";
 
 describe("Mawasim RBAC Permissions", () => {
-  it("defines dedicated permissions under mawasim module", () => {
-    expect(MAWASIM_PERMISSION_IDS).toEqual(["mawasim.view", "mawasim.manage"]);
+  it("defines dedicated permissions under mawasim module including create and settings", () => {
+    expect(MAWASIM_PERMISSION_IDS).toEqual(["mawasim.view", "mawasim.create", "mawasim.manage"]);
     expect(MAWASIM_PERMISSIONS.find(p => p.action === "view")?.nameAr).toBe("عرض مواسم");
-    expect(MAWASIM_PERMISSIONS.find(p => p.action === "manage")?.nameAr).toBe("إدارة إعدادات المواسم");
+    expect(MAWASIM_PERMISSIONS.find(p => p.action === "create")?.nameAr).toBe("إضافة موسم");
+    expect(MAWASIM_PERMISSIONS.find(p => p.action === "manage")?.nameAr).toBe("إعدادات الموسم");
     expect(isMawasimPermission("mawasim")).toBe(true);
     expect(isMawasimPermission("mawasim.view")).toBe(true);
+    expect(isMawasimPermission("mawasim.create")).toBe(true);
     expect(isMawasimPermission("mawasim.manage")).toBe(true);
     expect(isMawasimPermission("mosques.view")).toBe(false);
   });
 
-  it("treats mawasim permissions as strict (cannot be bypassed by wildcard for non-admins)", () => {
+  it("treats mawasim permissions as strict (cannot be bypassed by wildcard)", () => {
     expect(isStrictPermission("mawasim.view")).toBe(true);
+    expect(isStrictPermission("mawasim.create")).toBe(true);
     expect(isStrictPermission("mawasim.manage")).toBe(true);
   });
 
-  it("links mawasim.manage with mawasim.view as prerequisite and dependent", () => {
+  it("links mawasim.create and mawasim.manage with mawasim.view as prerequisite and dependent", () => {
+    expect(sectionPermissionPrerequisite("mawasim.create")).toBe("mawasim.view");
     expect(sectionPermissionPrerequisite("mawasim.manage")).toBe("mawasim.view");
+    expect(sectionPermissionDependents("mawasim.view")).toContain("mawasim.create");
     expect(sectionPermissionDependents("mawasim.view")).toContain("mawasim.manage");
 
-    // sectionPermissionSelection filters out mawasim.manage if mawasim.view is missing
+    // sectionPermissionSelection filters out dependent perms if mawasim.view is missing
+    expect(sectionPermissionSelection(["mawasim.create"])).not.toContain("mawasim.create");
     expect(sectionPermissionSelection(["mawasim.manage"])).not.toContain("mawasim.manage");
-    expect(sectionPermissionSelection(["mawasim.view", "mawasim.manage"])).toContain("mawasim.manage");
-    expect(sectionPermissionSelection(["mawasim.view", "mawasim.manage"])).toContain("mawasim.view");
+    expect(sectionPermissionSelection(["mawasim.view", "mawasim.create", "mawasim.manage"])).toEqual(
+      expect.arrayContaining(["mawasim.view", "mawasim.create", "mawasim.manage"])
+    );
   });
 
-  it("enables permission by default only for system_admin and super_admin, not for other roles", () => {
-    // Admin roles ("مدير النظام" / "المدير العام")
-    expect(canViewMawasim("system_admin")).toBe(true);
-    expect(canManageMawasim("system_admin")).toBe(true);
-    expect(canViewMawasim("super_admin")).toBe(true);
-    expect(canManageMawasim("super_admin")).toBe(true);
+  it("hides Mawasim from admin users when permissions are revoked or unchecked", () => {
+    for (const adminRole of ["system_admin", "super_admin"]) {
+      // When permission is revoked / unchecked for admin (permissions array is empty or lacks mawasim)
+      expect(canViewMawasim(adminRole, [])).toBe(false);
+      expect(canCreateMawasim(adminRole, [])).toBe(false);
+      expect(canManageMawasim(adminRole, [])).toBe(false);
 
-    // Non-admin roles by default
+      const menu = getMenuGroupsFromPermissions([], adminRole);
+      const mawasimItem = menu.flatMap(g => g.items).find(i => i.path === "/mawasim");
+      expect(mawasimItem).toBeUndefined();
+
+      expect(hasRouteAccess("/mawasim", adminRole, [], false)).toBe(false);
+      expect(hasRouteAccess("/requests/seasonal", adminRole, [], false)).toBe(false);
+    }
+  });
+
+  it("grants access to admin users when permission is present", () => {
+    for (const adminRole of ["system_admin", "super_admin"]) {
+      expect(canViewMawasim(adminRole, ["mawasim.view"])).toBe(true);
+      expect(canCreateMawasim(adminRole, ["mawasim.create"])).toBe(true);
+      expect(canManageMawasim(adminRole, ["mawasim.manage"])).toBe(true);
+
+      const menu = getMenuGroupsFromPermissions(["mawasim.view"], adminRole);
+      const mawasimItem = menu.flatMap(g => g.items).find(i => i.path === "/mawasim");
+      expect(mawasimItem).toBeDefined();
+
+      expect(hasRouteAccess("/mawasim", adminRole, ["mawasim.view"], false)).toBe(true);
+      expect(hasRouteAccess("/requests/seasonal", adminRole, ["mawasim.view"], false)).toBe(true);
+    }
+  });
+
+  it("hides Mawasim from non-admin roles and staff by default", () => {
     const nonAdminRoles = [
       "projects_office",
       "project_manager",
@@ -67,15 +99,12 @@ describe("Mawasim RBAC Permissions", () => {
 
     for (const role of nonAdminRoles) {
       expect(canViewMawasim(role, [])).toBe(false);
+      expect(canCreateMawasim(role, [])).toBe(false);
       expect(canManageMawasim(role, [])).toBe(false);
       expect(canViewMawasim(role, ["*"])).toBe(false);
+      expect(canCreateMawasim(role, ["*"])).toBe(false);
       expect(canManageMawasim(role, ["*"])).toBe(false);
-    }
-  });
 
-  it("hides Mawasim from sidebar and blocks direct route access for non-admin users without permission", () => {
-    const roles = ["projects_office", "financial", "project_manager", "custom_role_1"];
-    for (const role of roles) {
       const menu = getMenuGroupsFromPermissions([], role);
       const mawasimItem = menu.flatMap(g => g.items).find(i => i.path === "/mawasim");
       expect(mawasimItem).toBeUndefined();
@@ -85,7 +114,7 @@ describe("Mawasim RBAC Permissions", () => {
     }
   });
 
-  it("shows Mawasim in sidebar under 'المساجد والطلبات' and allows access once granted", () => {
+  it("shows Mawasim and enables fine-grained capabilities once permissions are granted", () => {
     const role = "projects_office";
     const grantedMenu = getMenuGroupsFromPermissions(["mawasim.view"], role);
     const mosquesGroup = grantedMenu.find(g => g.label === "المساجد والطلبات");
@@ -97,9 +126,22 @@ describe("Mawasim RBAC Permissions", () => {
 
     expect(hasRouteAccess("/mawasim", role, ["mawasim.view"], false)).toBe(true);
     expect(hasRouteAccess("/requests/seasonal", role, ["mawasim.view"], false)).toBe(true);
+
+    // View only
     expect(canViewMawasim(role, ["mawasim.view"])).toBe(true);
+    expect(canCreateMawasim(role, ["mawasim.view"])).toBe(false);
     expect(canManageMawasim(role, ["mawasim.view"])).toBe(false);
 
+    // View + Create (إضافة موسم)
+    expect(canCreateMawasim(role, ["mawasim.view", "mawasim.create"])).toBe(true);
+    expect(canManageMawasim(role, ["mawasim.view", "mawasim.create"])).toBe(false);
+
+    // View + Settings (إعدادات الموسم) - create must still be false!
     expect(canManageMawasim(role, ["mawasim.view", "mawasim.manage"])).toBe(true);
+    expect(canCreateMawasim(role, ["mawasim.view", "mawasim.manage"])).toBe(false);
+
+    // All permissions
+    expect(canCreateMawasim(role, ["mawasim.view", "mawasim.create", "mawasim.manage"])).toBe(true);
+    expect(canManageMawasim(role, ["mawasim.view", "mawasim.create", "mawasim.manage"])).toBe(true);
   });
 });
