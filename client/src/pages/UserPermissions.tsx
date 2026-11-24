@@ -796,7 +796,7 @@ export default function UserPermissions() {
     }
     const requiredView = sectionPermissionPrerequisite(permId);
     if (requiredView && !isChecked(permId) && !isChecked(requiredView)) {
-      toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      toast.warning(permId.startsWith("mawasim.") ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً" : permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
       return;
     }
     if (!isChecked(permId) && confirmLinkedPermissions([permId], isChecked, permissions => {
