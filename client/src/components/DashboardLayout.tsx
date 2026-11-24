@@ -1,4 +1,4 @@
-import { canManageMawasim } from "@shared/mawasim";
+import { canManageMawasim, canViewMawasim } from "@shared/mawasim";
 import { BOARD_ANALYTICS_PERMISSION_IDS } from "@shared/boardAnalyticsPermissions";
 import { REQUEST_LIST_ENTRY_PERMISSIONS } from "@shared/requestPermissions";
 import { custodyAccess } from "@shared/custodyPermissions";
@@ -328,7 +328,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
 
   // 1. المساجد والطلبات
   const mosqueItems: MenuItem[] = [];
-  if (canManageMawasim(role)) mosqueItems.push({ icon: Clock, label: isEn ? "Mawasim" : "مواسم", path: "/mawasim" });
+  if (canViewMawasim(role, permissions)) mosqueItems.push({ icon: Clock, label: isEn ? "Mawasim" : "مواسم", path: "/mawasim" });
   if (has("mosques.view"))                 mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosque_map.view"))              mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
   if (REQUEST_LIST_ENTRY_PERMISSIONS.some(has))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
