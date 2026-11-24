@@ -185,7 +185,6 @@ export const mawasimRouter = router({
     }).optional(),
   })).mutation(async ({ input, ctx }) => {
     const onBehalf = input.onBehalf;
-    if (!onBehalf) denied();
     const db = await database();
     try {
       return await db.transaction(async tx => {
@@ -195,7 +194,7 @@ export const mawasimRouter = router({
           .from(mosques).where(and(eq(mosques.id, input.mosqueId), approvedMosque));
         if (!mosque) invalid("اختر مسجدًا معتمدًا.");
         let applicantId: number | null = null;
-        if (onBehalf.email) {
+        if (onBehalf?.email) {
           const [applicant] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, onBehalf.email),
             eq(users.role, "service_requester"), eq(users.status, "active"), isNull(users.deletedAt)));
           if (!applicant) invalid("لم يُعثر على حساب مستفيد نشط بهذا البريد.");
@@ -221,7 +220,7 @@ export const mawasimRouter = router({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
           snapshot: input.snapshot, menPhoto: input.menPhoto, womenPhoto: input.womenPhoto,
           requested: input.requested, specialRequest: input.specialRequest,
-          contact: onBehalf,
+          contact: onBehalf ?? { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email },
         }).$returningId();
         return created;
       });

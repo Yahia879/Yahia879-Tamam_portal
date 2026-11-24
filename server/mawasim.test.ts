@@ -79,7 +79,6 @@ describe("Mawasim access and submission", () => {
     seasonId: 1, mosqueId: 1, snapshot, requested: { water: 1 },
     menPhoto: "data:image/jpeg;base64,/9j/",
     pledge: true as const,
-    onBehalf: { name: "Test applicant", phone: "0500000000", reason: "Seasonal request" },
   };
 
   it.each(["system_admin", "projects_office", "project_manager", "field_team", "service_requester"])(
@@ -99,7 +98,7 @@ describe("Mawasim access and submission", () => {
     },
   );
 
-  it("lets an active super admin reach the database with the simplified submission", async () => {
+  it("accepts submission without entering applicant details for an active super admin", async () => {
     expect(getMenuGroupsFromPermissions([], "super_admin").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
     expect(hasRouteAccess("/mawasim", "super_admin", [], false)).toBe(true);
     expect(hasRouteAccess("/requests/seasonal/", "super_admin", [], false)).toBe(true);

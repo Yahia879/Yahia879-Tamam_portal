@@ -289,7 +289,6 @@ export default function SeasonalRequestCreate() {
                 season={activeSeason}
                 mosque={selectedMosque}
                 capacity={data.capacity}
-                staff
                 onSubmitted={() => navigate("/mawasim")}
               />
             )}

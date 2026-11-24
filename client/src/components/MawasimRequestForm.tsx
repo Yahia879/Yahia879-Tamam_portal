@@ -22,7 +22,6 @@ import {
   Ruler,
   Send,
   Sparkles,
-  UserCheck,
   Volume2,
   Wind,
   Wrench,
@@ -114,11 +113,10 @@ function photoData(file: File) {
   });
 }
 
-export default function MawasimRequestForm({ season, mosque, capacity, staff = false, onSubmitted }: {
+export default function MawasimRequestForm({ season, mosque, capacity, onSubmitted }: {
   season: { id: number; settings: SeasonalRequestLimits };
   mosque: MawasimMosque;
   capacity: { service: SeasonalService; available: number }[];
-  staff?: boolean;
   onSubmitted: () => void;
 }) {
   const previous = mosque.previous;
@@ -134,7 +132,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
   const [specialRequest, setSpecialRequest] = useState("");
   const [menPhoto, setMenPhoto] = useState<File>();
   const [womenPhoto, setWomenPhoto] = useState<File>();
-  const [onBehalf, setOnBehalf] = useState({ name: "", phone: "", reason: "", email: "" });
   const [pledge, setPledge] = useState(false);
   const [reading, setReading] = useState(false);
   const submit = trpc.mawasim.submit.useMutation({
@@ -162,7 +159,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
       await submit.mutateAsync({
         seasonId: season.id, mosqueId: mosque.id, snapshot, requested: quantities,
         specialRequest, menPhoto: men, womenPhoto: women, pledge: true,
-        onBehalf: staff ? { ...onBehalf, email: onBehalf.email || undefined } : undefined,
       }).catch(() => { /* The mutation displays the server error. */ });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذّر تجهيز الصور.");
@@ -380,46 +376,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
         </CardContent>
       </Card>
 
-      {/* Section 4: On-behalf applicant details */}
-      {staff && (
-        <Card className="border-border/60 shadow-xs">
-          <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <UserCheck className="size-5" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-bold">بيانات مقدم الطلب (التسجيل بالنيابة)</CardTitle>
-                <CardDescription className="text-xs">
-                  بيانات التواصل مع إمام أو مسؤول المسجد ومبرر التسجيل
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
-            {([
-              ["name", "اسم مقدم الطلب", "text", 150, "مثال: الشيخ عبدالله بن محمد"],
-              ["phone", "رقم الجوال", "tel", 16, "مثال: 0551234567"],
-              ["reason", "سبب أو ملاحظة التسجيل", "text", 500, "مثال: تسجيل عبر مكتب المشاريع بناءً على تواصل هاتفي"],
-              ["email", "بريد حساب المستفيد (اختياري)", "email", 320, "example@domain.com"],
-            ] as const).map(([key, label, type, maxLength, placeholder]) => (
-              <MawasimField key={key} label={label}>
-                <Input
-                  required={key !== "email"}
-                  type={type}
-                  maxLength={maxLength}
-                  placeholder={placeholder}
-                  className="h-10 rounded-xl bg-background"
-                  value={onBehalf[key]}
-                  onChange={event => setOnBehalf(current => ({ ...current, [key]: event.target.value }))}
-                />
-              </MawasimField>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Section 5: Pledges & Submit */}
+      {/* Section 4: Pledge & Submit */}
       <Card className="border-border/60 shadow-xs">
         <CardContent className="space-y-4 p-5">
           <div className="space-y-3 text-sm">
