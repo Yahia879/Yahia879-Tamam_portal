@@ -117,7 +117,12 @@ export const mawasimRouter = router({
       inArray(mawasimRequests.mosqueId, rows.map(mosque => mosque.id)),
       inArray(mawasimRequests.status, ["approved", "scheduled", "completed"]),
     )).orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
-    return rows.map(mosque => ({ ...mosque, previous: saved.find(item => item.mosqueId === mosque.id)?.snapshot }));
+    return rows.map(mosque => {
+      const previous = saved.find(item => item.mosqueId === mosque.id)?.snapshot;
+      if (!previous || previous.men) return { ...mosque, previous };
+      const measurements = saved.find(item => item.mosqueId === mosque.id && item.snapshot.men)?.snapshot;
+      return { ...mosque, previous: measurements ? { ...previous, men: measurements.men, women: measurements.women } : previous };
+    });
   }),
 
   photos: mawasimProcedure.input(requestInput).query(async ({ input }) => {
@@ -176,7 +181,7 @@ export const mawasimRouter = router({
   }),
 
   submit: mawasimProcedure.input(seasonInput.extend({
-    mosqueId: id, snapshot: seasonalMosqueSnapshotSchema, menPhoto: photo, womenPhoto: photo.optional(),
+    mosqueId: id, snapshot: seasonalMosqueSnapshotSchema, menPhoto: photo.optional(), womenPhoto: photo.optional(),
     requested: seasonalQuantitiesSchema, specialRequest: z.string().trim().max(2000).optional(),
     pledge: z.literal(true),
     onBehalf: z.object({
@@ -184,7 +189,17 @@ export const mawasimRouter = router({
       reason: z.string().trim().min(3).max(500), email: z.email().max(320).optional(),
     }).optional(),
   })).mutation(async ({ input, ctx }) => {
-    const onBehalf = input.onBehalf;
+    const { onBehalf, snapshot, menPhoto, womenPhoto } = input;
+    const carpet = input.requested.carpet ?? 0;
+    if (carpet > 0) {
+      if (!snapshot.men) invalid("أدخل قياسات مصلى الرجال لطلب غسيل الفرش.");
+      if (!menPhoto) invalid("أرفق صورة مصلى الرجال لطلب غسيل الفرش.");
+      if (!snapshot.women && womenPhoto) invalid("صورة مصلى النساء تتطلب تسجيل بياناته.");
+      if (carpet !== carpetArea(snapshot.men, snapshot.women)) {
+        invalid("مساحة الغسيل المطلوبة يجب أن تطابق أبعاد المصليات المسجلة.");
+      }
+    }
+
     const db = await database();
     try {
       return await db.transaction(async tx => {
@@ -200,7 +215,6 @@ export const mawasimRouter = router({
           if (!applicant) invalid("لم يُعثر على حساب مستفيد نشط بهذا البريد.");
           applicantId = applicant.id;
         }
-        if (!input.snapshot.women && input.womenPhoto) invalid("صورة مصلى النساء تتطلب تسجيل بياناته.");
         const capacity = summarizeSeasonalCapacity(season.settings, await usage(tx, season.id));
         let selected = 0;
         for (const row of capacity) {
@@ -213,12 +227,10 @@ export const mawasimRouter = router({
           }
         }
         if (!selected) invalid("اختر خدمة واحدة على الأقل.");
-        if (input.requested.carpet && input.requested.carpet !== carpetArea(input.snapshot.men, input.snapshot.women)) {
-          invalid("مساحة الغسيل المطلوبة يجب أن تطابق أبعاد المصليات المسجلة.");
-        }
         const [created] = await tx.insert(mawasimRequests).values({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
-          snapshot: input.snapshot, menPhoto: input.menPhoto, womenPhoto: input.womenPhoto,
+          snapshot: carpet > 0 ? snapshot : { ...snapshot, men: null, women: null },
+          menPhoto: carpet > 0 ? menPhoto : null, womenPhoto: carpet > 0 ? womenPhoto : null,
           requested: input.requested, specialRequest: input.specialRequest,
           contact: onBehalf ?? { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email },
         }).$returningId();
@@ -243,6 +255,7 @@ export const mawasimRouter = router({
         return;
       }
       if (request.status !== "submitted") invalid("الطلب سبق أن روجع.");
+      if (input.approved.carpet && !request.snapshot.men) invalid("اعتماد غسيل الفرش يتطلب تسجيل قياسات المصلى في الطلب.");
       if (!Object.values(input.approved).some(amount => amount > 0)) invalid("حدد كمية معتمدة لخدمة واحدة على الأقل.");
       for (const row of summarizeSeasonalCapacity(season.settings, await usage(tx, season.id))) {
         const amount = input.approved[row.service] ?? 0;

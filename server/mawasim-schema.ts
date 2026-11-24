@@ -38,7 +38,7 @@ export async function ensureMawasimSchema(db: Pick<Pool, "query">) {
       mosqueName VARCHAR(255) NOT NULL,
       snapshot JSON NOT NULL,
       contact JSON NOT NULL,
-      menPhoto LONGTEXT NOT NULL,
+      menPhoto LONGTEXT NULL,
       womenPhoto LONGTEXT NULL,
       requested JSON NOT NULL,
       specialRequest TEXT NULL,
@@ -62,6 +62,13 @@ export async function ensureMawasimSchema(db: Pick<Pool, "query">) {
       CONSTRAINT mawasim_request_executor FOREIGN KEY (executedBy) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+  const [menPhotoColumns] = await db.query<(RowDataPacket & { Null: "YES" | "NO" })[]>(
+    "SHOW COLUMNS FROM mawasim_requests LIKE 'menPhoto'",
+  );
+  if (menPhotoColumns[0]?.Null === "NO") {
+    await db.query("ALTER TABLE mawasim_requests MODIFY COLUMN menPhoto LONGTEXT NULL");
+  }
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS mawasim_grants (
       id INT AUTO_INCREMENT PRIMARY KEY,

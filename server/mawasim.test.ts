@@ -76,8 +76,9 @@ describe("Mawasim season rules", () => {
 describe("Mawasim access and submission", () => {
   const request = { seasonId: 1, requestId: 1 };
   const submission = {
-    seasonId: 1, mosqueId: 1, snapshot, requested: { water: 1 },
-    menPhoto: "data:image/jpeg;base64,/9j/",
+    seasonId: 1, mosqueId: 1,
+    snapshot: { city: snapshot.city, district: snapshot.district, address: snapshot.address, worshippers: snapshot.worshippers },
+    requested: { water: 1 },
     pledge: true as const,
   };
 
@@ -98,13 +99,28 @@ describe("Mawasim access and submission", () => {
     },
   );
 
-  it("accepts submission without entering applicant details for an active super admin", async () => {
+  it("accepts a water-only request without prayer hall data or applicant details", async () => {
     expect(getMenuGroupsFromPermissions([], "super_admin").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
     expect(hasRouteAccess("/mawasim", "super_admin", [], false)).toBe(true);
     expect(hasRouteAccess("/requests/seasonal/", "super_admin", [], false)).toBe(true);
     const api = caller("super_admin");
     await expect(api.submit(submission)).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
     await expect(api.submit({ ...submission, pledge: false as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("requires men\u2019s prayer hall measurements and a photo for carpet cleaning", async () => {
+    const api = caller("super_admin");
+    const carpet = { ...submission, requested: { carpet: carpetArea(men) } };
+    await expect(api.submit(carpet)).rejects.toMatchObject({
+      code: "BAD_REQUEST", message: "أدخل قياسات مصلى الرجال لطلب غسيل الفرش.",
+    });
+    const measured = { ...carpet, snapshot: { ...submission.snapshot, men } };
+    await expect(api.submit(measured)).rejects.toMatchObject({
+      code: "BAD_REQUEST", message: "أرفق صورة مصلى الرجال لطلب غسيل الفرش.",
+    });
+    await expect(api.submit({ ...measured, menPhoto: "data:image/jpeg;base64,/9j/" })).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+    });
   });
 
   it("denies inactive and deleted super admins", async () => {

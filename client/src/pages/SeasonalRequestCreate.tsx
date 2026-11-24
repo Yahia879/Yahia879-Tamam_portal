@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -33,6 +33,7 @@ export default function SeasonalRequestCreate() {
   const [seasonId, setSeasonId] = useState<number>();
   const [mosqueOpen, setMosqueOpen] = useState(false);
   const [selectedMosqueId, setSelectedMosqueId] = useState<number>();
+  const mosqueHintId = useId();
 
   const staffQuery = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, {
     enabled: canCreate,
@@ -213,6 +214,8 @@ export default function SeasonalRequestCreate() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={mosqueOpen}
+                        aria-required="true"
+                        aria-describedby={selectedMosque ? undefined : mosqueHintId}
                         className="h-10 w-full justify-between rounded-xl bg-background px-3 font-normal cursor-pointer"
                       >
                         <span className="truncate">
@@ -257,6 +260,9 @@ export default function SeasonalRequestCreate() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {!selectedMosque && (
+                    <p id={mosqueHintId} className="text-xs text-muted-foreground">اختر مسجدًا معتمدًا للمتابعة.</p>
+                  )}
                 </div>
 
                 {/* Selected Mosque Preview Strip */}

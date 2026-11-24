@@ -1047,6 +1047,7 @@ function RequestDetails({
   refresh: () => void;
 }) {
   const [showPhotos, setShowPhotos] = useState(false);
+  const { men, women } = request.snapshot;
   const [approved, setApproved] = useState(request.requested);
   const [note, setNote] = useState("");
   const key = { seasonId: request.seasonId, requestId: request.id };
@@ -1076,30 +1077,34 @@ function RequestDetails({
           <p className="text-muted-foreground">
             {request.snapshot.address} · {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 border border-border/50">
-              <Ruler className="size-3.5 text-primary" />
-              مصلى الرجال: {request.snapshot.men.lengthCm / 100} × {request.snapshot.men.widthCm / 100} م
-            </span>
-            {request.snapshot.women && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 border border-border/50">
-                <Ruler className="size-3.5 text-primary" />
-                مصلى النساء: {request.snapshot.women.lengthCm / 100} × {request.snapshot.women.widthCm / 100} م
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setShowPhotos(!showPhotos)}
-              className="h-8 gap-1.5 rounded-lg text-xs cursor-pointer"
-            >
-              <ImageIcon className="size-3.5" />
-              {showPhotos ? "إخفاء الصور" : "عرض صور المصليات"}
-            </Button>
-          </div>
+          {men && (
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 border border-border/50">
+                  <Ruler className="size-3.5 text-primary" />
+                  مصلى الرجال: {men.lengthCm / 100} × {men.widthCm / 100} م
+                </span>
+                {women && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 border border-border/50">
+                    <Ruler className="size-3.5 text-primary" />
+                    مصلى النساء: {women.lengthCm / 100} × {women.widthCm / 100} م
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowPhotos(!showPhotos)}
+                  className="h-8 gap-1.5 rounded-lg text-xs cursor-pointer"
+                >
+                  <ImageIcon className="size-3.5" />
+                  {showPhotos ? "إخفاء الصور" : "عرض صور المصليات"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3.5 text-sm">
@@ -1160,10 +1165,12 @@ function RequestDetails({
       )}
       {showPhotos && photos.data && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="overflow-hidden rounded-xl border bg-muted/20 p-2">
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">صورة مصلى الرجال</p>
-            <img className="max-h-64 w-full rounded-lg object-contain" src={photos.data.menPhoto} alt="مصلى الرجال" />
-          </div>
+          {photos.data.menPhoto && (
+            <div className="overflow-hidden rounded-xl border bg-muted/20 p-2">
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">صورة مصلى الرجال</p>
+              <img className="max-h-64 w-full rounded-lg object-contain" src={photos.data.menPhoto} alt="مصلى الرجال" />
+            </div>
+          )}
           {photos.data.womenPhoto && (
             <div className="overflow-hidden rounded-xl border bg-muted/20 p-2">
               <p className="mb-1.5 text-xs font-semibold text-muted-foreground">صورة مصلى النساء</p>
@@ -1213,7 +1220,8 @@ function RequestDetails({
             <Quantities
               value={approved}
               onChange={setApproved}
-              services={seasonalServiceIds.filter(service => request.requested[service] || request.specialRequest)}
+              services={seasonalServiceIds.filter(service => (service !== "carpet" || men) &&
+                (request.requested[service] || request.specialRequest))}
             />
           )}
           <MawasimField label="ملاحظة المراجعة أو سبب الاعتذار">

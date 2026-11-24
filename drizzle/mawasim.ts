@@ -29,7 +29,7 @@ export const mawasimRequests = mysqlTable("mawasim_requests", {
   mosqueName: varchar("mosqueName", { length: 255 }).notNull(),
   snapshot: seasonalJson<SeasonalMosqueSnapshot>("snapshot").notNull(),
   contact: seasonalJson<{ name: string; phone: string; email?: string | null; reason?: string }>("contact").notNull(),
-  menPhoto: longtext("menPhoto").notNull(),
+  menPhoto: longtext("menPhoto"),
   womenPhoto: longtext("womenPhoto"),
   requested: seasonalJson<SeasonalQuantities>("requested").notNull(),
   specialRequest: text("specialRequest"),

@@ -93,8 +93,8 @@ export const seasonalMosqueSnapshotSchema = z.object({
   district: z.string().trim().min(1).max(100),
   address: z.string().trim().min(1).max(500),
   worshippers: z.number().int().min(1).max(100_000),
-  men: prayerMeasurementsSchema,
-  women: prayerMeasurementsSchema.nullable(),
+  men: prayerMeasurementsSchema.nullable().default(null),
+  women: prayerMeasurementsSchema.nullable().default(null),
 });
 export type SeasonalMosqueSnapshot = z.infer<typeof seasonalMosqueSnapshotSchema>;
 
