@@ -9,7 +9,7 @@ export const RETIRED_SECTION_PERMISSIONS = ["fund.transfer", ...RETIRED_REQUEST_
 export function sectionPermissionSelection(permissions: string[]) {
   const normalized = projectPermissionSelection(progressReportPermissionSelection(progressInvoicePermissionSelection(permissions)));
   const selected = requestReportPermissionSelection(beneficiaryPermissionSelection(calendarPermissionSelection(normalized)))
-    .filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p) && p !== "requests" && p !== "sedana_requests" && sectionPermissionPrerequisites(p).every(required => normalized.includes(required)));
+    .filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p) && p !== "requests" && p !== "sedana_requests" && p !== "mawasim" && sectionPermissionPrerequisites(p).every(required => normalized.includes(required)));
   return selected.filter(p => p !== "escalation" || selected.includes("escalation.delayed_requests") || selected.includes("escalation.delayed_beneficiaries"));
 }
 export function sectionPermissionPrerequisite(permission: string): string | null {
@@ -17,6 +17,7 @@ export function sectionPermissionPrerequisite(permission: string): string | null
   if (permission !== "projects.view" && PROJECT_PERMISSION_IDS.includes(permission)) return "projects.view";
   if (permission !== "progress_reports.view" && PROGRESS_REPORT_PERMISSION_IDS.includes(permission)) return "progress_reports.view";
   if (permission.startsWith("progress_invoices.") && permission !== "progress_invoices.view") return "progress_invoices.view";
+  if (permission === "mawasim.manage") return "mawasim.view";
   return BENEFICIARY_LOG_ACTIONS.includes(permission) ? "beneficiary_evaluations.evaluations_log" : requestReportInterventionPrerequisite(permission);
 }
 export function sectionPermissionDependents(permission: string): string[] {
@@ -26,6 +27,7 @@ export function sectionPermissionDependents(permission: string): string[] {
     ...(permission === "projects.financials" ? ["projects.edit_support_and_fees", "projects.add_receipt_voucher"] : []),
     ...(permission === "progress_reports.view" ? PROGRESS_REPORT_PERMISSION_IDS.filter(id => id !== permission) : []),
     ...(permission === "progress_invoices.view" ? PROGRESS_INVOICE_PERMISSION_IDS.filter(id => id !== permission) : []),
+    ...(permission === "mawasim.view" ? ["mawasim.manage"] : []),
     ...(permission === "beneficiary_evaluations.evaluations_log" ? BENEFICIARY_LOG_ACTIONS : report ? [report] : []),
     ...LINKED_PERMISSION_TARGETS.filter(target => linkedPermissionPrerequisites(target).includes(permission)),
   ];
