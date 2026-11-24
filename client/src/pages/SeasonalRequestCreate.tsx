@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { seasonalStaffAccess } from "@shared/mawasim";
+import { canManageMawasim } from "@shared/mawasim";
 import {
   AlertCircle,
   ArrowRight,
@@ -28,8 +28,7 @@ import {
 export default function SeasonalRequestCreate() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const access = seasonalStaffAccess(user?.role);
-  const canCreate = user?.role !== "service_requester" && access.canManage;
+  const canCreate = canManageMawasim(user?.role);
 
   const [seasonId, setSeasonId] = useState<number>();
   const [mosqueOpen, setMosqueOpen] = useState(false);

@@ -30,7 +30,7 @@ import {
 
 export type MawasimMosque = {
   id: number; name: string; city: string; district: string | null; address: string | null;
-  capacity: number | null; latitude: string | null; longitude: string | null; previous?: SeasonalMosqueSnapshot;
+  capacity: number | null; previous?: SeasonalMosqueSnapshot;
 };
 
 export function MawasimField({ label, children }: { label: string; children: ReactNode }) {
@@ -126,8 +126,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
     city: previous?.city ?? mosque.city,
     district: previous?.district ?? mosque.district ?? "",
     address: previous?.address ?? mosque.address ?? "",
-    mapsUrl: previous?.mapsUrl ?? (mosque.latitude && mosque.longitude
-      ? "https://www.google.com/maps?q=" + mosque.latitude + "," + mosque.longitude : ""),
     worshippers: previous?.worshippers ?? mosque.capacity ?? 0,
     men: previous?.men ?? emptyMeasurements,
     women: previous?.women ?? null,
@@ -137,7 +135,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
   const [menPhoto, setMenPhoto] = useState<File>();
   const [womenPhoto, setWomenPhoto] = useState<File>();
   const [onBehalf, setOnBehalf] = useState({ name: "", phone: "", reason: "", email: "" });
-  const [volunteers, setVolunteers] = useState(false);
   const [pledge, setPledge] = useState(false);
   const [reading, setReading] = useState(false);
   const submit = trpc.mawasim.submit.useMutation({
@@ -151,7 +148,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!menPhoto || !volunteers || !pledge || reading || submit.isPending) return;
+    if (!menPhoto || !pledge || reading || submit.isPending) return;
     const quantities = { ...requested, carpet: requested.carpet ? area : 0 };
     if (!Object.values(quantities).some(amount => amount > 0)) {
       toast.error("اختر خدمة واحدة على الأقل.");
@@ -164,7 +161,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
       ]);
       await submit.mutateAsync({
         seasonId: season.id, mosqueId: mosque.id, snapshot, requested: quantities,
-        specialRequest, menPhoto: men, womenPhoto: women, volunteers: true, pledge: true,
+        specialRequest, menPhoto: men, womenPhoto: women, pledge: true,
         onBehalf: staff ? { ...onBehalf, email: onBehalf.email || undefined } : undefined,
       }).catch(() => { /* The mutation displays the server error. */ });
     } catch (error) {
@@ -199,7 +196,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
               ["city", "المدينة", "مثال: أبها"],
               ["district", "الحي", "مثال: المنسك"],
               ["address", "العنوان والشارع", "وصف مختصر لموقع المسجد"],
-              ["mapsUrl", "رابط خرائط Google", "https://maps.google.com/..."],
             ] as const).map(([key, label, placeholder]) => (
               <MawasimField key={key} label={label}>
                 <Input
@@ -207,7 +203,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
                   value={snapshot[key]}
                   placeholder={placeholder}
                   className="h-10 rounded-xl bg-background"
-                  type={key === "mapsUrl" ? "url" : "text"}
                   maxLength={key === "city" || key === "district" ? 100 : 500}
                   onChange={event => setSnapshotValue(key, event.target.value)}
                 />
@@ -428,16 +423,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, staff = f
       <Card className="border-border/60 shadow-xs">
         <CardContent className="space-y-4 p-5">
           <div className="space-y-3 text-sm">
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                className="mt-1 size-4 rounded accent-primary"
-                required
-                type="checkbox"
-                checked={volunteers}
-                onChange={event => setVolunteers(event.target.checked)}
-              />
-              <span>ألتزم بتوفير فريق من خمسة متطوعين على الأقل وتسجيلهم في المنصة الوطنية للتطوع.</span>
-            </label>
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 className="mt-1 size-4 rounded accent-primary"

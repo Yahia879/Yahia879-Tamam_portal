@@ -57,12 +57,13 @@ describe("Sidebar accordion group resolution", () => {
     expect(resolveExpandedSidebarGroup(sampleGroups, "/profile", undefined, null)).toBe("الرئيسية");
   });
 
-  it("denies Mawasim routes to service_requester and allows /requests/seasonal for Mawasim managers", () => {
+  it("restricts Mawasim routes to super admins", () => {
     expect(hasRouteAccess("/requester/mawasim", "service_requester", [], false)).toBe(false);
     expect(hasRouteAccess("/mawasim", "service_requester", [], false)).toBe(false);
     expect(hasRouteAccess("/requests/seasonal", "service_requester", [], false)).toBe(false);
-    expect(hasRouteAccess("/requests/seasonal", "system_admin", ["*"], false)).toBe(true);
-    expect(hasRouteAccess("/requests/seasonal", "projects_office", ["requests.view"], false)).toBe(true);
+    expect(hasRouteAccess("/requests/seasonal", "super_admin", [], false)).toBe(true);
+    expect(hasRouteAccess("/requests/seasonal", "system_admin", ["*"], false)).toBe(false);
+    expect(hasRouteAccess("/requests/seasonal", "projects_office", ["requests.view"], false)).toBe(false);
     expect(hasRouteAccess("/requests/seasonal", "field_team", ["requests.view"], false)).toBe(false);
   });
 });

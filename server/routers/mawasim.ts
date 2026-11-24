@@ -4,11 +4,10 @@ import { z } from "zod";
 import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
 import {
-  carpetArea, seasonalExecutionSchema, seasonalMosqueLimit,
+  canManageMawasim, carpetArea, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
-  seasonalSettingsSchema, seasonalStaffAccess, summarizeSeasonalCapacity,
+  seasonalSettingsSchema, summarizeSeasonalCapacity,
 } from "../../shared/mawasim";
-import type { TrpcContext } from "../_core/context";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 
@@ -18,7 +17,7 @@ const requestInput = z.object({ seasonId: id, requestId: id });
 const approvedMosque = eq(mosques.approvalStatus, "approved");
 const mosqueFields = {
   id: mosques.id, name: mosques.name, city: mosques.city, district: mosques.district,
-  address: mosques.address, capacity: mosques.capacity, latitude: mosques.latitude, longitude: mosques.longitude,
+  address: mosques.address, capacity: mosques.capacity,
 };
 const { menPhoto, womenPhoto, ...requestFields } = getTableColumns(mawasimRequests);
 const usageFields = {
@@ -43,12 +42,10 @@ function invalid(message: string): never {
 function notFound(): never {
   throw new TRPCError({ code: "NOT_FOUND", message: "لم يُعثر على السجل في برنامج مواسم." });
 }
-function staffAccess(user: NonNullable<TrpcContext["user"]>) {
-  return seasonalStaffAccess(user.status === "active" && !user.deletedAt ? user.role : undefined);
-}
-function manage(user: NonNullable<TrpcContext["user"]>) {
-  if (!staffAccess(user).canManage) denied();
-}
+const mawasimProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.status !== "active" || ctx.user.deletedAt || !canManageMawasim(ctx.user.role)) denied();
+  return next();
+});
 
 async function lockedSeason(tx: Tx, seasonId: number) {
   // Every change to a season's reservations or limits takes this row lock first.
@@ -82,34 +79,26 @@ export const mawasimRouter = router({
     denied();
   }),
 
-  staff: protectedProcedure.input(seasonInput.optional()).query(async ({ input, ctx }) => {
-    const access = staffAccess(ctx.user);
-    if (!access.canEnter) denied();
+  staff: mawasimProcedure.input(seasonInput.optional()).query(async ({ input }) => {
     const db = await database();
     const seasons = await db.select().from(mawasimSeasons).orderBy(desc(mawasimSeasons.hijriYear));
     const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
-    if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [], fieldStaff: [] };
+    if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [] };
     const requests = await db.select({
       ...requestFields, assignee: users.name,
-    }).from(mawasimRequests).leftJoin(users, eq(users.id, mawasimRequests.assignedTo)).where(and(
-      eq(mawasimRequests.seasonId, season.id),
-      access.canManage ? undefined : eq(mawasimRequests.assignedTo, ctx.user.id),
-    )).orderBy(desc(mawasimRequests.id));
-    const capacity = access.canManage ? summarizeSeasonalCapacity(season.settings, requests) : [];
-    const grants = access.canManage ? await db.select({
+    }).from(mawasimRequests).leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
+      .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
+    const capacity = summarizeSeasonalCapacity(season.settings, requests);
+    const grants = await db.select({
       id: mawasimGrants.id, reason: mawasimGrants.reason, active: mawasimGrants.active,
       mosque: mosques.name, applicant: users.name,
     }).from(mawasimGrants).innerJoin(mosques, eq(mosques.id, mawasimGrants.mosqueId))
       .innerJoin(users, eq(users.id, mawasimGrants.userId)).where(eq(mawasimGrants.seasonId, season.id))
-      .orderBy(desc(mawasimGrants.id)) : [];
-    const fieldStaff = access.canManage ? await db.select({ id: users.id, name: users.name }).from(users)
-      .where(and(eq(users.status, "active"), isNull(users.deletedAt),
-        inArray(users.role, ["field_team", "projects_office", "project_manager", "super_admin", "system_admin"]))) : [];
-    return { seasons, season, requests, capacity, grants, fieldStaff };
+      .orderBy(desc(mawasimGrants.id));
+    return { seasons, season, requests, capacity, grants };
   }),
 
-  searchMosques: protectedProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input, ctx }) => {
-    manage(ctx.user);
+  searchMosques: mawasimProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input }) => {
     const db = await database();
     const term = input?.search?.trim() ?? "";
     const rows = await db.select(mosqueFields).from(mosques).where(and(
@@ -130,22 +119,18 @@ export const mawasimRouter = router({
     return rows.map(mosque => ({ ...mosque, previous: saved.find(item => item.mosqueId === mosque.id)?.snapshot }));
   }),
 
-  photos: protectedProcedure.input(requestInput).query(async ({ input, ctx }) => {
-    const access = staffAccess(ctx.user);
-    if (!access.canEnter) denied();
+  photos: mawasimProcedure.input(requestInput).query(async ({ input }) => {
     const db = await database();
     const [request] = await db.select({ menPhoto, womenPhoto }).from(mawasimRequests).where(and(
       eq(mawasimRequests.id, input.requestId), eq(mawasimRequests.seasonId, input.seasonId),
-      access.canManage ? undefined : eq(mawasimRequests.assignedTo, ctx.user.id),
     ));
     return request ?? notFound();
   }),
 
-  saveSeason: protectedProcedure.input(z.object({
+  saveSeason: mawasimProcedure.input(z.object({
     id: id.optional(), hijriYear: z.number().int().min(1400).max(1600),
     title: z.string().trim().min(3).max(160), isOpen: z.boolean(), settings: seasonalSettingsSchema,
-  })).mutation(async ({ input, ctx }) => {
-    manage(ctx.user);
+  })).mutation(async ({ input }) => {
     if (input.isOpen && !seasonalServiceIds.some(service => input.settings.services[service].enabled)) {
       invalid("فعّل خدمة واحدة على الأقل قبل فتح التسجيل.");
     }
@@ -167,10 +152,9 @@ export const mawasimRouter = router({
     }
   }),
 
-  grant: protectedProcedure.input(seasonInput.extend({
+  grant: mawasimProcedure.input(seasonInput.extend({
     mosqueId: id, email: z.email().max(320), reason: z.string().trim().min(3).max(500),
   })).mutation(async ({ input, ctx }) => {
-    manage(ctx.user);
     const db = await database();
     await db.transaction(async tx => {
       await lockedSeason(tx, input.seasonId);
@@ -185,8 +169,7 @@ export const mawasimRouter = router({
     });
   }),
 
-  revokeGrant: protectedProcedure.input(seasonInput.extend({ grantId: id })).mutation(async ({ input, ctx }) => {
-    manage(ctx.user);
+  revokeGrant: mawasimProcedure.input(seasonInput.extend({ grantId: id })).mutation(async ({ input }) => {
     const db = await database();
     await db.transaction(async tx => {
       await lockedSeason(tx, input.seasonId);
@@ -196,27 +179,25 @@ export const mawasimRouter = router({
     });
   }),
 
-  submit: protectedProcedure.input(seasonInput.extend({
+  submit: mawasimProcedure.input(seasonInput.extend({
     mosqueId: id, snapshot: seasonalMosqueSnapshotSchema, menPhoto: photo, womenPhoto: photo.optional(),
     requested: seasonalQuantitiesSchema, specialRequest: z.string().trim().max(2000).optional(),
-    pledge: z.literal(true), volunteers: z.literal(true),
+    pledge: z.literal(true),
     onBehalf: z.object({
       name: z.string().trim().min(2).max(150), phone: z.string().trim().regex(/^\+?[0-9]{8,15}$/),
       reason: z.string().trim().min(3).max(500), email: z.email().max(320).optional(),
     }).optional(),
   })).mutation(async ({ input, ctx }) => {
-    if (ctx.user.role === "service_requester" || !input.onBehalf) denied();
-    manage(ctx.user);
+    const onBehalf = input.onBehalf;
+    if (!onBehalf) denied();
     const db = await database();
     try {
       return await db.transaction(async tx => {
         const season = await lockedSeason(tx, input.seasonId);
         if (!season.isOpen) invalid("التسجيل لهذا الموسم مغلق.");
-        const [mosque] = await tx.select({ id: mosques.id, name: mosques.name, owner: mosques.registeredBy })
+        const [mosque] = await tx.select({ id: mosques.id, name: mosques.name })
           .from(mosques).where(and(eq(mosques.id, input.mosqueId), approvedMosque));
         if (!mosque) invalid("اختر مسجدًا معتمدًا.");
-        const onBehalf = input.onBehalf;
-        if (!onBehalf) denied();
         let applicantId: number | null = null;
         if (onBehalf.email) {
           const [applicant] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, onBehalf.email),
@@ -244,7 +225,7 @@ export const mawasimRouter = router({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
           snapshot: input.snapshot, menPhoto: input.menPhoto, womenPhoto: input.womenPhoto,
           requested: input.requested, specialRequest: input.specialRequest,
-          contact: input.onBehalf ?? { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email },
+          contact: onBehalf,
         }).$returningId();
         return created;
       });
@@ -254,10 +235,9 @@ export const mawasimRouter = router({
     }
   }),
 
-  review: protectedProcedure.input(requestInput.extend({
+  review: mawasimProcedure.input(requestInput.extend({
     approved: seasonalQuantitiesSchema.nullable(), note: z.string().trim().max(2000),
   })).mutation(async ({ input, ctx }) => {
-    manage(ctx.user);
     const db = await database();
     await db.transaction(async tx => {
       const { season, request } = await lockedRequest(tx, input);
@@ -281,40 +261,6 @@ export const mawasimRouter = router({
         }
       }
       await tx.update(mawasimRequests).set({ status: "approved", approved: input.approved, reviewNote: input.note, reviewedBy: ctx.user.id })
-        .where(eq(mawasimRequests.id, request.id));
-    });
-  }),
-
-  schedule: protectedProcedure.input(requestInput.extend({
-    assignedTo: id, scheduledFor: z.iso.date(),
-  })).mutation(async ({ input, ctx }) => {
-    manage(ctx.user);
-    const db = await database();
-    await db.transaction(async tx => {
-      const { request } = await lockedRequest(tx, input);
-      if (request.status !== "approved" && request.status !== "scheduled") invalid("اعتمد الطلب قبل الجدولة.");
-      const [assignee] = await tx.select({ role: users.role }).from(users).where(and(
-        eq(users.id, input.assignedTo), eq(users.status, "active"), isNull(users.deletedAt),
-      ));
-      if (!assignee || !seasonalStaffAccess(assignee.role).canEnter) invalid("اختر موظفًا نشطًا من فريق مواسم.");
-      await tx.update(mawasimRequests).set({ status: "scheduled", assignedTo: input.assignedTo, scheduledFor: input.scheduledFor })
-        .where(eq(mawasimRequests.id, request.id));
-    });
-  }),
-
-  complete: protectedProcedure.input(requestInput.extend({ execution: seasonalExecutionSchema })).mutation(async ({ input, ctx }) => {
-    const access = staffAccess(ctx.user);
-    if (!access.canEnter) denied();
-    const db = await database();
-    await db.transaction(async tx => {
-      const { request } = await lockedRequest(tx, input);
-      if (!access.canManage && request.assignedTo !== ctx.user.id) denied();
-      if (request.status !== "scheduled") invalid("جدول الطلب قبل تسجيل التنفيذ.");
-      if (seasonalServiceIds.some(service => (input.execution.performed[service] ?? 0) > (request.approved?.[service] ?? 0))) {
-        invalid("الكمية المنفذة تتجاوز الكمية المعتمدة. راجع مكتب المشاريع أولًا.");
-      }
-      if (!Object.values(input.execution.performed).some(amount => amount > 0)) invalid("سجّل كمية منفّذة لخدمة واحدة على الأقل.");
-      await tx.update(mawasimRequests).set({ status: "completed", execution: input.execution, executedBy: ctx.user.id })
         .where(eq(mawasimRequests.id, request.id));
     });
   }),

@@ -14,9 +14,8 @@ export const seasonalStatusLabels: Record<typeof seasonalRequestStatuses[number]
   submitted: "قيد المراجعة", approved: "معتمد", scheduled: "مجدول", completed: "منفّذ", rejected: "معتذر عنه",
 };
 
-export function seasonalStaffAccess(role: string | undefined) {
-  const canManage = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(role ?? "");
-  return { canManage, canEnter: canManage || role === "field_team" };
+export function canManageMawasim(role: string | undefined) {
+  return role === "super_admin";
 }
 
 export function mayApplyForSeason(user: { role: string; status: string; requesterType: string | null }, ownsMosque: boolean, delegated: boolean) {
@@ -89,18 +88,10 @@ export function carpetArea(men: z.infer<typeof prayerMeasurementsSchema>, women?
   return Math.round((men.lengthCm * men.widthCm + (women ? women.lengthCm * women.widthCm : 0)) / 100);
 }
 
-const mapsUrl = z.url({ protocol: /^https$/ }).max(500).refine(value => {
-  if (!URL.canParse(value)) return false;
-  const { hostname, pathname } = new URL(value);
-  return ((hostname === "google.com" || hostname === "www.google.com") && pathname.startsWith("/maps")) ||
-    hostname === "maps.google.com" || hostname === "maps.app.goo.gl" ||
-    (hostname === "goo.gl" && pathname.startsWith("/maps/"));
-}, "أدخل رابط الموقع من خرائط Google.");
 export const seasonalMosqueSnapshotSchema = z.object({
   city: z.string().trim().min(1).max(100),
   district: z.string().trim().min(1).max(100),
   address: z.string().trim().min(1).max(500),
-  mapsUrl,
   worshippers: z.number().int().min(1).max(100_000),
   men: prayerMeasurementsSchema,
   women: prayerMeasurementsSchema.nullable(),

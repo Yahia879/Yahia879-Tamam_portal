@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
-import { displayQuantity, MawasimField, PrayerMeasurements } from "@/components/MawasimRequestForm";
+import { displayQuantity, MawasimField } from "@/components/MawasimRequestForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import {
-  defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStaffAccess, seasonalStatusLabels,
+  canManageMawasim, defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
   type SeasonalQuantities, type SeasonalService, type SeasonalSettings,
 } from "@shared/mawasim";
 import {
@@ -24,13 +24,11 @@ import {
   BarChart3,
   Building2,
   Calendar,
-  CalendarCheck2,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
   Clock,
   Droplets,
-  ExternalLink,
   Image as ImageIcon,
   Inbox,
   Loader2,
@@ -54,7 +52,11 @@ import {
 type Dashboard = inferRouterOutputs<AppRouter>["mawasim"]["staff"];
 type Season = NonNullable<Dashboard["season"]>;
 type SeasonRequest = Dashboard["requests"][number];
-type RequestStatus = SeasonRequest["status"];
+type RequestStatus = Exclude<SeasonRequest["status"], "scheduled" | "completed">;
+
+function reviewStatus(status: SeasonRequest["status"]): RequestStatus {
+  return status === "scheduled" || status === "completed" ? "approved" : status;
+}
 
 const SERVICE_VISUALS: Record<
   SeasonalService,
@@ -118,14 +120,6 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
     badge: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
     dot: "bg-sky-500",
   },
-  scheduled: {
-    badge: "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
-    dot: "bg-indigo-500",
-  },
-  completed: {
-    badge: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
-    dot: "bg-emerald-500",
-  },
   rejected: {
     badge: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
     dot: "bg-rose-500",
@@ -134,13 +128,13 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
 
 export default function MawasimStaff() {
   const { user } = useAuth();
-  const access = seasonalStaffAccess(user?.role);
+  const canManage = canManageMawasim(user?.role);
   const [seasonId, setSeasonId] = useState<number>();
   const [edit, setEdit] = useState<"new" | "saved">();
   const [expanded, setExpanded] = useState<number>();
   const [statusFilter, setStatusFilter] = useState<"all" | RequestStatus>("all");
 
-  const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: access.canEnter });
+  const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canManage });
   const data = dashboard.data;
   const season = data?.season;
   const refresh = () => { void dashboard.refetch(); };
@@ -159,8 +153,7 @@ export default function MawasimStaff() {
     return {
       total: list.length,
       submitted: list.filter(row => row.status === "submitted").length,
-      active: list.filter(row => row.status === "approved" || row.status === "scheduled").length,
-      completed: list.filter(row => row.status === "completed").length,
+      approved: list.filter(row => reviewStatus(row.status) === "approved").length,
       rejected: list.filter(row => row.status === "rejected").length,
     };
   }, [data?.requests]);
@@ -168,14 +161,14 @@ export default function MawasimStaff() {
   const filteredRequests = useMemo(() => {
     const list = data?.requests ?? [];
     if (statusFilter === "all") return list;
-    return list.filter(row => row.status === statusFilter);
+    return list.filter(row => reviewStatus(row.status) === statusFilter);
   }, [data?.requests, statusFilter]);
 
   const enabledServicesCount = season
     ? seasonalServiceIds.filter(service => season.settings.services[service].enabled).length
     : 0;
 
-  if (!access.canEnter) {
+  if (!canManage) {
     return (
       <DashboardLayout>
         <div dir="rtl" className="mx-auto max-w-2xl p-6">
@@ -210,24 +203,22 @@ export default function MawasimStaff() {
                   </Badge>
                 </div>
                 <p className="mt-1 text-xs text-white/85 sm:text-sm">
-                  إدارة تأهيل المساجد ومتابعة السعات والخدمات الموسمية لاستقبال شهر رمضان
+                  فتح الموسم ← تقديم الطلب وتأكيد بيانات المسجد ← المراجعة والاعتماد وحجز السعة
                 </p>
               </div>
             </div>
-            {access.canManage && (
-              <Button
-                onClick={() => setEdit(edit === "new" ? undefined : "new")}
-                className={cn(
-                  "h-10 gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
-                  edit === "new"
-                    ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
-                    : "bg-white text-teal-900 hover:bg-white/95"
-                )}
-              >
-                {edit === "new" ? <X className="size-4" /> : <Plus className="size-4" />}
-                <span>{edit === "new" ? "إغلاق النموذج" : "إضافة موسم"}</span>
-              </Button>
-            )}
+            <Button
+              onClick={() => setEdit(edit === "new" ? undefined : "new")}
+              className={cn(
+                "h-10 gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
+                edit === "new"
+                  ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                  : "bg-white text-teal-900 hover:bg-white/95"
+              )}
+            >
+              {edit === "new" ? <X className="size-4" /> : <Plus className="size-4" />}
+              <span>{edit === "new" ? "إغلاق النموذج" : "إضافة موسم"}</span>
+            </Button>
           </div>
         </header>
 
@@ -273,12 +264,10 @@ export default function MawasimStaff() {
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 ابدأ بإنشاء موسم جديد وتحديد الخدمات والسعات المتاحة لتأهيل المساجد.
               </p>
-              {access.canManage && (
-                <Button className="mt-5 gap-2 rounded-xl" onClick={() => setEdit("new")}>
-                  <Plus className="size-4" />
-                  إضافة أول موسم
-                </Button>
-              )}
+              <Button className="mt-5 gap-2 rounded-xl" onClick={() => setEdit("new")}>
+                <Plus className="size-4" />
+                إضافة أول موسم
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -349,18 +338,16 @@ export default function MawasimStaff() {
                   </div>
                 </div>
 
-                {access.canManage && (
-                  <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:border-t-0 lg:pt-0">
-                    <Button
-                      variant={edit === "saved" ? "default" : "outline"}
-                      onClick={() => setEdit(edit === "saved" ? undefined : "saved")}
-                      className="h-9 gap-2 rounded-xl font-semibold cursor-pointer"
-                    >
-                      {edit === "saved" ? <X className="size-4" /> : <Settings2 className="size-4" />}
-                      <span>{edit === "saved" ? "إغلاق الإعدادات" : "إعدادات الموسم"}</span>
-                    </Button>
-                  </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:border-t-0 lg:pt-0">
+                  <Button
+                    variant={edit === "saved" ? "default" : "outline"}
+                    onClick={() => setEdit(edit === "saved" ? undefined : "saved")}
+                    className="h-9 gap-2 rounded-xl font-semibold cursor-pointer"
+                  >
+                    {edit === "saved" ? <X className="size-4" /> : <Settings2 className="size-4" />}
+                    <span>{edit === "saved" ? "إغلاق الإعدادات" : "إعدادات الموسم"}</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -378,176 +365,168 @@ export default function MawasimStaff() {
             )}
 
             {/* KPI Overview Cards + Capacity Table */}
-            {access.canManage && (
-              <>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                  <StatCard
-                    label="المساجد المسجّلة"
-                    value={requestStats.total}
-                    icon={Building2}
-                    iconClass="bg-teal-500/12 text-teal-700 dark:text-teal-300"
-                  />
-                  <StatCard
-                    label="طلبات قيد المراجعة"
-                    value={requestStats.submitted}
-                    icon={Clock}
-                    iconClass="bg-amber-500/12 text-amber-700 dark:text-amber-300"
-                    valueClass="text-amber-600 dark:text-amber-400"
-                  />
-                  <StatCard
-                    label="معتمدة ومجدولة"
-                    value={requestStats.active}
-                    icon={CalendarCheck2}
-                    iconClass="bg-sky-500/12 text-sky-700 dark:text-sky-300"
-                    valueClass="text-sky-600 dark:text-sky-400"
-                  />
-                  <StatCard
-                    label="الطلبات المنفّذة"
-                    value={requestStats.completed}
-                    icon={CheckCircle2}
-                    iconClass="bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
-                    valueClass="text-emerald-600 dark:text-emerald-400"
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <StatCard
+                label="المساجد المسجّلة"
+                value={requestStats.total}
+                icon={Building2}
+                iconClass="bg-teal-500/12 text-teal-700 dark:text-teal-300"
+              />
+              <StatCard
+                label="طلبات قيد المراجعة"
+                value={requestStats.submitted}
+                icon={Clock}
+                iconClass="bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                valueClass="text-amber-600 dark:text-amber-400"
+              />
+              <StatCard
+                label="الطلبات المعتمدة"
+                value={requestStats.approved}
+                icon={CheckCircle2}
+                iconClass="bg-sky-500/12 text-sky-700 dark:text-sky-300"
+                valueClass="text-sky-600 dark:text-sky-400"
+              />
+              <StatCard
+                label="الطلبات المعتذر عنها"
+                value={requestStats.rejected}
+                icon={XCircle}
+                iconClass="bg-rose-500/12 text-rose-700 dark:text-rose-300"
+                valueClass="text-rose-600 dark:text-rose-400"
+              />
+            </div>
 
-                {/* Capacity & Tracking Table */}
-                <Card className="overflow-hidden border-border/60 shadow-xs">
-                  <CardHeader className="border-b border-border/50 bg-muted/25 px-5 py-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                          <BarChart3 className="size-4" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base font-bold">السعة والمتابعة</CardTitle>
-                          <CardDescription className="text-xs">
-                            توزيع السعات المتاحة والمحجوزة والمنفّذة لكل خدمة في الموسم
-                          </CardDescription>
-                        </div>
-                      </div>
+            {/* Capacity & Tracking Table */}
+            <Card className="overflow-hidden border-border/60 shadow-xs">
+              <CardHeader className="border-b border-border/50 bg-muted/25 px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <BarChart3 className="size-4" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {(() => {
-                      const rows = data.capacity.filter(row => row.limit > 0 || row.requested > 0);
-                      if (rows.length === 0) {
-                        return (
-                          <div className="flex flex-col items-center justify-center py-10 px-4 text-center text-sm text-muted-foreground">
-                            <Sparkles className="mb-2 size-7 text-muted-foreground/50" />
-                            لم يتم تفعيل سعات للخدمات في هذا الموسم بعد. افتح «إعدادات الموسم» لضبط السعات.
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[44rem] text-start text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/30 text-xs font-semibold text-muted-foreground">
-                                <th scope="col" className="px-5 py-3 text-start">الخدمة</th>
-                                <th scope="col" className="px-3 py-3 text-start">السعة</th>
-                                <th scope="col" className="px-3 py-3 text-start">المطلوب القائم</th>
-                                <th scope="col" className="px-3 py-3 text-start">المعتمد</th>
-                                <th scope="col" className="px-3 py-3 text-start">المنفّذ</th>
-                                <th scope="col" className="px-3 py-3 text-start">المتبقي</th>
-                                <th scope="col" className="w-40 px-5 py-3 text-start">الاستهلاك</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/50">
-                              {rows.map(row => {
-                                const meta = seasonalServices[row.service];
-                                const visual = SERVICE_VISUALS[row.service];
-                                const Icon = visual.icon;
-                                const pct = row.limit > 0 ? Math.min(100, Math.round((row.reserved / row.limit) * 100)) : 0;
-                                const remainingTone =
-                                  row.available === 0
-                                    ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                                    : pct >= 80
-                                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                      : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
-
-                                return (
-                                  <tr key={row.service} className="transition-colors hover:bg-muted/25">
-                                    <th scope="row" className="px-5 py-3.5 text-start font-semibold">
-                                      <div className="flex items-center gap-2.5">
-                                        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", visual.iconBg)}>
-                                          <Icon className="size-4" />
-                                        </span>
-                                        <div>
-                                          <span className="block text-foreground">{meta.label}</span>
-                                          <span className="text-[11px] font-normal text-muted-foreground">الوحدة: {meta.unit}</span>
-                                        </div>
-                                      </div>
-                                    </th>
-                                    <td className="px-3 py-3.5 font-semibold tabular-nums text-foreground">
-                                      {displayQuantity(row.service, row.limit)}
-                                    </td>
-                                    <td className="px-3 py-3.5 tabular-nums text-muted-foreground">
-                                      {displayQuantity(row.service, row.requested)}
-                                    </td>
-                                    <td className="px-3 py-3.5 tabular-nums text-sky-700 dark:text-sky-400 font-medium">
-                                      {displayQuantity(row.service, row.approved)}
-                                    </td>
-                                    <td className="px-3 py-3.5 tabular-nums text-emerald-700 dark:text-emerald-400 font-medium">
-                                      {displayQuantity(row.service, row.performed)}
-                                    </td>
-                                    <td className="px-3 py-3.5 tabular-nums">
-                                      <Badge variant="outline" className={cn("rounded-lg font-bold", remainingTone)}>
-                                        {displayQuantity(row.service, row.available)}
-                                      </Badge>
-                                    </td>
-                                    <td className="px-5 py-3.5">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                          <span>محجوز</span>
-                                          <span className="font-semibold tabular-nums text-foreground">{pct}%</span>
-                                        </div>
-                                        <Progress value={pct} className="h-1.5" />
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })()}
-
-                    {byLocation.size > 0 && (
-                      <div className="border-t border-border/50 bg-muted/15 px-5 py-4">
-                        <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-foreground">
-                          <MapPin className="size-3.5 text-primary" />
-                          توزيع المساجد حسب المدينة والحي
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {Array.from(byLocation, ([location, count]) => (
-                            <span
-                              key={location}
-                              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground shadow-2xs"
-                            >
-                              <span>{location}</span>
-                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-                                {count}
-                              </span>
-                            </span>
-                          ))}
-                        </div>
+                    <div>
+                      <CardTitle className="text-base font-bold">السعة والمتابعة</CardTitle>
+                      <CardDescription className="text-xs">
+                        متابعة السعة المتاحة والمحجوزة لكل خدمة في الموسم
+                      </CardDescription>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {(() => {
+                  const rows = data.capacity.filter(row => row.limit > 0 || row.requested > 0);
+                  if (rows.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-10 px-4 text-center text-sm text-muted-foreground">
+                        <Sparkles className="mb-2 size-7 text-muted-foreground/50" />
+                        لم يتم تفعيل سعات للخدمات في هذا الموسم بعد. افتح «إعدادات الموسم» لضبط السعات.
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            )}
+                    );
+                  }
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[44rem] text-start text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30 text-xs font-semibold text-muted-foreground">
+                            <th scope="col" className="px-5 py-3 text-start">الخدمة</th>
+                            <th scope="col" className="px-3 py-3 text-start">السعة</th>
+                            <th scope="col" className="px-3 py-3 text-start">المطلوب القائم</th>
+                            <th scope="col" className="px-3 py-3 text-start">المعتمد</th>
+                            <th scope="col" className="px-3 py-3 text-start">المتبقي</th>
+                            <th scope="col" className="w-40 px-5 py-3 text-start">الاستهلاك</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {rows.map(row => {
+                            const meta = seasonalServices[row.service];
+                            const visual = SERVICE_VISUALS[row.service];
+                            const Icon = visual.icon;
+                            const pct = row.limit > 0 ? Math.min(100, Math.round((row.reserved / row.limit) * 100)) : 0;
+                            const remainingTone =
+                              row.available === 0
+                                ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                : pct >= 80
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+
+                            return (
+                              <tr key={row.service} className="transition-colors hover:bg-muted/25">
+                                <th scope="row" className="px-5 py-3.5 text-start font-semibold">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", visual.iconBg)}>
+                                      <Icon className="size-4" />
+                                    </span>
+                                    <div>
+                                      <span className="block text-foreground">{meta.label}</span>
+                                      <span className="text-[11px] font-normal text-muted-foreground">الوحدة: {meta.unit}</span>
+                                    </div>
+                                  </div>
+                                </th>
+                                <td className="px-3 py-3.5 font-semibold tabular-nums text-foreground">
+                                  {displayQuantity(row.service, row.limit)}
+                                </td>
+                                <td className="px-3 py-3.5 tabular-nums text-muted-foreground">
+                                  {displayQuantity(row.service, row.requested)}
+                                </td>
+                                <td className="px-3 py-3.5 tabular-nums text-sky-700 dark:text-sky-400 font-medium">
+                                  {displayQuantity(row.service, row.approved)}
+                                </td>
+                                <td className="px-3 py-3.5 tabular-nums">
+                                  <Badge variant="outline" className={cn("rounded-lg font-bold", remainingTone)}>
+                                    {displayQuantity(row.service, row.available)}
+                                  </Badge>
+                                </td>
+                                <td className="px-5 py-3.5">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                      <span>محجوز</span>
+                                      <span className="font-semibold tabular-nums text-foreground">{pct}%</span>
+                                    </div>
+                                    <Progress value={pct} className="h-1.5" />
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+
+                {byLocation.size > 0 && (
+                  <div className="border-t border-border/50 bg-muted/15 px-5 py-4">
+                    <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-foreground">
+                      <MapPin className="size-3.5 text-primary" />
+                      توزيع المساجد حسب المدينة والحي
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(byLocation, ([location, count]) => (
+                        <span
+                          key={location}
+                          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground shadow-2xs"
+                        >
+                          <span>{location}</span>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                            {count}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Season Requests List */}
             <section className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">
-                    {access.canManage ? "طلبات الموسم" : "الطلبات المسندة إليّ"}
+                    طلبات الموسم
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    استعراض ومراجعة وجدولة وتوثيق تنفيذ الطلبات الموسمية
+                    مراجعة الطلبات الموسمية واعتماد الكميات وحجز السعة
                   </p>
                 </div>
 
@@ -556,9 +535,7 @@ export default function MawasimStaff() {
                     {([
                       ["all", "الكل", data.requests.length],
                       ["submitted", seasonalStatusLabels.submitted, requestStats.submitted],
-                      ["approved", seasonalStatusLabels.approved, data.requests.filter(r => r.status === "approved").length],
-                      ["scheduled", seasonalStatusLabels.scheduled, data.requests.filter(r => r.status === "scheduled").length],
-                      ["completed", seasonalStatusLabels.completed, requestStats.completed],
+                      ["approved", seasonalStatusLabels.approved, requestStats.approved],
                       ["rejected", seasonalStatusLabels.rejected, requestStats.rejected],
                     ] as const).map(([key, label, count]) => (
                       <button
@@ -607,7 +584,8 @@ export default function MawasimStaff() {
                 <div className="space-y-3">
                   {filteredRequests.map(request => {
                     const isOpen = expanded === request.id;
-                    const statusStyle = STATUS_STYLES[request.status];
+                    const status = reviewStatus(request.status);
+                    const statusStyle = STATUS_STYLES[status];
                     const requestedServices = seasonalServiceIds.filter(service => (request.requested[service] ?? 0) > 0);
 
                     return (
@@ -634,7 +612,7 @@ export default function MawasimStaff() {
                                   </h3>
                                   <Badge variant="outline" className={cn("gap-1.5 rounded-full text-xs font-semibold", statusStyle.badge)}>
                                     <span className={cn("size-1.5 rounded-full", statusStyle.dot)} />
-                                    {seasonalStatusLabels[request.status]}
+                                    {seasonalStatusLabels[status]}
                                   </Badge>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -646,12 +624,6 @@ export default function MawasimStaff() {
                                     <Users className="size-3.5 text-primary/70" />
                                     {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
                                   </span>
-                                  {request.scheduledFor && (
-                                    <span className="inline-flex items-center gap-1 text-indigo-700 dark:text-indigo-300 font-medium">
-                                      <Calendar className="size-3.5" />
-                                      موعد التنفيذ: {request.scheduledFor}
-                                    </span>
-                                  )}
                                 </div>
                                 {requestedServices.length > 0 && (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -685,8 +657,6 @@ export default function MawasimStaff() {
                             <RequestDetails
                               key={request.id + request.status}
                               request={request}
-                              canManage={access.canManage}
-                              fieldStaff={data.fieldStaff}
                               refresh={refresh}
                             />
                           )}
@@ -1113,27 +1083,14 @@ function Quantities({
 
 function RequestDetails({
   request,
-  canManage,
-  fieldStaff,
   refresh,
 }: {
   request: SeasonRequest;
-  canManage: boolean;
-  fieldStaff: Dashboard["fieldStaff"];
   refresh: () => void;
 }) {
   const [showPhotos, setShowPhotos] = useState(false);
   const [approved, setApproved] = useState(request.requested);
   const [note, setNote] = useState("");
-  const [date, setDate] = useState(request.scheduledFor ?? "");
-  const [assignee, setAssignee] = useState(request.assignedTo ?? 0);
-  const [execution, setExecution] = useState({
-    men: request.snapshot.men,
-    women: request.snapshot.women,
-    performed: {} as SeasonalQuantities,
-    notes: "",
-  });
-
   const key = { seasonId: request.seasonId, requestId: request.id };
   const photos = trpc.mawasim.photos.useQuery(key, { enabled: showPhotos });
   const options = {
@@ -1144,8 +1101,6 @@ function RequestDetails({
     onError: (error: { message: string }) => toast.error(error.message),
   };
   const review = trpc.mawasim.review.useMutation(options);
-  const schedule = trpc.mawasim.schedule.useMutation(options);
-  const complete = trpc.mawasim.complete.useMutation(options);
 
   const activeServices = seasonalServiceIds.filter(
     service => request.requested[service] || request.approved?.[service]
@@ -1176,15 +1131,6 @@ function RequestDetails({
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <a
-              href={request.snapshot.mapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-            >
-              <ExternalLink className="size-3.5" />
-              موقع المسجد على الخريطة
-            </a>
             <Button
               type="button"
               size="sm"
@@ -1230,12 +1176,12 @@ function RequestDetails({
           )}
           {request.scheduledFor && (
             <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
-              موعد التنفيذ: {request.scheduledFor} · المكلّف: {request.assignee}
+              موعد التنفيذ المحفوظ سابقًا: {request.scheduledFor} · المكلّف: {request.assignee}
             </p>
           )}
           {request.execution && (
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
-              قياس التنفيذ الفعلي: الرجال {request.execution.men.lengthCm / 100} × {request.execution.men.widthCm / 100} م
+              قياسات التنفيذ المحفوظة سابقًا: الرجال {request.execution.men.lengthCm / 100} × {request.execution.men.widthCm / 100} م
               {request.execution.women &&
                 ` · النساء ${request.execution.women.lengthCm / 100} × ${request.execution.women.widthCm / 100} م`}
               {request.execution.notes && ` · ${request.execution.notes}`}
@@ -1302,9 +1248,9 @@ function RequestDetails({
       )}
 
       {/* Review Actions */}
-      {canManage && !["completed", "rejected"].includes(request.status) && (
+      {!["completed", "rejected"].includes(request.status) && (
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
-          <h4 className="text-sm font-bold text-foreground">مراجعة الطلب والاعتماد</h4>
+          <h4 className="text-sm font-bold text-foreground">مراجعة الطلب والاعتماد وحجز السعة</h4>
           {request.status === "submitted" && (
             <Quantities
               value={approved}
@@ -1343,107 +1289,6 @@ function RequestDetails({
             </Button>
           </div>
         </section>
-      )}
-
-      {/* Schedule Form */}
-      {canManage && ["approved", "scheduled"].includes(request.status) && (
-        <form
-          className="space-y-3 rounded-xl border border-indigo-200/70 bg-indigo-50/30 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20"
-          onSubmit={event => {
-            event.preventDefault();
-            schedule.mutate({ ...key, assignedTo: assignee, scheduledFor: date });
-          }}
-        >
-          <h4 className="text-sm font-bold text-foreground">جدولة التنفيذ وإسناد الموظف</h4>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <MawasimField label="تاريخ التنفيذ">
-              <Input
-                required
-                type="date"
-                className="h-9 rounded-lg bg-background"
-                value={date}
-                onChange={event => setDate(event.target.value)}
-              />
-            </MawasimField>
-            <MawasimField label="الموظف المكلّف">
-              <Select
-                value={assignee ? String(assignee) : ""}
-                onValueChange={val => setAssignee(Number(val))}
-              >
-                <SelectTrigger className="h-9 w-full rounded-lg bg-background">
-                  <SelectValue placeholder="اختر موظفًا" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fieldStaff.map(member => (
-                    <SelectItem key={member.id} value={String(member.id)}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </MawasimField>
-          </div>
-          <Button type="submit" disabled={schedule.isPending || !assignee || !date} className="gap-1.5 rounded-xl cursor-pointer">
-            <CalendarCheck2 className="size-4" />
-            حفظ الجدولة
-          </Button>
-        </form>
-      )}
-
-      {/* Field Execution Form */}
-      {request.status === "scheduled" && (
-        <form
-          className="space-y-4 rounded-xl border border-emerald-200/70 bg-emerald-50/30 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20"
-          onSubmit={event => {
-            event.preventDefault();
-            complete.mutate({ ...key, execution });
-          }}
-        >
-          <h4 className="text-sm font-bold text-foreground">تسجيل التنفيذ الفعلي</h4>
-          <PrayerMeasurements
-            label="القياسات الفعلية لمصلى الرجال"
-            value={execution.men}
-            onChange={men => setExecution({ ...execution, men })}
-          />
-          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-            <input
-              type="checkbox"
-              className="size-4 rounded accent-primary"
-              checked={Boolean(execution.women)}
-              onChange={event =>
-                setExecution({
-                  ...execution,
-                  women: event.target.checked ? request.snapshot.women ?? { lengthCm: 0, widthCm: 0 } : null,
-                })
-              }
-            />
-            يوجد مصلى نساء
-          </label>
-          {execution.women && (
-            <PrayerMeasurements
-              label="القياسات الفعلية لمصلى النساء"
-              value={execution.women}
-              onChange={women => setExecution({ ...execution, women })}
-            />
-          )}
-          <Quantities
-            value={execution.performed}
-            onChange={performed => setExecution({ ...execution, performed })}
-            services={seasonalServiceIds.filter(service => request.approved?.[service])}
-          />
-          <MawasimField label="ملاحظات التنفيذ">
-            <Textarea
-              className="rounded-xl bg-background"
-              value={execution.notes}
-              maxLength={2000}
-              onChange={event => setExecution({ ...execution, notes: event.target.value })}
-            />
-          </MawasimField>
-          <Button type="submit" disabled={complete.isPending} className="gap-1.5 rounded-xl cursor-pointer">
-            <CheckCircle2 className="size-4" />
-            حفظ التنفيذ
-          </Button>
-        </form>
       )}
     </div>
   );
