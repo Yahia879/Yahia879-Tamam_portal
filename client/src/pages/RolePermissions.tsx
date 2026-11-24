@@ -164,7 +164,7 @@ export default function RolePermissions() {
     }
     const requiredView = sectionPermissionPrerequisite(permId);
     if (requiredView && !selectedPerms.includes(permId) && !selectedPerms.includes(requiredView)) {
-      toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      toast.warning(permId.startsWith("mawasim.") ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً" : permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
       return;
     }
     if (!selectedPerms.includes(permId) && confirmLinkedPermissions([permId], id => selectedPerms.includes(id), permissions => {
