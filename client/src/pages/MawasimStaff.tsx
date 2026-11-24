@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { displayQuantity, MawasimField } from "@/components/MawasimRequestForm";
@@ -17,7 +16,7 @@ import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import {
-  canManageMawasim, canViewMawasim, defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
+  defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
   type SeasonalQuantities, type SeasonalService, type SeasonalSettings,
 } from "@shared/mawasim";
 import {
@@ -128,12 +127,12 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
 };
 
 export default function MawasimStaff() {
-  const { user } = useAuth();
   const hasViewPerm = usePermission("mawasim.view");
+  const hasCreatePerm = usePermission("mawasim.create");
   const hasManagePerm = usePermission("mawasim.manage");
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canView = isAdmin || hasViewPerm || hasManagePerm || canViewMawasim(user?.role, (user as any)?.permissions);
-  const canManage = isAdmin || hasManagePerm || canManageMawasim(user?.role, (user as any)?.permissions);
+  const canView = hasViewPerm || hasCreatePerm || hasManagePerm;
+  const canCreate = hasCreatePerm;
+  const canManage = hasManagePerm;
   const [seasonId, setSeasonId] = useState<number>();
   const [edit, setEdit] = useState<"new" | "saved">();
   const [expanded, setExpanded] = useState<number>();
@@ -212,7 +211,7 @@ export default function MawasimStaff() {
                 </p>
               </div>
             </div>
-            {canManage && (
+            {canCreate && (
               <Button
                 onClick={() => setEdit(edit === "new" ? undefined : "new")}
                 className={cn(
@@ -249,7 +248,7 @@ export default function MawasimStaff() {
         )}
 
         {/* New Season Form */}
-        {edit === "new" && (
+        {canCreate && edit === "new" && (
           <SeasonEditor
             onCancel={() => setEdit(undefined)}
             onSave={id => {
@@ -261,7 +260,7 @@ export default function MawasimStaff() {
         )}
 
         {/* No Seasons Empty State */}
-        {data && !season && edit !== "new" && (
+        {data && !season && (!canCreate || edit !== "new") && (
           <Card className="border-dashed border-border/80 bg-card/60">
             <CardContent className="flex flex-col items-center justify-center py-14 text-center">
               <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -269,12 +268,16 @@ export default function MawasimStaff() {
               </div>
               <h2 className="text-base font-bold text-foreground">لا توجد مواسم محفوظة بعد</h2>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                ابدأ بإنشاء موسم جديد وتحديد الخدمات والسعات المتاحة لتأهيل المساجد.
+                {canCreate
+                  ? "ابدأ بإنشاء موسم جديد وتحديد الخدمات والسعات المتاحة لتأهيل المساجد."
+                  : "لم يتم إنشاء أي موسم حتى الآن."}
               </p>
-              <Button className="mt-5 gap-2 rounded-xl" onClick={() => setEdit("new")}>
-                <Plus className="size-4" />
-                إضافة أول موسم
-              </Button>
+              {canCreate && (
+                <Button className="mt-5 gap-2 rounded-xl" onClick={() => setEdit("new")}>
+                  <Plus className="size-4" />
+                  إضافة أول موسم
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -361,7 +364,7 @@ export default function MawasimStaff() {
             </Card>
 
             {/* Saved Season Editor */}
-            {edit === "saved" && (
+            {canManage && edit === "saved" && (
               <SeasonEditor
                 key={season.id}
                 season={season}
@@ -428,7 +431,9 @@ export default function MawasimStaff() {
                     return (
                       <div className="flex flex-col items-center justify-center py-10 px-4 text-center text-sm text-muted-foreground">
                         <Sparkles className="mb-2 size-7 text-muted-foreground/50" />
-                        لم يتم تفعيل سعات للخدمات في هذا الموسم بعد. افتح «إعدادات الموسم» لضبط السعات.
+                        {canManage
+                          ? "لم يتم تفعيل سعات للخدمات في هذا الموسم بعد. افتح «إعدادات الموسم» لضبط السعات."
+                          : "لم يتم تفعيل سعات للخدمات في هذا الموسم بعد."}
                       </div>
                     );
                   }
