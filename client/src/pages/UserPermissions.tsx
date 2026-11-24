@@ -1,5 +1,6 @@
 import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
+import { MAWASIM_PERMISSIONS } from "@shared/mawasimPermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionOverrides } from "@shared/calendarPermissions";
@@ -148,6 +149,7 @@ import {
 
 
   Calendar,
+  Clock,
 
 
 
@@ -813,6 +815,14 @@ export default function UserPermissions() {
 
 
 
+
+    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("mawasim.") && permId !== "mawasim.view") {
+      if (!isChecked("mawasim.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مواسم' أولاً");
+        return;
+      }
+    }
 
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
 
@@ -2879,6 +2889,7 @@ export default function UserPermissions() {
 
 
         sectionPermissionDependents(permId).forEach(cascadeRevoke);
+        if (permId === "mawasim.view") cascadeRevoke("mawasim.");
         if (permId === "mosques.view") cascadeRevoke("mosques.");
 
 
@@ -4160,7 +4171,7 @@ export default function UserPermissions() {
 
       },
 
-
+      mawasim: Object.fromEntries(MAWASIM_PERMISSIONS.map(p => [p.action, p.nameAr])),
 
       mosques: {
 
@@ -5761,7 +5772,7 @@ export default function UserPermissions() {
 
       modules: [
 
-
+        { id: "mawasim", nameAr: "مواسم", icon: Clock, perms: MAWASIM_PERMISSIONS.map(p => p.action) },
 
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
 
@@ -7897,6 +7908,8 @@ export default function UserPermissions() {
 (perm.id.startsWith("board_leadership.bank_transfers_") && !isChecked("board_chairman")) ||
 
 
+
+                              (perm.id.startsWith("mawasim.") && perm.id !== "mawasim.view" && !isChecked("mawasim.view")) ||
 
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
 
