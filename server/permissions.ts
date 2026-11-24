@@ -1,4 +1,5 @@
 import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
+import { isMawasimPermission, MAWASIM_PERMISSIONS, MAWASIM_PERMISSION_IDS } from "../shared/mawasimPermissions";
 import { isProgressInvoicePermission, PROGRESS_INVOICE_PERMISSION_IDS } from "../shared/progressInvoicePermissions";
 import { isProgressReportPermission, PROGRESS_REPORT_PERMISSION_IDS } from "../shared/progressReportPermissions";
 import { isProjectPermission, PROJECT_PERMISSION_IDS } from "../shared/projectPermissions";
@@ -58,6 +59,9 @@ import { z } from "zod";
  */
 
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
+  mawasim: MAWASIM_PERMISSION_IDS,
+  "mawasim.view": ["mawasim.view"],
+  "mawasim.manage": ["mawasim.manage", "mawasim.view"],
   board_analytics: [],
   ...Object.fromEntries(BOARD_ANALYTICS_PERMISSION_IDS.map(permission => [permission, [permission]])),
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
@@ -2322,6 +2326,15 @@ async function ensureRequestersPermissionsExist(db: any) {
 async function ensureAllCustomPermissionsExist(db: any) {
 
   try {
+    const [mawasimModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "mawasim")).limit(1);
+    if (!mawasimModule) {
+      await db.insert(modules).values({ id: "mawasim", nameAr: "مواسم", nameEn: "Seasons", icon: "Clock", displayOrder: 2, isActive: true });
+    }
+    for (const permission of MAWASIM_PERMISSIONS) {
+      const [existing] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, permission.id)).limit(1);
+      if (!existing) await db.insert(permissions).values({ id: permission.id, moduleId: "mawasim", action: permission.action, nameAr: permission.nameAr, nameEn: permission.nameEn, description: permission.description });
+    }
+
     const [boardAnalyticsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "board_analytics")).limit(1);
     if (!boardAnalyticsModule) {
       await db.insert(modules).values({ id: "board_analytics", nameAr: "لوحة الإدارة العليا", nameEn: "Executive Management Dashboard", icon: "BarChart3", displayOrder: 1, isActive: true });
@@ -4652,7 +4665,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
-      !(isProjectPermission(rp.permissionId) || isProgressReportPermission(rp.permissionId) || isProgressInvoicePermission(rp.permissionId) || isBoardAnalyticsPermission(rp.permissionId) || isInformationDashboardPermission(rp.permissionId) || rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+      !(isMawasimPermission(rp.permissionId) || isProjectPermission(rp.permissionId) || isProgressReportPermission(rp.permissionId) || isProgressInvoicePermission(rp.permissionId) || isBoardAnalyticsPermission(rp.permissionId) || isInformationDashboardPermission(rp.permissionId) || rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
         isRequestSectionPermission(rp.permissionId) || isBeneficiaryManagementPermission(rp.permissionId) ||
         rp.permissionId === "escalation" || rp.permissionId.startsWith("escalation.") ||
         rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
@@ -4777,7 +4790,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     const section = perm === "mosques_map" ? "mosque_map" : perm;
     if (isRequestSectionPermission(perm) && perm.includes(".")) continue;
 
-    if (expanded && !(["requests", "sedana_requests", "beneficiary_evaluations", "beneficiary_satisfaction", "appointments", "appointments_calendar", "mosques", "mosque_map", "contracts", "quotations", "custody_requests", "progress_invoices", "progress_reports", "projects"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
+    if (expanded && !(["mawasim", "requests", "sedana_requests", "beneficiary_evaluations", "beneficiary_satisfaction", "appointments", "appointments_calendar", "mosques", "mosque_map", "contracts", "quotations", "custody_requests", "progress_invoices", "progress_reports", "projects"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
 
       expanded.forEach(sub => {
         if (PROJECT_PERMISSION_IDS.includes(sub) && perm !== "projects" && !PROJECT_PERMISSION_IDS.includes(perm)) return;
@@ -7319,7 +7332,7 @@ export const permissionsRouter = router({
             customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (isProjectPermission(p) || isProgressReportPermission(p) || isProgressInvoicePermission(p) || isBoardAnalyticsPermission(p) || isInformationDashboardPermission(p) || isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (isMawasimPermission(p) || isProjectPermission(p) || isProgressReportPermission(p) || isProgressInvoicePermission(p) || isBoardAnalyticsPermission(p) || isInformationDashboardPermission(p) || isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7336,6 +7349,7 @@ export const permissionsRouter = router({
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
+        MAWASIM_PERMISSION_IDS.forEach(p => permsSet.add(p));
         ["mosques.add_imam", ...BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, "requester_accounts.create", "requester_accounts.delete", ...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
       }
 
@@ -7368,6 +7382,7 @@ export const permissionsRouter = router({
       }
       permsSet.delete("mosque_map");
       permsSet.delete("mosques_map");
+      permsSet.delete("mawasim");
 
       return sectionPermissionSelection(custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)))));
 
@@ -7449,7 +7464,7 @@ export const permissionsRouter = router({
 
       const missingLinked = linkedPermissionGrantPlan(input.permissions, p => input.permissions.includes(p)).missing;
       if (missingLinked.length) throw new TRPCError({ code: "BAD_REQUEST", message: `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missingLinked.map(linkedPermissionLabel).join("، ")}` });
-      const cleanedPerms = sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
+      const cleanedPerms = sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation", "mawasim"].includes(p));
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
 
@@ -8400,7 +8415,7 @@ export const permissionsRouter = router({
 
       await ensureAllCustomPermissionsExist(db);
 
-      let cleanedInputPerms = input.permissions.filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p.permissionId) && p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
+      let cleanedInputPerms = input.permissions.filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p.permissionId) && p.permissionId !== "escalation.view" && p.permissionId !== "escalation" && p.permissionId !== "mawasim");
       const inheritedPermissions = await calculateUserPermissions(input.userId, false);
       const ownsCalendar = cleanedInputPerms.some(p => p.permissionId === "appointments.view_own" && p.granted);
       if (ownsCalendar) cleanedInputPerms = cleanedInputPerms.map(p =>
