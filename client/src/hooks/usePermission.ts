@@ -6,6 +6,7 @@ import { isProgressInvoicePermission } from "@shared/progressInvoicePermissions"
 import { isProgressReportPermission } from "@shared/progressReportPermissions";
 import { isProjectPermission } from "@shared/projectPermissions";
 import { isBoardExecutivePermission } from "@shared/boardExecutivePermissions";
+import { isMawasimPermission } from "@shared/mawasimPermissions";
 
 /**
  * التحقق مما إذا كانت الصلاحية تابعة لقسم إدارة المخزون
@@ -55,6 +56,7 @@ export function isStrictPermission(permission: string): boolean {
     isProgressReportPermission(permission) ||
     isProjectPermission(permission) ||
     isBoardExecutivePermission(permission) ||
+    isMawasimPermission(permission) ||
     permission === "requests" || permission.startsWith("requests.") ||
     permission === "sedana_requests" || permission.startsWith("sedana_requests.") ||
     isInventoryPermission(permission) ||
