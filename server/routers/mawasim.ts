@@ -10,6 +10,8 @@ import {
 } from "../../shared/mawasim";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
+import { checkPermission } from "../permissions";
+import type { TrpcContext } from "../_core/context";
 
 const id = z.number().int().positive();
 const seasonInput = z.object({ seasonId: id });
@@ -42,8 +44,27 @@ function invalid(message: string): never {
 function notFound(): never {
   throw new TRPCError({ code: "NOT_FOUND", message: "لم يُعثر على السجل في برنامج مواسم." });
 }
-const mawasimProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.status !== "active" || ctx.user.deletedAt || !canManageMawasim(ctx.user.role)) denied();
+
+async function userCanManage(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  if (["super_admin", "system_admin"].includes(user.role)) return true;
+  return checkPermission(user.id, "mawasim.manage").catch(() => false);
+}
+async function userCanView(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  if (["super_admin", "system_admin"].includes(user.role)) return true;
+  const manage = await checkPermission(user.id, "mawasim.manage").catch(() => false);
+  if (manage) return true;
+  return checkPermission(user.id, "mawasim.view").catch(() => false);
+}
+
+const mawasimProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
+  if (!(await userCanView(ctx.user))) denied();
+  return next();
+});
+
+const mawasimManageProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
+  if (!(await userCanManage(ctx.user))) denied();
   return next();
 });
 
@@ -133,7 +154,7 @@ export const mawasimRouter = router({
     return request ?? notFound();
   }),
 
-  saveSeason: mawasimProcedure.input(z.object({
+  saveSeason: mawasimManageProcedure.input(z.object({
     id: id.optional(), hijriYear: z.number().int().min(1400).max(1600),
     title: z.string().trim().min(3).max(160), isOpen: z.boolean(), settings: seasonalSettingsSchema,
   })).mutation(async ({ input }) => {
