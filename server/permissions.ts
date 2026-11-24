@@ -61,6 +61,7 @@ import { z } from "zod";
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
   mawasim: MAWASIM_PERMISSION_IDS,
   "mawasim.view": ["mawasim.view"],
+  "mawasim.create": ["mawasim.create", "mawasim.view"],
   "mawasim.manage": ["mawasim.manage", "mawasim.view"],
   board_analytics: [],
   ...Object.fromEntries(BOARD_ANALYTICS_PERMISSION_IDS.map(permission => [permission, [permission]])),
@@ -4734,6 +4735,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        isMawasimPermission(p.id) ||
         isProjectPermission(p.id) ||
         isProgressReportPermission(p.id) ||
         isProgressInvoicePermission(p.id) ||
@@ -4963,6 +4965,16 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
   }
 
 
+
+  // إذا تم سحب عرض المواسم، تسحب جميع إجراءات وإعدادات المواسم تلقائياً
+  if (revokedPermissions.has("mawasim.view")) {
+    allPermissions.delete("mawasim.view");
+    allPermissions.delete("mawasim.create");
+    allPermissions.delete("mawasim.manage");
+    allPermissions.delete("mawasim");
+  } else if (revokedPermissions.has("mawasim.create") || revokedPermissions.has("mawasim.manage")) {
+    allPermissions.delete("mawasim");
+  }
 
   // إذا تم سحب عرض قائمة المفوضين، تسحب جميع إجراءات المفوضين تلقائياً
 
@@ -7656,7 +7668,7 @@ export const permissionsRouter = router({
 
       const missingLinked = input.permissions ? linkedPermissionGrantPlan(input.permissions, p => input.permissions!.includes(p)).missing : [];
       if (missingLinked.length) throw new TRPCError({ code: "BAD_REQUEST", message: `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missingLinked.map(linkedPermissionLabel).join("، ")}` });
-      const cleanedPerms = input.permissions ? sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
+      const cleanedPerms = input.permissions ? sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation", "mawasim"].includes(p)) : undefined;
 
       // تحديث بيانات الدور (الاسم والوصف)
 
