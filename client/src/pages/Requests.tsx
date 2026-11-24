@@ -41,7 +41,7 @@ import {
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
-import { canManageMawasim, canViewMawasim } from "@shared/mawasim";
+import { MAWASIM_PERMISSION_IDS } from "@shared/mawasim";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import { PermissionGuard } from "@/components/PermissionGuard";
@@ -336,14 +336,14 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="grid grid-cols-1 sm:flex sm:flex-wrap lg:flex-nowrap items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
-              {canViewMawasim(user?.role, (user as any)?.permissions) && (
+              <PermissionGuard anyPermission={MAWASIM_PERMISSION_IDS}>
                 <Link href="/requests/seasonal" className="w-full sm:w-auto">
                   <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 shadow-sm font-bold border-0 transition-all whitespace-nowrap cursor-pointer">
                     <MoonStar className="w-4 h-4 text-emerald-100 shrink-0" />
                     <span>{isEn ? "Seasonal Request" : "طلب موسمي"}</span>
                   </Button>
                 </Link>
-              )}
+              </PermissionGuard>
               {user?.role !== "service_requester" && (
                 <PermissionGuard permission="sedana_requests.manage">
                   <Link href="/service-request?service=sedana" className="w-full sm:w-auto">
