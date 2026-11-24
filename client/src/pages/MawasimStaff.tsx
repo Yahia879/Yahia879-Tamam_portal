@@ -977,48 +977,6 @@ function SeasonEditor({
             </div>
           </div>
 
-          {/* Step 3: Large Mosque Thresholds */}
-          <div className="space-y-3.5 border-t border-border/60 pt-5">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-xs font-extrabold text-primary">
-                3
-              </span>
-              <span>إعدادات المسجد الكبير (اختياري)</span>
-            </div>
-
-            <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-              <p className="mb-3 text-xs text-muted-foreground">
-                عند تحديد عدد المصلين لتصنيف المسجد الكبير، يُطبّق سقف الكراتين المخصص أدناه لخدمة سقيا الماء تلقائياً.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <MawasimField label="عدد المصلين لتصنيف المسجد الكبير (اختياري)">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="مثال: 500"
-                    className="h-10 rounded-xl bg-background tabular-nums"
-                    value={settings.largeMosqueWorshippers}
-                    onChange={event =>
-                      setSettings({ ...settings, largeMosqueWorshippers: Number(event.target.value) })
-                    }
-                  />
-                </MawasimField>
-                <MawasimField label="سقف الكراتين للمسجد الكبير (اختياري)">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="مثال: 100"
-                    className="h-10 rounded-xl bg-background tabular-nums"
-                    value={settings.largeMosqueWaterLimit}
-                    onChange={event =>
-                      setSettings({ ...settings, largeMosqueWaterLimit: Number(event.target.value) })
-                    }
-                  />
-                </MawasimField>
-              </div>
-            </div>
-          </div>
-
           {/* Footer Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
             <p className="text-xs text-muted-foreground">
