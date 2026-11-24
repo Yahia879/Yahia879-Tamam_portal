@@ -1,5 +1,6 @@
 import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
+import { MAWASIM_PERMISSIONS } from "@shared/mawasimPermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, toggleCalendarPermission } from "@shared/calendarPermissions";
@@ -41,6 +42,7 @@ import {
   FileBarChart,
   LayoutGrid,
   Zap,
+  Clock,
   Map,
   Calendar,
   ClipboardCheck,
@@ -108,6 +110,7 @@ const superAdminGroups = [
   {
     title: "المساجد والطلبات",
     modules: [
+      { id: "mawasim", nameAr: "مواسم", icon: Clock, perms: MAWASIM_PERMISSIONS.map(p => p.action) },
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
@@ -503,6 +506,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       final_reports_sign: "توقيع التقارير الختامية",
       progress_reports_sign: "توقيع تقارير الإنجاز",
     },
+    mawasim: Object.fromEntries(MAWASIM_PERMISSIONS.map(p => [p.action, p.nameAr])),
     mosques: {
       view: "عرض المساجد",
       create: "إضافة مسجد",
@@ -1026,7 +1030,7 @@ export default function RoleEdit() {
     }
 
     let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(sectionPermissionSelection(selectedPerms))))
-      .filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
+      .filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation", "mawasim"].includes(p));
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
@@ -1084,6 +1088,14 @@ export default function RoleEdit() {
       });
       setShowDisbursementModal(true);
       return;
+    }
+
+    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("mawasim.") && permId !== "mawasim.view") {
+      if (!selectedPerms.includes("mawasim.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مواسم' أولاً");
+        return;
+      }
     }
 
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
@@ -1419,6 +1431,9 @@ export default function RoleEdit() {
         let next = prev.filter(id => id !== permId);
         const dependents = sectionPermissionDependents(permId);
         next = next.filter(id => !dependents.includes(id));
+        if (permId === "mawasim.view") {
+          next = next.filter(id => !id.startsWith("mawasim."));
+        }
         if (permId === "mosques.view") {
           next = next.filter(id => !id.startsWith("mosques."));
         }
@@ -2020,6 +2035,7 @@ export default function RoleEdit() {
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id === "board_leadership.bank_transfers" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("board_leadership.bank_transfers_") && !selectedPerms.includes("board_chairman")) ||
+                              (perm.id.startsWith("mawasim.") && perm.id !== "mawasim.view" && !selectedPerms.includes("mawasim.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !selectedPerms.includes("mosque_map.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
