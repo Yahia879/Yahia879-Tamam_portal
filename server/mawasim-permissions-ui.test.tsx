@@ -94,10 +94,12 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       // Populated state
       const populatedHtml = renderToStaticMarkup(<MawasimStaff />);
       expect(populatedHtml).toContain("برنامج مواسم");
-      expect(populatedHtml).toContain("موسم رمضان 1448");
+      expect(populatedHtml).toContain("عام 1448 هـ");
+      expect(populatedHtml).toContain("السعة والمتابعة");
       expect(populatedHtml).not.toContain("إضافة موسم");
       expect(populatedHtml).not.toContain("إعدادات الموسم");
       expect(populatedHtml).not.toContain("إنشاء موسم جديد");
+      expect(populatedHtml).not.toContain("افتح «إعدادات الموسم»");
 
       // Empty state (no seasons yet) - critical check!
       state.data["mawasim.staff"] = sampleStaffData(false);
