@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAnyPermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import MawasimRequestForm, { type MawasimMosque } from "@/components/MawasimRequestForm";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { canManageMawasim, canViewMawasim } from "@shared/mawasim";
+import { MAWASIM_PERMISSION_IDS } from "@shared/mawasim";
 import {
   AlertCircle,
   ArrowRight,
@@ -26,9 +26,8 @@ import {
 } from "lucide-react";
 
 export default function SeasonalRequestCreate() {
-  const { user } = useAuth();
   const [, navigate] = useLocation();
-  const canCreate = canViewMawasim(user?.role, (user as any)?.permissions);
+  const canCreate = useAnyPermission(MAWASIM_PERMISSION_IDS);
 
   const [seasonId, setSeasonId] = useState<number>();
   const [mosqueOpen, setMosqueOpen] = useState(false);
