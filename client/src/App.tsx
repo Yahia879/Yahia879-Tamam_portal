@@ -18,8 +18,8 @@ import Dashboard from "./pages/Dashboard";
 import InformationDashboard from "./pages/InformationDashboard";
 import BoardDashboard from "./pages/BoardDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
-import MawasimPortal from "./pages/MawasimPortal";
 import MawasimStaff from "./pages/MawasimStaff";
+import SeasonalRequestCreate from "./pages/SeasonalRequestCreate";
 import RequesterEvaluations from "./pages/RequesterEvaluations";
 import RequesterApprovals from "./pages/RequesterApprovals";
 import RequesterApprovalDetails from "./pages/RequesterApprovalDetails";
@@ -285,7 +285,6 @@ function Router() {
       <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
-      <Route path="/requester/mawasim">{() => <RequesterRoute component={MawasimPortal} />}</Route>
       <Route path="/mawasim">{() => <ProtectedRoute><MawasimStaff /></ProtectedRoute>}</Route>
       <Route path="/requester/evaluations">{() => <RequesterRoute component={RequesterEvaluations} />}</Route>
       <Route path="/my-requests">
@@ -315,6 +314,7 @@ function Router() {
       {/* الطلبات - الصفحات الإدارية */}
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
       <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
+      <Route path="/requests/seasonal">{() => <AdminRoute component={SeasonalRequestCreate} />}</Route>
       <Route path="/requests/quick-create">{() => <AdminRoute component={QuickRequestCreate} />}</Route>
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />

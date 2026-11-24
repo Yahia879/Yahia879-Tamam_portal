@@ -536,9 +536,10 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
 const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
 const SIDEBAR_SCROLL_KEY = "tamam_sidebar_scroll_top";
+const SIDEBAR_EXPANDED_GROUP_KEY = "tamam_sidebar_expanded_group";
 
 // دالة مساعدة لتحديد ما إذا كان المسار يتبع لعنصر في القائمة (بما في ذلك المسارات الفرعية)
-const isItemActive = (itemPath: string, currentPath: string, allItems: MenuItem[]): boolean => {
+export const isItemActive = (itemPath: string, currentPath: string, allItems: Pick<MenuItem, "path">[]): boolean => {
   const cleanPath = currentPath.split("?")[0].split("#")[0];
   if (cleanPath === itemPath) return true;
 
@@ -576,6 +577,31 @@ const isItemActive = (itemPath: string, currentPath: string, allItems: MenuItem[
   }
 
   return false;
+};
+
+export const resolveExpandedSidebarGroup = (
+  menuGroups: Array<{ label: string; items: Array<Pick<MenuItem, "path">> }>,
+  location: string,
+  selectedGroup: string | null | undefined,
+  storedGroup?: string | null,
+): string | null => {
+  const validLabels = new Set(menuGroups.filter(group => Boolean(group.label)).map(group => group.label));
+  if (selectedGroup === null) return null;
+  if (selectedGroup !== undefined && validLabels.has(selectedGroup)) {
+    return selectedGroup;
+  }
+
+  const allItems = menuGroups.flatMap(g => g.items);
+  const activeGroup = menuGroups.find(
+    group => Boolean(group.label) && group.items.some(item => isItemActive(item.path, location, allItems))
+  );
+  if (activeGroup) return activeGroup.label;
+
+  if (storedGroup && validLabels.has(storedGroup)) {
+    return storedGroup;
+  }
+
+  return menuGroups.find(group => Boolean(group.label))?.label ?? null;
 };
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -871,13 +897,44 @@ function DashboardLayoutContent({
   const customRoleNameEn = (user as any)?.customRole?.nameEn;
   const menuRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user?.role || "";
 
+  const saveExpandedGroup = useCallback((groupLabel: string | null) => {
+    try {
+      if (groupLabel) {
+        sessionStorage.setItem(SIDEBAR_EXPANDED_GROUP_KEY, groupLabel);
+      } else {
+        sessionStorage.removeItem(SIDEBAR_EXPANDED_GROUP_KEY);
+      }
+    } catch {}
+  }, []);
+
+  const readStoredGroup = () => {
+    try {
+      return sessionStorage.getItem(SIDEBAR_EXPANDED_GROUP_KEY);
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    setSelectedGroup(undefined);
+  }, [location]);
+
   const menuGroups = (hasDynamicPermissions
     ? getMenuGroupsFromPermissions(userPermissions, menuRole, isEn, customRoleNameAr, customRoleNameEn)
     : getMenuGroups(menuRole, isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
-  const expandedGroup = selectedGroup === undefined ? menuGroups.find(group => group.label)?.label : selectedGroup;
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => isItemActive(item.path, location, menuItems));
+  const activeGroupLabel = menuGroups.find(
+    group => Boolean(group.label) && group.items.some(item => isItemActive(item.path, location, menuItems))
+  )?.label;
+  const expandedGroup = resolveExpandedSidebarGroup(menuGroups, location, selectedGroup, readStoredGroup());
+
+  useEffect(() => {
+    if (selectedGroup === undefined && activeGroupLabel) {
+      saveExpandedGroup(activeGroupLabel);
+    }
+  }, [selectedGroup, activeGroupLabel, saveExpandedGroup]);
 
   // 1. استعادة موضع التمرير فوراً قبل الرسم لتجنب وميض القائمة الجانبية (Zero flicker)
   useLayoutEffect(() => {
@@ -1015,6 +1072,8 @@ function DashboardLayoutContent({
                 href={isDashboardViewerUser(user) ? "/information-dashboard" : "/dashboard"}
                 onClick={() => {
                   saveScrollPosition(0);
+                  setSelectedGroup(undefined);
+                  saveExpandedGroup(null);
                   if (isMobile) {
                     setOpenMobile(false);
                   }
@@ -1086,7 +1145,11 @@ function DashboardLayoutContent({
                       title={group.label}
                       aria-expanded={isExpanded}
                       aria-controls={panelId}
-                      onClick={() => setSelectedGroup(isExpanded ? null : group.label)}
+                      onClick={() => {
+                        const next = isExpanded ? null : group.label;
+                        setSelectedGroup(next);
+                        saveExpandedGroup(next);
+                      }}
                     >
                       <span className="truncate">{group.label}</span>
                       <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform duration-200" />
@@ -1154,6 +1217,10 @@ function DashboardLayoutContent({
                               onClick={() => {
                                 const currentScroll = sidebarContentRef.current?.scrollTop ?? lastScrollTopRef.current;
                                 saveScrollPosition(currentScroll);
+                                if (group.label) {
+                                  setSelectedGroup(group.label);
+                                  saveExpandedGroup(group.label);
+                                }
                                 if (isMobile) {
                                   setOpenMobile(false);
                                 }
