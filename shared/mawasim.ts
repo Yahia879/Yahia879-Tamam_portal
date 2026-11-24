@@ -14,9 +14,7 @@ export const seasonalStatusLabels: Record<typeof seasonalRequestStatuses[number]
   submitted: "قيد المراجعة", approved: "معتمد", scheduled: "مجدول", completed: "منفّذ", rejected: "معتذر عنه",
 };
 
-export function canManageMawasim(role: string | undefined) {
-  return role === "super_admin";
-}
+export * from "./mawasimPermissions";
 
 export function mayApplyForSeason(user: { role: string; status: string; requesterType: string | null }, ownsMosque: boolean, delegated: boolean) {
   return user.role === "service_requester" && user.status === "active" &&
