@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { displayQuantity, MawasimField } from "@/components/MawasimRequestForm";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import {
-  canManageMawasim, defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
+  canManageMawasim, canViewMawasim, defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
   type SeasonalQuantities, type SeasonalService, type SeasonalSettings,
 } from "@shared/mawasim";
 import {
@@ -128,13 +129,17 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
 
 export default function MawasimStaff() {
   const { user } = useAuth();
-  const canManage = canManageMawasim(user?.role);
+  const hasViewPerm = usePermission("mawasim.view");
+  const hasManagePerm = usePermission("mawasim.manage");
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canView = isAdmin || hasViewPerm || hasManagePerm || canViewMawasim(user?.role, (user as any)?.permissions);
+  const canManage = isAdmin || hasManagePerm || canManageMawasim(user?.role, (user as any)?.permissions);
   const [seasonId, setSeasonId] = useState<number>();
   const [edit, setEdit] = useState<"new" | "saved">();
   const [expanded, setExpanded] = useState<number>();
   const [statusFilter, setStatusFilter] = useState<"all" | RequestStatus>("all");
 
-  const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canManage });
+  const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canView });
   const data = dashboard.data;
   const season = data?.season;
   const refresh = () => { void dashboard.refetch(); };
@@ -168,7 +173,7 @@ export default function MawasimStaff() {
     ? seasonalServiceIds.filter(service => season.settings.services[service].enabled).length
     : 0;
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <DashboardLayout>
         <div dir="rtl" className="mx-auto max-w-2xl p-6">
@@ -207,18 +212,20 @@ export default function MawasimStaff() {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => setEdit(edit === "new" ? undefined : "new")}
-              className={cn(
-                "h-10 gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
-                edit === "new"
-                  ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
-                  : "bg-white text-teal-900 hover:bg-white/95"
-              )}
-            >
-              {edit === "new" ? <X className="size-4" /> : <Plus className="size-4" />}
-              <span>{edit === "new" ? "إغلاق النموذج" : "إضافة موسم"}</span>
-            </Button>
+            {canManage && (
+              <Button
+                onClick={() => setEdit(edit === "new" ? undefined : "new")}
+                className={cn(
+                  "h-10 gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
+                  edit === "new"
+                    ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                    : "bg-white text-teal-900 hover:bg-white/95"
+                )}
+              >
+                {edit === "new" ? <X className="size-4" /> : <Plus className="size-4" />}
+                <span>{edit === "new" ? "إغلاق النموذج" : "إضافة موسم"}</span>
+              </Button>
+            )}
           </div>
         </header>
 
@@ -338,16 +345,18 @@ export default function MawasimStaff() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:border-t-0 lg:pt-0">
-                  <Button
-                    variant={edit === "saved" ? "default" : "outline"}
-                    onClick={() => setEdit(edit === "saved" ? undefined : "saved")}
-                    className="h-9 gap-2 rounded-xl font-semibold cursor-pointer"
-                  >
-                    {edit === "saved" ? <X className="size-4" /> : <Settings2 className="size-4" />}
-                    <span>{edit === "saved" ? "إغلاق الإعدادات" : "إعدادات الموسم"}</span>
-                  </Button>
-                </div>
+                {canManage && (
+                  <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:border-t-0 lg:pt-0">
+                    <Button
+                      variant={edit === "saved" ? "default" : "outline"}
+                      onClick={() => setEdit(edit === "saved" ? undefined : "saved")}
+                      className="h-9 gap-2 rounded-xl font-semibold cursor-pointer"
+                    >
+                      {edit === "saved" ? <X className="size-4" /> : <Settings2 className="size-4" />}
+                      <span>{edit === "saved" ? "إغلاق الإعدادات" : "إعدادات الموسم"}</span>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
