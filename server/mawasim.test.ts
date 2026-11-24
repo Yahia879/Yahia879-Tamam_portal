@@ -9,16 +9,26 @@ import {
   summarizeSeasonalCapacity,
 } from "../shared/mawasim";
 
+const userRoleRef = { current: "super_admin" };
+
 vi.mock("./db", () => ({ getDb: async () => null }));
+vi.mock("./permissions", () => ({
+  checkPermission: async (_userId: number, _perm: string) => {
+    return ["super_admin", "system_admin"].includes(userRoleRef.current);
+  },
+}));
 
 const imam = { role: "service_requester", status: "active", requesterType: "imam" };
 const men = { lengthCm: 400, widthCm: 500 };
 const women = { lengthCm: 220, widthCm: 350 };
 const snapshot = { city: "المدينة", district: "الحي", address: "الشارع", worshippers: 20, men, women };
 
-const caller = (role: string, status = "active", deletedAt: Date | null = null) => mawasimRouter.createCaller({
-  user: { id: 1, role, status, deletedAt }, req: {}, res: {},
-} as TrpcContext);
+const caller = (role: string, status = "active", deletedAt: Date | null = null) => {
+  userRoleRef.current = role;
+  return mawasimRouter.createCaller({
+    user: { id: 1, role, status, deletedAt }, req: {}, res: {},
+  } as TrpcContext);
+};
 
 describe("Mawasim season rules", () => {
   it("converts funding into floor-rounded service capacity and respects a smaller physical limit", () => {
@@ -100,11 +110,15 @@ describe("Mawasim access and submission", () => {
   );
 
   it.each(["super_admin", "system_admin"])(
-    "shows Mawasim for admin role %s by default and allows route access",
+    "shows Mawasim for admin role %s when permissions granted and hides when revoked",
     role => {
-      expect(getMenuGroupsFromPermissions([], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
-      expect(hasRouteAccess("/mawasim", role, [], false)).toBe(true);
-      expect(hasRouteAccess("/requests/seasonal/", role, [], false)).toBe(true);
+      expect(getMenuGroupsFromPermissions(["mawasim.view"], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
+      expect(hasRouteAccess("/mawasim", role, ["mawasim.view"], false)).toBe(true);
+      expect(hasRouteAccess("/requests/seasonal/", role, ["mawasim.view"], false)).toBe(true);
+
+      expect(getMenuGroupsFromPermissions([], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(false);
+      expect(hasRouteAccess("/mawasim", role, [], false)).toBe(false);
+      expect(hasRouteAccess("/requests/seasonal/", role, [], false)).toBe(false);
     },
   );
 
@@ -118,9 +132,9 @@ describe("Mawasim access and submission", () => {
   });
 
   it("accepts a water-only request without prayer hall data or applicant details", async () => {
-    expect(getMenuGroupsFromPermissions([], "super_admin").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
-    expect(hasRouteAccess("/mawasim", "super_admin", [], false)).toBe(true);
-    expect(hasRouteAccess("/requests/seasonal/", "super_admin", [], false)).toBe(true);
+    expect(getMenuGroupsFromPermissions(["mawasim.view"], "super_admin").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(true);
+    expect(hasRouteAccess("/mawasim", "super_admin", ["mawasim.view"], false)).toBe(true);
+    expect(hasRouteAccess("/requests/seasonal/", "super_admin", ["mawasim.view"], false)).toBe(true);
     const api = caller("super_admin");
     await expect(api.submit(submission)).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
     await expect(api.submit({ ...submission, pledge: false as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
