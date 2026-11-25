@@ -237,6 +237,29 @@ export default function MosqueDetails() {
                         <p className="font-medium text-sm sm:text-base break-words mt-0.5">{mosque.address}</p>
                       </div>
                     )}
+
+                    {(mosque as any).prayerHallDimensions?.men && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="p-3 bg-muted/50 rounded-lg min-w-0">
+                          <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى الرجال (الطول × العرض)</p>
+                          <p className="font-medium text-sm sm:text-base mt-0.5 tabular-nums">
+                            {(mosque as any).prayerHallDimensions.men.lengthCm / 100} م × {(mosque as any).prayerHallDimensions.men.widthCm / 100} م
+                            {" · "}
+                            {(((mosque as any).prayerHallDimensions.men.lengthCm * (mosque as any).prayerHallDimensions.men.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
+                          </p>
+                        </div>
+                        {(mosque as any).prayerHallDimensions?.women && (
+                          <div className="p-3 bg-muted/50 rounded-lg min-w-0">
+                            <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى النساء (الطول × العرض)</p>
+                            <p className="font-medium text-sm sm:text-base mt-0.5 tabular-nums">
+                              {(mosque as any).prayerHallDimensions.women.lengthCm / 100} م × {(mosque as any).prayerHallDimensions.women.widthCm / 100} م
+                              {" · "}
+                              {(((mosque as any).prayerHallDimensions.women.lengthCm * (mosque as any).prayerHallDimensions.women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
