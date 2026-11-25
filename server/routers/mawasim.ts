@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, getTableColumns, inArray, isNull, like, or } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
@@ -305,7 +305,9 @@ export const mawasimRouter = router({
     const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
     if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [] };
     const requests = await db.select({
-      ...requestFields, assignee: users.name,
+      ...requestFields,
+      assignee: users.name,
+      hasPhotos: sql<boolean>`(${mawasimRequests.menPhoto} IS NOT NULL OR ${mawasimRequests.womenPhoto} IS NOT NULL)`,
     }).from(mawasimRequests).leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
       .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
     const capacity = summarizeSeasonalCapacity(season.settings, requests);
@@ -422,8 +424,6 @@ export const mawasimRouter = router({
     const carpet = input.requested.carpet ?? 0;
     if (carpet > 0) {
       if (!snapshot.men) invalid("أدخل قياسات مصلى الرجال لطلب غسيل الفرش.");
-      if (!menPhoto) invalid("أرفق صورة مصلى الرجال لطلب غسيل الفرش.");
-      if (!snapshot.women && womenPhoto) invalid("صورة مصلى النساء تتطلب تسجيل بياناته.");
       if (carpet !== carpetArea(snapshot.men, snapshot.women)) {
         invalid("مساحة الغسيل المطلوبة يجب أن تطابق أبعاد المصليات المسجلة.");
       }
@@ -475,9 +475,8 @@ export const mawasimRouter = router({
           const amount = input.requested[row.service] ?? 0;
           if (amount === 0) continue;
           selected++;
-          if (!season.settings.services[row.service].enabled || amount > row.available ||
-            amount > seasonalMosqueLimit(row.service, season.settings, input.snapshot.worshippers)) {
-            invalid("راجع السعة المتاحة والحد لكل مسجد لخدمة " + seasonalServices[row.service].label + ".");
+          if (!season.settings.services[row.service].enabled) {
+            invalid("الخدمة " + seasonalServices[row.service].label + " غير مفعّلة في هذا الموسم.");
           }
         }
         if (!selected) invalid("اختر خدمة واحدة على الأقل.");
@@ -497,7 +496,7 @@ export const mawasimRouter = router({
         const [created] = await tx.insert(mawasimRequests).values({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
           snapshot: carpet > 0 ? snapshot : { ...snapshot, men: null, women: null },
-          menPhoto: carpet > 0 ? menPhoto : null, womenPhoto: carpet > 0 ? womenPhoto : null,
+          menPhoto: carpet > 0 ? (menPhoto ?? null) : null, womenPhoto: carpet > 0 ? (womenPhoto ?? null) : null,
           requested: input.requested, specialRequest: input.specialRequest,
           contact: onBehalf ?? fallbackContact,
         }).$returningId();
