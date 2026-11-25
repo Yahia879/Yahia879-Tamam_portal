@@ -22,6 +22,7 @@ import {
   Loader2,
   MapPin,
   MoonStar,
+  UserCheck,
   Users,
 } from "lucide-react";
 
@@ -266,21 +267,44 @@ export default function SeasonalRequestCreate() {
 
                 {/* Selected Mosque Preview Strip */}
                 {selectedMosque && (
-                  <div className="sm:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs">
-                    <span className="inline-flex items-center gap-1.5 font-bold text-foreground">
-                      <Building2 className="size-4 text-primary" />
-                      {selectedMosque.name}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-muted-foreground">
-                      <MapPin className="size-3.5 text-primary/80" />
-                      {selectedMosque.city}
-                      {selectedMosque.district ? ` · ${selectedMosque.district}` : ""}
-                    </span>
-                    {selectedMosque.capacity ? (
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <Users className="size-3.5 text-primary/80" />
-                        السعة: {selectedMosque.capacity.toLocaleString("ar-SA")} مصلٍ
+                  <div className="sm:col-span-2 space-y-2">
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs">
+                      <span className="inline-flex items-center gap-1.5 font-bold text-foreground">
+                        <Building2 className="size-4 text-primary" />
+                        {selectedMosque.name}
                       </span>
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <MapPin className="size-3.5 text-primary/80" />
+                        {selectedMosque.city}
+                        {selectedMosque.district ? ` · ${selectedMosque.district}` : ""}
+                      </span>
+                      {selectedMosque.capacity ? (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Users className="size-3.5 text-primary/80" />
+                          السعة: {selectedMosque.capacity.toLocaleString("ar-SA")} مصلٍ
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {selectedMosque.linkedRequester ? (
+                      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-2.5 text-xs text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <UserCheck className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span className="font-semibold">
+                          سيتم ربط الطلب بحساب طالب الخدمة: {selectedMosque.linkedRequester.name}
+                        </span>
+                        {(selectedMosque.linkedRequester.phone || selectedMosque.linkedRequester.email) && (
+                          <span className="text-emerald-700/90 dark:text-emerald-300/90">
+                            ({[selectedMosque.linkedRequester.phone, selectedMosque.linkedRequester.email].filter(Boolean).join(" · ")})
+                          </span>
+                        )}
+                      </div>
+                    ) : selectedMosque.linkedRequester === null ? (
+                      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+                        <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>
+                          لا يوجد حساب طالب خدمة نشط مرتبط بهذا المسجد حاليًا؛ سيتم حفظ الطلب وربطه برقم المسجد مع الاحتفاظ ببيانات المُدخل للمراجعة.
+                        </span>
+                      </div>
                     ) : null}
                   </div>
                 )}
