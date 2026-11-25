@@ -45,12 +45,15 @@ vi.mock("@/lib/trpc", () => {
 });
 
 let MawasimStaff: React.ComponentType;
+let filterAndSortSeasonRequests: any;
 let Requests: React.ComponentType;
 let SeasonalRequestCreate: React.ComponentType;
 
 beforeAll(async () => {
   vi.stubGlobal("React", React);
-  MawasimStaff = (await import("../client/src/pages/MawasimStaff")).default;
+  const staffMod = await import("../client/src/pages/MawasimStaff");
+  MawasimStaff = staffMod.default;
+  filterAndSortSeasonRequests = staffMod.filterAndSortSeasonRequests;
   Requests = (await import("../client/src/pages/Requests")).default;
   SeasonalRequestCreate = (await import("../client/src/pages/SeasonalRequestCreate")).default;
 });
@@ -147,6 +150,70 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
         const createReqHtml = renderToStaticMarkup(<SeasonalRequestCreate />);
         expect(createReqHtml).toContain("ليس لديك صلاحية");
       }
+    });
+
+    it("renders governorate and city filters, sort selector, and location metadata in season requests", () => {
+      state.permissions = ["mawasim.view"];
+      const base = sampleStaffData(true);
+      const reqs: any[] = [
+        {
+          id: 11,
+          seasonId: 10,
+          mosqueId: 1,
+          mosqueName: "جامع الفاروق",
+          governorate: "عسير",
+          mosqueCity: "أبها",
+          status: "submitted",
+          requested: { water: 20 },
+          approved: null,
+          execution: null,
+          snapshot: { city: "أبها", district: "المنسك", address: "طريق الملك", worshippers: 200, men: null, women: null },
+          contact: { name: "إمام", phone: "0500000001" },
+          hasPhotos: false,
+        },
+        {
+          id: 12,
+          seasonId: 10,
+          mosqueId: 2,
+          mosqueName: "مسجد السلام",
+          governorate: "مكة المكرمة",
+          mosqueCity: "جدة",
+          status: "approved",
+          requested: { water: 10 },
+          approved: { water: 10 },
+          execution: null,
+          snapshot: { city: "جدة", district: "الروضة", address: "شارع 2", worshippers: 150, men: null, women: null },
+          contact: { name: "إمام 2", phone: "0500000002" },
+          hasPhotos: false,
+        },
+      ];
+      state.data["mawasim.staff"] = { ...base, requests: reqs };
+      const html = renderToStaticMarkup(<MawasimStaff />);
+      expect(html).toContain("تصفية حسب المحافظة");
+      expect(html).toContain("تصفية حسب المدينة");
+      expect(html).toContain("ترتيب الطلبات");
+      expect(html).toContain("عسير · أبها · المنسك");
+      expect(html).toContain("مكة المكرمة · جدة · الروضة");
+
+      expect(
+        filterAndSortSeasonRequests(reqs, {
+          statusFilter: "all",
+          governorateFilter: "عسير",
+          cityFilter: "all",
+          searchQuery: "",
+          sortBy: "newest",
+        }).map((r: any) => r.id),
+      ).toEqual([11]);
+
+      expect(
+        filterAndSortSeasonRequests(reqs, {
+          statusFilter: "all",
+          governorateFilter: "all",
+          cityFilter: "all",
+          searchQuery: "",
+          sortBy: "city_desc",
+        }).map((r: any) => r.id),
+      ).toEqual([12, 11]);
     });
   },
 );
