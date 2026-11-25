@@ -105,7 +105,11 @@ export default function RequesterMosqueDetails() {
     if (areaMatch) extractedWomenArea = areaMatch[1].replace("م²", "").replace("غير محدد", "").trim();
   }
 
-  const hasPrayerHall = mosque.hasPrayerHall || !!extractedWomenCapacity || !!extractedWomenArea;
+  const prayerHallDimensions = (mosque as any).prayerHallDimensions as {
+    men: { lengthCm: number; widthCm: number };
+    women: { lengthCm: number; widthCm: number } | null;
+  } | null | undefined;
+  const hasPrayerHall = mosque.hasPrayerHall || !!extractedWomenCapacity || !!extractedWomenArea || Boolean(prayerHallDimensions?.women);
 
   const registrationDate = mosque.createdAt
     ? new Date(mosque.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
@@ -248,6 +252,29 @@ export default function RequesterMosqueDetails() {
                   />
                 </div>
               )}
+
+              {prayerHallDimensions?.men && (
+                <>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">طول مصلى الرجال (م)</Label>
+                    <Input
+                      value={`${prayerHallDimensions.men.lengthCm / 100} م`}
+                      readOnly
+                      disabled
+                      className="rounded-xl sm:rounded-2xl h-10 sm:h-11 border-border/60 text-xs sm:text-sm bg-muted/40 dark:bg-muted/20 font-bold text-foreground cursor-default tabular-nums"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">عرض مصلى الرجال (م)</Label>
+                    <Input
+                      value={`${prayerHallDimensions.men.widthCm / 100} م`}
+                      readOnly
+                      disabled
+                      className="rounded-xl sm:rounded-2xl h-10 sm:h-11 border-border/60 text-xs sm:text-sm bg-muted/40 dark:bg-muted/20 font-bold text-foreground cursor-default tabular-nums"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -368,12 +395,41 @@ export default function RequesterMosqueDetails() {
                       <span>المساحة (م²)</span>
                     </label>
                     <Input
-                      value={extractedWomenArea ? `${extractedWomenArea} م²` : "غير محدد"}
+                      value={extractedWomenArea ? `${extractedWomenArea} م²` : prayerHallDimensions?.women ? `${((prayerHallDimensions.women.lengthCm * prayerHallDimensions.women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²` : "غير محدد"}
                       readOnly
                       disabled
                       className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 font-bold text-foreground cursor-default"
                     />
                   </div>
+
+                  {prayerHallDimensions?.women && (
+                    <>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                          <Ruler className="w-4 h-4 text-primary/70" />
+                          <span>طول مصلى النساء (م)</span>
+                        </label>
+                        <Input
+                          value={`${prayerHallDimensions.women.lengthCm / 100} م`}
+                          readOnly
+                          disabled
+                          className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 font-bold text-foreground cursor-default tabular-nums"
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                          <Ruler className="w-4 h-4 text-primary/70" />
+                          <span>عرض مصلى النساء (م)</span>
+                        </label>
+                        <Input
+                          value={`${prayerHallDimensions.women.widthCm / 100} م`}
+                          readOnly
+                          disabled
+                          className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 font-bold text-foreground cursor-default tabular-nums"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
