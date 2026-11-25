@@ -57,8 +57,9 @@ describe("Sidebar accordion group resolution", () => {
     expect(resolveExpandedSidebarGroup(sampleGroups, "/profile", undefined, null)).toBe("الرئيسية");
   });
 
-  it("restricts Mawasim routes to users granted mawasim permissions", () => {
-    expect(hasRouteAccess("/requester/mawasim", "service_requester", [], false)).toBe(false);
+  it("restricts Mawasim routes properly for staff vs service_requester", () => {
+    expect(hasRouteAccess("/requester/mawasim", "service_requester", [], false)).toBe(true);
+    expect(hasRouteAccess("/requester/mawasim", "projects_office", [], false)).toBe(false);
     expect(hasRouteAccess("/mawasim", "service_requester", [], false)).toBe(false);
     expect(hasRouteAccess("/requests/seasonal", "service_requester", [], false)).toBe(false);
     expect(hasRouteAccess("/requests/seasonal", "super_admin", [], false)).toBe(false);
