@@ -27,13 +27,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard, 
-  LogOut, 
-  PanelLeft, 
-  Users, 
-  Building2, 
-  FileText, 
-  Settings, 
+  LayoutDashboard,
+  LogOut,
+  PanelLeft,
+  Users,
+  Building2,
+  FileText,
+  Settings,
   Bell,
   MapPin,
   ClipboardList,
@@ -329,9 +329,9 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   // 1. المساجد والطلبات
   const mosqueItems: MenuItem[] = [];
   if (canViewMawasim(role, permissions)) mosqueItems.push({ icon: Clock, label: isEn ? "Mawasim" : "مواسم", path: "/mawasim" });
-  if (has("mosques.view"))                 mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
-  if (has("mosque_map.view"))              mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
-  if (REQUEST_LIST_ENTRY_PERMISSIONS.some(has))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
+  if (has("mosques.view")) mosqueItems.push({ icon: Building2, label: "المساجد", path: "/mosques" });
+  if (has("mosque_map.view")) mosqueItems.push({ icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" });
+  if (REQUEST_LIST_ENTRY_PERMISSIONS.some(has)) mosqueItems.push({ icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" });
   if (has("escalation.delayed_requests") || has("escalation.delayed_beneficiaries")) {
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
@@ -340,26 +340,26 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   }
   if (["view_field_visit", "view_quick_response", "view_final_report", "view_custom", "view_own", "create_custom"].some(action => has(`appointments.${action}`))) mosqueItems.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
   if (
-    has("beneficiary_evaluations.view") || 
+    has("beneficiary_evaluations.view") ||
     has("beneficiary_evaluations.evaluations_log")
   ) {
     mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
   }
-  
+
   if (mosqueItems.length > 0) {
-    groups.push({ 
-      label: isEn ? "Mosques and Requests" : "المساجد والطلبات", 
-      items: mosqueItems 
+    groups.push({
+      label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
+      items: mosqueItems
     });
   }
 
   // 2. الهندسة والمشاريع
   const engineeringItems: MenuItem[] = [];
   if (has("projects.view")) {
-    engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
+    engineeringItems.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
   }
   if (has("progress_reports.view")) {
-    engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
+    engineeringItems.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
   }
   if (has("progress_invoices.view")) {
     engineeringItems.push({ icon: FileSpreadsheet, label: "المستخلصات", path: "/progress-invoices" });
@@ -368,7 +368,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     engineeringItems.push({ icon: FileText, label: "تقارير المشاريع", path: "/project-reports" });
   }
   if (has("reports.view_stats") || has("reports.export_data") || has("reports")) {
-    engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
+    engineeringItems.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
   }
   if (engineeringItems.length > 0) {
     groups.push({
@@ -429,11 +429,11 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   ) {
     finItems.push({ icon: BarChart3, label: "التقرير المالي", path: "/financial-report" });
   }
-  
+
   if (finItems.length > 0) {
-    groups.push({ 
-      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
-      items: finItems 
+    groups.push({
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية",
+      items: finItems
     });
   }
 
@@ -548,8 +548,8 @@ export const isItemActive = (itemPath: string, currentPath: string, allItems: Pi
     return true;
   }
   if (itemPath === "/sedana-warehouse" && (
-    cleanPath.startsWith("/sedana-execution") || 
-    cleanPath.startsWith("/sedana-bulk-purchasing") || 
+    cleanPath.startsWith("/sedana-execution") ||
+    cleanPath.startsWith("/sedana-bulk-purchasing") ||
     cleanPath.startsWith("/sedana-warehouse/")
   )) {
     return true;
@@ -569,7 +569,7 @@ export const isItemActive = (itemPath: string, currentPath: string, allItems: Pi
     // التأكد من عدم وجود عنصر آخر أكثر دقة وتحديداً في القائمة
     const hasMoreSpecific = allItems.some(
       other => other.path !== itemPath && (
-        cleanPath === other.path || 
+        cleanPath === other.path ||
         (other.path !== "/" && other.path !== "/dashboard" && cleanPath.startsWith(other.path + "/") && other.path.length > itemPath.length)
       )
     );
@@ -664,12 +664,12 @@ export default function DashboardLayout({
   // إعادة توجيه طالب الخدمة إلى لوحة تحكمه الخاصة إذا حاول الوصول لصفحة إدارية
   // نسمح له بالوصول لصفحات مشتركة مثل الإشعارات والملف الشخصي وتفاصيل المساجد
   if (user.role === "service_requester" && !isDashboardViewerUser(user)) {
-    const isSharedPage = 
-      window.location.pathname === "/notifications" || 
+    const isSharedPage =
+      window.location.pathname === "/notifications" ||
       window.location.pathname === "/profile" ||
       window.location.pathname.startsWith("/mosques/") ||
       window.location.pathname === "/requester/mosques/new";
-      
+
     if (!isSharedPage) {
       window.location.href = "/requester";
       return (
@@ -707,7 +707,7 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
-  
+
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
@@ -726,9 +726,9 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <Link href="/requester" className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <img 
-                src={mainLogoSrc} 
-                alt="شعار بوابة تمام" 
+              <img
+                src={mainLogoSrc}
+                alt="شعار بوابة تمام"
                 className="h-8.5 w-8.5 sm:h-10 sm:w-auto shrink-0 object-contain"
               />
               <div className="min-w-0">
@@ -780,9 +780,9 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
                   {switchable && toggleTheme && (
                     <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
                       {theme === 'dark' ? (
-                        <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>الوضع الفاتح</span></>
+                        <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg><span>الوضع الفاتح</span></>
                       ) : (
-                        <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>الوضع الداكن</span></>
+                        <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg><span>الوضع الداكن</span></>
                       )}
                     </DropdownMenuItem>
                   )}
@@ -840,8 +840,8 @@ function DashboardLayoutContent({
     };
   }, []);
 
-  const isQuickResponseUser = 
-    user?.role === "quick_response" || 
+  const isQuickResponseUser =
+    user?.role === "quick_response" ||
     user?.name === "فريق الاستجابة السريعة" ||
     (user as any)?.customRole?.nameAr === "فريق الاستجابة السريعة" ||
     (user as any)?.customRole?.nameEn === "Quick Response";
@@ -862,7 +862,7 @@ function DashboardLayoutContent({
     lastScrollTopRef.current = scrollTop;
     try {
       sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(Math.max(0, Math.round(scrollTop))));
-    } catch {}
+    } catch { }
   }, []);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -878,7 +878,7 @@ function DashboardLayoutContent({
 
   // إذا كان للمستخدم دور قابل للتخصيص (أي دور غير super_admin و system_admin و service_requester)،
   // نبني القائمة الجانبية من صلاحياته الفعلية المسجلة
-    const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
+  const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
     {
       enabled: !!user?.id,
@@ -892,7 +892,7 @@ function DashboardLayoutContent({
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const isServiceRequester = user?.role === "service_requester" && !isDashboardViewerUser(user);
   const hasDynamicPermissions = !isServiceRequester;
- 
+
   const customRoleNameAr = (user as any)?.customRole?.nameAr;
   const customRoleNameEn = (user as any)?.customRole?.nameEn;
   const menuRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user?.role || "";
@@ -904,7 +904,7 @@ function DashboardLayoutContent({
       } else {
         sessionStorage.removeItem(SIDEBAR_EXPANDED_GROUP_KEY);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const readStoredGroup = () => {
@@ -950,7 +950,7 @@ function DashboardLayoutContent({
           lastScrollTopRef.current = scrollVal;
         }
       }
-    } catch {}
+    } catch { }
   }, [location]);
 
   // 2. تطبيق خاصية scrollIntoView({ block: 'nearest' }) لضمان ظهور المسار النشط تلقائياً
@@ -979,8 +979,8 @@ function DashboardLayoutContent({
   const roleDisplayLabel = (isEn && isQuickResponseUser)
     ? "Quick Response"
     : (hasCustomRole
-        ? (user as any).customRole.nameAr
-        : (ROLE_LABELS[user?.role || ""] || user?.role));
+      ? (user as any).customRole.nameAr
+      : (ROLE_LABELS[user?.role || ""] || user?.role));
 
   const userDisplayName = (isEn && isQuickResponseUser)
     ? "Quick Response"
@@ -1124,7 +1124,7 @@ function DashboardLayoutContent({
             </button>
           </SidebarHeader>
 
-          <SidebarContent 
+          <SidebarContent
             ref={sidebarContentRef}
             onScroll={handleScroll}
             className="gap-0 py-2 overflow-y-auto overflow-x-hidden"
@@ -1187,7 +1187,7 @@ function DashboardLayoutContent({
 
                         const isCustodyPending = isCustodyPath && Boolean(pendingCustody?.hasPendingCustody);
 
-                        const hasActionBadge = 
+                        const hasActionBadge =
                           (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
                           (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
                           isCustodyPending ||
@@ -1200,14 +1200,14 @@ function DashboardLayoutContent({
                         const tooltipLabel = isProcurementPending
                           ? `${item.label} (بحاجة لاعتماد المدير التنفيذي)`
                           : isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)
-                          ? `${item.label} (يوجد أوامر صرف بانتظار الاعتماد/التأكيد)`
-                          : isCustodyPending
-                          ? `${item.label} (يوجد طلبات عهدة بانتظار اعتمادك)`
-                          : isProgressInvoicesPath && Boolean((pendingProgressReports as any)?.hasPendingInvoices)
-                          ? `${item.label} (يوجد مستخلصات بانتظار اعتمادك)`
-                          : isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)
-                          ? `${item.label} (يوجد تقارير إنجاز بانتظار اعتمادك)`
-                          : item.label;
+                            ? `${item.label} (يوجد أوامر صرف بانتظار الاعتماد/التأكيد)`
+                            : isCustodyPending
+                              ? `${item.label} (يوجد طلبات عهدة بانتظار اعتمادك)`
+                              : isProgressInvoicesPath && Boolean((pendingProgressReports as any)?.hasPendingInvoices)
+                                ? `${item.label} (يوجد مستخلصات بانتظار اعتمادك)`
+                                : isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)
+                                  ? `${item.label} (يوجد تقارير إنجاز بانتظار اعتمادك)`
+                                  : item.label;
 
                         return (
                           <SidebarMenuItem key={item.path}>
@@ -1234,8 +1234,8 @@ function DashboardLayoutContent({
                                   className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
                                 />
                                 {hasActionBadge ? (
-                                  <span 
-                                    className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" 
+                                  <span
+                                    className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse"
                                     title={isProcurementPending ? "بحاجة لاعتماد المدير التنفيذي" : undefined}
                                   />
                                 ) : null}
@@ -1305,16 +1305,16 @@ function DashboardLayoutContent({
                 {switchable && toggleTheme && (
                   <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
                     {theme === 'dark' ? (
-                      <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>{isEn ? "Light Mode" : "الوضع الفاتح"}</span></>
+                      <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg><span>{isEn ? "Light Mode" : "الوضع الفاتح"}</span></>
                     ) : (
-                      <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>{isEn ? "Dark Mode" : "الوضع الداكن"}</span></>
+                      <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg><span>{isEn ? "Dark Mode" : "الوضع الداكن"}</span></>
                     )}
                   </DropdownMenuItem>
                 )}
                 {isQuickResponseUser && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
                         const nextLang = lang === "ar" ? "en" : "ar";
                         localStorage.setItem("quick-response-lang", nextLang);
@@ -1322,7 +1322,7 @@ function DashboardLayoutContent({
                         window.dispatchEvent(new Event("storage"));
                         window.dispatchEvent(new Event("quick-response-lang-change"));
                         window.location.reload();
-                      }} 
+                      }}
                       className="cursor-pointer"
                     >
                       <Languages className="ml-2 h-4 w-4" />
@@ -1355,7 +1355,7 @@ function DashboardLayoutContent({
 
       <SidebarInset className={tabletNavigation ? "min-w-0" : undefined}>
         {isMobile && (() => {
-          const hasAnyPendingAction = 
+          const hasAnyPendingAction =
             Boolean(pendingDisbursements?.hasPendingOrders) ||
             Boolean(pendingDisbursements?.hasPendingRequests) ||
             Boolean(pendingCustody?.hasPendingCustody) ||
