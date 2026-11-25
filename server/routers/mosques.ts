@@ -2,8 +2,8 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users } from "../../drizzle/schema";
-import { eq, and, like, desc, sql, or } from "drizzle-orm";
+import { mosques, mosqueImages, auditLogs, mosqueRequests, mawasimRequests, InsertMosque, users } from "../../drizzle/schema";
+import { eq, and, like, desc, sql, or, ne } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval, createNotification } from "./notifications";
 import { checkPermission, calculateUserPermissions } from "../permissions";
 import { normalizeMosqueApprovalStatus } from "../../shared/mosqueMapStatus";
@@ -226,7 +226,18 @@ export const mosquesRouter = router({
       // الحصول على صور المسجد
       const images = await db.select().from(mosqueImages).where(eq(mosqueImages.mosqueId, input.id));
 
-      return { ...mosque, images };
+      // أحدث قياسات مصليات مسجلة للمسجد عبر برنامج مواسم (غير المرفوضة)
+      const seasonalRows = await db
+        .select({ snapshot: mawasimRequests.snapshot })
+        .from(mawasimRequests)
+        .where(and(eq(mawasimRequests.mosqueId, input.id), ne(mawasimRequests.status, "rejected")))
+        .orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
+      const latestWithMen = seasonalRows.find(item => Boolean(item.snapshot?.men))?.snapshot;
+      const prayerHallDimensions = latestWithMen?.men
+        ? { men: latestWithMen.men, women: latestWithMen.women ?? null }
+        : null;
+
+      return { ...mosque, images, prayerHallDimensions };
     }),
 
   // البحث والفلترة في المساجد
