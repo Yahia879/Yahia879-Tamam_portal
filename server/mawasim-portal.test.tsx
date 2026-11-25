@@ -27,6 +27,7 @@ vi.mock("wouter", () => ({
   Link: ({ href, children }: any) => <a href={href}>{children}</a>,
   useLocation: () => [state.location, state.navigate],
   useSearch: () => state.search,
+  useParams: () => ({ id: "201" }),
 }));
 
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -40,6 +41,21 @@ vi.mock("@/components/EnhancedPagination", () => ({
 
 vi.mock("@/components/FileUpload", () => ({ FileUpload: () => null }));
 vi.mock("@/components/ProgramIcon", () => ({ ProgramIcon: () => null }));
+vi.mock("leaflet", () => {
+  class DefaultIcon { static mergeOptions() {} }
+  return { default: { Icon: { Default: DefaultIcon }, divIcon: (options: any) => options } };
+});
+vi.mock("react-leaflet", () => {
+  const Wrapper = ({ children }: any) => <div>{children}</div>;
+  return {
+    MapContainer: Wrapper,
+    TileLayer: () => null,
+    LayerGroup: Wrapper,
+    Popup: Wrapper,
+    Marker: () => null,
+    useMap: () => ({ setView: vi.fn(), fitBounds: vi.fn() }),
+  };
+});
 
 vi.mock("@/lib/trpc", () => {
   function proxy(path: string[] = []): any {
@@ -74,6 +90,7 @@ let BeneficiaryLayout: React.ComponentType<any>;
 let RequesterDashboard: React.ComponentType;
 let MawasimPortal: React.ComponentType;
 let MyRequests: React.ComponentType;
+let RequesterMosqueDetails: React.ComponentType;
 
 beforeAll(async () => {
   vi.stubGlobal("React", React);
@@ -81,6 +98,7 @@ beforeAll(async () => {
   RequesterDashboard = (await import("../client/src/pages/RequesterDashboard")).default;
   MawasimPortal = (await import("../client/src/pages/MawasimPortal")).default;
   MyRequests = (await import("../client/src/pages/MyRequests")).default;
+  RequesterMosqueDetails = (await import("../client/src/pages/RequesterMosqueDetails")).default;
 });
 
 function buildPortalPayload(open: boolean) {
@@ -217,7 +235,7 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).not.toContain("ابحث باسم المسجد");
   });
 
-  it("renders a non-blocking warning and removes max restriction when quantity exceeds mosque ceiling", () => {
+  it("renders a non-blocking warning and removes max restriction when quantity exceeds mosque ceiling", async () => {
     const html = renderToStaticMarkup(
       <MawasimPortal />,
     );
@@ -226,6 +244,11 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).toContain("سقف المسجد: ١٠٠ كرتون");
     expect(html).not.toContain('type="file"');
     expect(html).not.toContain("صورة مصلى الرجال");
+
+    const { SEASONAL_SUBMISSION_NOTICE } = await import("../client/src/components/MawasimRequestForm");
+    expect(SEASONAL_SUBMISSION_NOTICE).toBe(
+      "تم تسجيل طلبكم ونؤكد على أن التسجيل الحالي لحصر الاحتياج فقط وسيتم التواصل معكم بعد اكتمال الدعم واكتمال الشروط والمعايير",
+    );
   });
 
   it("renders submitted seasonal requests and confirmation alert on /my-requests", () => {
@@ -237,5 +260,33 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).toContain("مسجد النور");
     expect(html).toContain("موسم رمضان 1448");
     expect(html).not.toContain("لا توجد طلبات سابقة");
+  });
+
+  it("displays saved seasonal prayer hall length and width inside RequesterMosqueDetails", () => {
+    state.data["mosques.getById"] = {
+      id: 201,
+      name: "مسجد النور",
+      city: "المدينة",
+      district: "العوالي",
+      address: "شارع الملك فهد",
+      capacity: 280,
+      area: "450.00",
+      approvalStatus: "approved",
+      hasPrayerHall: false,
+      images: [],
+      prayerHallDimensions: {
+        men: { lengthCm: 2500, widthCm: 1400 },
+        women: { lengthCm: 700, widthCm: 500 },
+      },
+    };
+    const html = renderToStaticMarkup(<RequesterMosqueDetails />);
+    expect(html).toContain("طول مصلى الرجال (م)");
+    expect(html).toContain('value="25 م"');
+    expect(html).toContain("عرض مصلى الرجال (م)");
+    expect(html).toContain('value="14 م"');
+    expect(html).toContain("طول مصلى النساء (م)");
+    expect(html).toContain('value="7 م"');
+    expect(html).toContain("عرض مصلى النساء (م)");
+    expect(html).toContain('value="5 م"');
   });
 });
