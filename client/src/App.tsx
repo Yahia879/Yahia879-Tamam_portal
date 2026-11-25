@@ -19,6 +19,7 @@ import InformationDashboard from "./pages/InformationDashboard";
 import BoardDashboard from "./pages/BoardDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import MawasimStaff from "./pages/MawasimStaff";
+import MawasimPortal from "./pages/MawasimPortal";
 import SeasonalRequestCreate from "./pages/SeasonalRequestCreate";
 import RequesterEvaluations from "./pages/RequesterEvaluations";
 import RequesterApprovals from "./pages/RequesterApprovals";
@@ -285,6 +286,7 @@ function Router() {
       <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
+      <Route path="/requester/mawasim">{() => <RequesterRoute component={MawasimPortal} />}</Route>
       <Route path="/mawasim">{() => <ProtectedRoute><MawasimStaff /></ProtectedRoute>}</Route>
       <Route path="/requester/evaluations">{() => <RequesterRoute component={RequesterEvaluations} />}</Route>
       <Route path="/my-requests">
