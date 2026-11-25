@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,10 +33,17 @@ import {
   XCircle,
   AlertCircle,
   TrendingUp,
+  MoonStar,
 } from "lucide-react";
 import { PROGRAM_LABELS } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
+import { displayQuantity } from "@/components/MawasimRequestForm";
+import {
+  seasonalServiceIds,
+  seasonalServices,
+  seasonalStatusLabels,
+} from "@shared/mawasim";
 
 const PAGE_SIZE = 10;
 
@@ -95,6 +103,9 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function MyRequests() {
+  const { user } = useAuth();
+  const searchString = useSearch();
+  const seasonalSubmitted = new URLSearchParams(searchString).get("seasonal") === "submitted";
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
@@ -130,6 +141,34 @@ export default function MyRequests() {
     page,
     limit: PAGE_SIZE,
   });
+
+  const { data: mawasimPortal } = trpc.mawasim.portal.useQuery(undefined, {
+    enabled: user?.role === "service_requester",
+  });
+
+  const filteredSeasonalRequests = useMemo(() => {
+    const allSeasonal = mawasimPortal?.allRequests ?? [];
+    if (programFilter !== "all" && programFilter !== "mawasim") return [];
+    const statusBucket: Record<string, string> = {
+      submitted: "pending",
+      approved: "in_progress",
+      scheduled: "in_progress",
+      completed: "completed",
+      rejected: "rejected",
+    };
+    const term = debouncedSearch.trim().toLowerCase();
+    return allSeasonal.filter((item) => {
+      if (statusTab !== "all" && statusBucket[item.status] !== statusTab) {
+        return false;
+      }
+      if (!term) return true;
+      return (
+        item.mosqueName.toLowerCase().includes(term) ||
+        item.seasonTitle.toLowerCase().includes(term) ||
+        "برنامج مواسم".includes(term)
+      );
+    });
+  }, [mawasimPortal?.allRequests, programFilter, statusTab, debouncedSearch]);
 
   // استخراج البيانات مع حماية كاملة ضد أي هيكل استجابة
   const requests = Array.isArray(myRequestsData)
@@ -181,6 +220,27 @@ export default function MyRequests() {
         </Link>
       }
     >
+      {seasonalSubmitted && (
+        <Card className="mb-4 sm:mb-6 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/20 rounded-2xl sm:rounded-3xl">
+          <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300">
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-bold text-xs sm:text-sm">تم إرسال طلبك في برنامج مواسم بنجاح</p>
+                <p className="text-[11px] sm:text-xs opacity-90">يمكنك متابعة حالة طلباتك الموسمية أدناه.</p>
+              </div>
+            </div>
+            {mawasimPortal?.hasOpenSeason && (
+              <Link href="/requester/mawasim">
+                <Button size="sm" variant="outline" className="rounded-xl text-xs font-bold border-emerald-300 text-emerald-800 hover:bg-emerald-100/70 cursor-pointer">
+                  تقديم طلب موسمي آخر
+                </Button>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Stats Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 lg:gap-5 mb-4 sm:mb-8">
         <Card
@@ -369,6 +429,7 @@ export default function MyRequests() {
                   <SelectItem value="furnishing">فرش وتطوير</SelectItem>
                 </>
               )}
+              <SelectItem value="mawasim">برنامج مواسم</SelectItem>
             </SelectContent>
           </Select>
 
@@ -386,6 +447,80 @@ export default function MyRequests() {
           )}
         </div>
       </div>
+
+      {filteredSeasonalRequests.length > 0 && (
+        <Card className="mb-4 sm:mb-6 border border-emerald-200/70 dark:border-emerald-900/40 shadow-xs rounded-2xl sm:rounded-3xl bg-card">
+          <CardContent className="p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+                  <MoonStar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-sm sm:text-base text-foreground">طلبات برنامج مواسم</h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    إجمالي الطلبات الموسمية: {filteredSeasonalRequests.length}
+                  </p>
+                </div>
+              </div>
+              {mawasimPortal?.hasOpenSeason && (
+                <Link href="/requester/mawasim">
+                  <Button size="sm" variant="outline" className="rounded-xl text-xs font-bold gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer">
+                    <MoonStar className="w-3.5 h-3.5" />
+                    <span>برنامج مواسم</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filteredSeasonalRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="rounded-2xl border border-border/60 bg-background/60 p-3.5 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs sm:text-sm text-foreground truncate">
+                        {req.mosqueName}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {req.seasonTitle} ({req.hijriYear} هـ)
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="shrink-0 text-[10px] rounded-full">
+                      {seasonalStatusLabels[req.status] ?? req.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted-foreground">
+                    {seasonalServiceIds.map((serviceId) => {
+                      const amount = Number(req.requested?.[serviceId] ?? 0);
+                      const approved = req.approved?.[serviceId];
+                      if (!amount && !approved) return null;
+                      const service = seasonalServices[serviceId];
+                      return (
+                        <div key={serviceId} className="truncate">
+                          <span className="font-medium text-foreground">{service.label}:</span>{" "}
+                          {displayQuantity(serviceId, amount)}
+                          {approved != null && (
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              {" "}• المعتمد {displayQuantity(serviceId, approved)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {req.reviewNote && (
+                    <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-1.5">
+                      ملاحظة اللجنة: {req.reviewNote}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Requests List */}
       {isLoading ? (
@@ -510,7 +645,7 @@ export default function MyRequests() {
             className="rounded-2xl sm:rounded-3xl border border-border/60"
           />
         </div>
-      ) : (
+      ) : filteredSeasonalRequests.length === 0 ? (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -541,7 +676,7 @@ export default function MyRequests() {
             </Link>
           )}
         </Card>
-      )}
+      ) : null}
     </BeneficiaryLayout>
   );
 }
