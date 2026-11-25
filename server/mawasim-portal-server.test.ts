@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mawasimGrants, mawasimRequests, mawasimSeasons, mosques } from "../drizzle/schema";
+import { mawasimGrants, mawasimRequests, mawasimSeasons, mosques, users } from "../drizzle/schema";
 import { defaultSeasonalSettings } from "../shared/mawasim";
 import type { TrpcContext } from "./_core/context";
 import { mawasimRouter } from "./routers/mawasim";
@@ -13,6 +13,8 @@ const state = vi.hoisted(() => ({
   usageRows: [] as any[],
   submitMosque: null as any,
   submitGrants: [] as any[],
+  candidateUsers: [] as any[],
+  allowAdmin: false,
   insertedValues: [] as any[],
 }));
 
@@ -23,6 +25,7 @@ function makeSelectChain(table: any, columns: any) {
     if (table === mawasimSeasons) return state.seasons;
     if (table === mawasimGrants) return isForUpdate ? state.submitGrants : state.grants;
     if (table === mosques) return isForUpdate ? (state.submitMosque ? [state.submitMosque] : []) : state.eligibleMosques;
+    if (table === users) return state.candidateUsers;
     if (table === mawasimRequests) {
       if (hasJoin) return state.allRequests;
       if (columns && "menPhoto" in columns) return state.previousSnapshots;
@@ -100,7 +103,7 @@ vi.mock("./db", () => ({
 }));
 
 vi.mock("./permissions", () => ({
-  checkPermission: async () => false,
+  checkPermission: async () => state.allowAdmin,
 }));
 
 function buildSettings() {
@@ -173,6 +176,8 @@ describe("Mawasim requester portal & submit server enforcement", () => {
       imamPhone: "0551234567",
     };
     state.submitGrants = [];
+    state.candidateUsers = [];
+    state.allowAdmin = false;
     state.insertedValues = [];
   });
 
@@ -234,5 +239,93 @@ describe("Mawasim requester portal & submit server enforcement", () => {
       applicantId: 77,
       submittedBy: 77,
     });
+  });
+
+  it("links admin-created seasonal requests to the selected mosque's service_requester while preserving submittedBy", async () => {
+    state.allowAdmin = true;
+    state.submitMosque = {
+      id: 201,
+      name: "مسجد النور",
+      registeredBy: 99,
+      imamName: "الشيخ صالح",
+      imamEmail: "imam201@mosque.sa",
+      imamPhone: "0557778888",
+    };
+    state.candidateUsers = [
+      { id: 99, name: "متبرع مسجل", email: "donor@example.com", phone: "0501111111", requesterType: "donor" },
+      { id: 42, name: "الإمام صالح", email: "imam201@mosque.sa", phone: "0557778888", requesterType: "imam" },
+    ];
+
+    const adminApi = callerFor({
+      id: 1,
+      name: "مدير النظام",
+      email: "admin@tamam.sa",
+      phone: "0500000001",
+      role: "super_admin",
+      requesterType: null,
+    });
+    const created = await adminApi.submit(baseSubmission);
+    expect(created).toEqual({ id: 700 });
+    expect(state.insertedValues).toHaveLength(1);
+    expect(state.insertedValues[0]).toMatchObject({
+      mosqueId: 201,
+      applicantId: 42,
+      submittedBy: 1,
+      contact: {
+        name: "الإمام صالح",
+        phone: "0557778888",
+        email: "imam201@mosque.sa",
+      },
+    });
+  });
+
+  it("handles admin submission gracefully when the selected mosque has no linked requester account yet", async () => {
+    state.allowAdmin = true;
+    state.submitMosque = {
+      id: 404,
+      name: "مسجد قيد الربط",
+      registeredBy: 1,
+      imamName: "إمام المسجد",
+      imamEmail: null,
+      imamPhone: "0553334444",
+    };
+    state.candidateUsers = [];
+
+    const adminApi = callerFor({
+      id: 1,
+      name: "مدير النظام",
+      email: "admin@tamam.sa",
+      phone: "0500000001",
+      role: "super_admin",
+      requesterType: null,
+    });
+    const created = await adminApi.submit({ ...baseSubmission, mosqueId: 404 });
+    expect(created).toEqual({ id: 700 });
+    expect(state.insertedValues[0]).toMatchObject({
+      mosqueId: 404,
+      applicantId: null,
+      submittedBy: 1,
+      contact: {
+        name: "إمام المسجد",
+        phone: "0553334444",
+      },
+    });
+  });
+
+  it("includes resolved linkedRequester metadata in searchMosques for staff", async () => {
+    state.allowAdmin = true;
+    state.eligibleMosques = [
+      { id: 201, name: "مسجد النور", city: "المدينة", district: "العوالي", address: "الشارع", capacity: 100, registeredBy: 42, imamEmail: null, imamPhone: null },
+      { id: 202, name: "مسجد بلا حساب", city: "المدينة", district: "الحرة", address: "شارع 2", capacity: 80, registeredBy: 1, imamEmail: null, imamPhone: null },
+    ];
+    state.candidateUsers = [
+      { id: 42, name: "الشيخ أحمد", email: "imam@mosque.sa", phone: "0551234567", requesterType: "imam" },
+    ];
+
+    const adminApi = callerFor({ id: 1, role: "super_admin" });
+    const rows = await adminApi.searchMosques();
+    expect(rows).toHaveLength(2);
+    expect(rows[0].linkedRequester).toMatchObject({ id: 42, name: "الشيخ أحمد" });
+    expect(rows[1].linkedRequester).toBeNull();
   });
 });
