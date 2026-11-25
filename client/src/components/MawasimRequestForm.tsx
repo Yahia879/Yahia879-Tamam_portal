@@ -30,6 +30,7 @@ import {
 export type MawasimMosque = {
   id: number; name: string; city: string; district: string | null; address: string | null;
   capacity: number | null; previous?: SeasonalMosqueSnapshot;
+  linkedRequester?: { id: number; name: string; email: string | null; phone: string | null; requesterType: string | null } | null;
 };
 
 export function MawasimField({ label, children }: { label: string; children: ReactNode }) {
