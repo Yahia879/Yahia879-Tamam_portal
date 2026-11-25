@@ -70,7 +70,7 @@ export default function SeasonalRequestCreate() {
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="flex items-center gap-3 p-6 text-destructive">
               <AlertCircle className="size-5 shrink-0" />
-              <p className="text-sm font-medium">ليس لديك صلاحية إنشاء طلب موسمي.</p>
+              <p className="text-sm font-medium">ليس لديك صلاحية الوصول إلى برنامج مواسم.</p>
             </CardContent>
           </Card>
         </div>
@@ -98,7 +98,7 @@ export default function SeasonalRequestCreate() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-xl font-extrabold text-foreground sm:text-2xl">
-                  طلب موسمي
+                  برنامج مواسم
                 </h1>
                 <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
                   <MoonStar className="ml-1 size-3" />
@@ -148,7 +148,7 @@ export default function SeasonalRequestCreate() {
               </div>
               <h2 className="text-base font-bold text-foreground">لا يوجد موسم مفتوح للتسجيل حالياً</h2>
               <p className="mt-1 max-w-md text-xs text-muted-foreground sm:text-sm">
-                يجب إنشاء موسم وتفعيل خيار «فتح التسجيل» من صفحة إدارة مواسم قبل تقديم طلب موسمي.
+                يجب إنشاء موسم وتفعيل خيار «فتح التسجيل» من صفحة إدارة مواسم قبل التقديم عبر برنامج مواسم.
               </p>
               <Link href="/mawasim" className="mt-4">
                 <Button className="gap-2 rounded-xl cursor-pointer">
