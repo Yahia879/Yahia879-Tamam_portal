@@ -121,6 +121,7 @@ function buildSettings() {
     ...settings,
     services: {
       ...settings.services,
+      carpet: { enabled: true, budgetHalalas: 500_000, unitPriceHalalas: 500, perMosqueLimit: 20_000, capacity: 100_000 },
       water: { enabled: true, budgetHalalas: 500_000, unitPriceHalalas: 1000, perMosqueLimit: 100, capacity: 500 },
     },
   };
@@ -367,6 +368,44 @@ describe("Mawasim requester portal & submit server enforcement", () => {
         address: "شارع الملك عبدالعزيز",
         capacity: 320,
       },
+    });
+  });
+
+  it("allows submitting quantities exceeding mosque ceiling to record actual need", async () => {
+    const reqApi = callerFor({ id: 42, requesterType: "imam" });
+    // Season perMosqueLimit for water is 100; requester submits 250 cartons.
+    const created = await reqApi.submit({
+      ...baseSubmission,
+      requested: { water: 250 },
+    });
+    expect(created).toEqual({ id: 700 });
+    expect(state.insertedValues[0]).toMatchObject({
+      mosqueId: 201,
+      requested: { water: 250 },
+    });
+  });
+
+  it("allows submitting carpet cleaning request without attached photos", async () => {
+    const reqApi = callerFor({ id: 42, requesterType: "imam" });
+    const created = await reqApi.submit({
+      seasonId: 10,
+      mosqueId: 201,
+      snapshot: {
+        city: "المدينة",
+        district: "العوالي",
+        address: "الشارع العام",
+        worshippers: 50,
+        men: { lengthCm: 1000, widthCm: 500 },
+        women: null,
+      },
+      requested: { carpet: 5000 },
+      pledge: true,
+    });
+    expect(created).toEqual({ id: 700 });
+    expect(state.insertedValues[0]).toMatchObject({
+      requested: { carpet: 5000 },
+      menPhoto: null,
+      womenPhoto: null,
     });
   });
 });
