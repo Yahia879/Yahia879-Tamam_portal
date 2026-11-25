@@ -21,7 +21,6 @@ import {
   type SeasonalQuantities, type SeasonalService, type SeasonalRequestLimits,
 } from "@shared/mawasim";
 import {
-  AlertTriangle,
   Building2,
   CheckCircle2,
   Droplets,
@@ -327,18 +326,15 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                 const ceiling = mosqueCeiling(service);
                 const selected = Boolean(requested[service]);
                 const disabled = available === 0 && !selected;
-                const exceedsCeiling = isExceedingCeiling(service);
 
                 return (
                   <div
                     key={service}
                     className={cn(
                       "space-y-2.5 rounded-xl border p-4 transition-all",
-                      exceedsCeiling
-                        ? "border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/15"
-                        : selected
-                          ? "border-primary/50 bg-primary/5 shadow-2xs"
-                          : "border-border/60 bg-background hover:border-border"
+                      selected
+                        ? "border-primary/50 bg-primary/5 shadow-2xs"
+                        : "border-border/60 bg-background hover:border-border"
                     )}
                   >
                     {service === "water" ? (
@@ -394,17 +390,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                         "السعة غير متاحة حاليًا"
                       )}
                     </p>
-                    {exceedsCeiling && (
-                      <div
-                        role="status"
-                        className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-                      >
-                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <span>
-                          تنبيه: الكمية المطلوبة تتجاوز سقف المسجد ({displayQuantity(service, ceiling)} {meta.unit}). يمكنك إرسال الطلب لتسجيل الاحتياج الفعلي ومراجعته.
-                        </span>
-                      </div>
-                    )}
                     {service === "carpet" && <FieldError id={carpetErrorId} message={showErrors ? errors.carpet : undefined} />}
                   </div>
                 );
@@ -444,17 +429,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            {isExceedingCeiling("carpet") && (
-              <div
-                role="status"
-                className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-              >
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>
-                  تنبيه: إجمالي مساحة المصليات ({displayQuantity("carpet", area)} م²) يتجاوز سقف المسجد المحدد ({displayQuantity("carpet", mosqueCeiling("carpet"))} م²). سيتم تسجيل المساحة الفعلية في الطلب للمراجعة.
-                </span>
-              </div>
-            )}
             <PrayerMeasurements
               label="مصلى الرجال"
               value={men}
