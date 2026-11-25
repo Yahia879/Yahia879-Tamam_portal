@@ -307,8 +307,12 @@ export const mawasimRouter = router({
     const requests = await db.select({
       ...requestFields,
       assignee: users.name,
+      governorate: mosques.governorate,
+      mosqueCity: mosques.city,
       hasPhotos: sql<boolean>`(${mawasimRequests.menPhoto} IS NOT NULL OR ${mawasimRequests.womenPhoto} IS NOT NULL)`,
-    }).from(mawasimRequests).leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
+    }).from(mawasimRequests)
+      .leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
+      .leftJoin(mosques, eq(mosques.id, mawasimRequests.mosqueId))
       .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
     const capacity = summarizeSeasonalCapacity(season.settings, requests);
     const grants = await db.select({
