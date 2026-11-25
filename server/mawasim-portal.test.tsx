@@ -212,8 +212,20 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).toContain('value="شارع الملك فهد"');
     expect(html).toContain('value="280"');
     expect(html).toContain("المساحة المسجلة:");
+    expect(html).toContain("سقف المسجد:");
     expect(html).not.toContain("readonly");
     expect(html).not.toContain("ابحث باسم المسجد");
+  });
+
+  it("renders a non-blocking warning and removes max restriction when quantity exceeds mosque ceiling", () => {
+    const html = renderToStaticMarkup(
+      <MawasimPortal />,
+    );
+    // In buildPortalPayload, water perMosqueLimit is 100 and Input has no max="100" blocking attribute
+    expect(html).not.toContain('max="100"');
+    expect(html).toContain("سقف المسجد: ١٠٠ كرتون");
+    expect(html).not.toContain('type="file"');
+    expect(html).not.toContain("صورة مصلى الرجال");
   });
 
   it("renders submitted seasonal requests and confirmation alert on /my-requests", () => {
