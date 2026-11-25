@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   candidateUsers: [] as any[],
   allowAdmin: false,
   insertedValues: [] as any[],
+  updatedMosques: [] as any[],
 }));
 
 function makeSelectChain(table: any, columns: any) {
@@ -94,6 +95,14 @@ function makeDb(inTx = false) {
         };
       },
     }),
+    update: (table: any) => ({
+      set: (vals: any) => ({
+        where: () => {
+          state.updatedMosques.push({ table, vals });
+          return Promise.resolve();
+        },
+      }),
+    }),
     transaction: async (fn: (tx: any) => Promise<any>) => fn(makeDb(true)),
   };
 }
@@ -171,6 +180,12 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     state.submitMosque = {
       id: 201,
       name: "مسجد النور",
+      city: "المدينة",
+      district: "العوالي",
+      address: "الشارع العام",
+      capacity: 50,
+      area: null,
+      hasPrayerHall: false,
       registeredBy: 42,
       imamEmail: "imam@mosque.sa",
       imamPhone: "0551234567",
@@ -179,6 +194,7 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     state.candidateUsers = [];
     state.allowAdmin = false;
     state.insertedValues = [];
+    state.updatedMosques = [];
   });
 
   it("blocks non-requesters from calling portal and returns sanitized season limits + linked mosques for service_requester", async () => {
@@ -327,5 +343,30 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0].linkedRequester).toMatchObject({ id: 42, name: "الشيخ أحمد" });
     expect(rows[1].linkedRequester).toBeNull();
+  });
+
+  it("syncs edited mosque details back to the mosque master record on seasonal submission", async () => {
+    const reqApi = callerFor({ id: 42, requesterType: "imam" });
+    await reqApi.submit({
+      ...baseSubmission,
+      snapshot: {
+        city: "أبها",
+        district: "المنسك",
+        address: "شارع الملك عبدالعزيز",
+        worshippers: 320,
+        men: null,
+        women: null,
+      },
+    });
+    expect(state.updatedMosques).toHaveLength(1);
+    expect(state.updatedMosques[0]).toMatchObject({
+      table: mosques,
+      vals: {
+        city: "أبها",
+        district: "المنسك",
+        address: "شارع الملك عبدالعزيز",
+        capacity: 320,
+      },
+    });
   });
 });
