@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import {
-  defaultSeasonalSettings, seasonalCapacity, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
+  defaultSeasonalSettings, seasonalCapacity, seasonalMosqueLimit, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
   type SeasonalQuantities, type SeasonalService, type SeasonalSettings,
 } from "@shared/mawasim";
 import {
@@ -671,6 +671,7 @@ export default function MawasimStaff() {
                             <RequestDetails
                               key={request.id + request.status}
                               request={request}
+                              season={season}
                               refresh={refresh}
                             />
                           )}
@@ -1055,17 +1056,20 @@ function Quantities({
 
 function RequestDetails({
   request,
+  season,
   refresh,
 }: {
   request: SeasonRequest;
+  season: Season;
   refresh: () => void;
 }) {
   const [showPhotos, setShowPhotos] = useState(false);
+  const hasPhotos = Boolean(request.hasPhotos);
   const { men, women } = request.snapshot;
   const [approved, setApproved] = useState(request.requested);
   const [note, setNote] = useState("");
   const key = { seasonId: request.seasonId, requestId: request.id };
-  const photos = trpc.mawasim.photos.useQuery(key, { enabled: showPhotos });
+  const photos = trpc.mawasim.photos.useQuery(key, { enabled: hasPhotos && showPhotos });
   const options = {
     onSuccess: () => {
       toast.success("تم تحديث حالة الطلب بنجاح.");
@@ -1105,18 +1109,20 @@ function RequestDetails({
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowPhotos(!showPhotos)}
-                  className="h-8 gap-1.5 rounded-lg text-xs cursor-pointer"
-                >
-                  <ImageIcon className="size-3.5" />
-                  {showPhotos ? "إخفاء الصور" : "عرض صور المصليات"}
-                </Button>
-              </div>
+              {hasPhotos && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowPhotos(!showPhotos)}
+                    className="h-8 gap-1.5 rounded-lg text-xs cursor-pointer"
+                  >
+                    <ImageIcon className="size-3.5" />
+                    {showPhotos ? "إخفاء الصور" : "عرض صور المصليات"}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1168,16 +1174,16 @@ function RequestDetails({
       </div>
 
       {/* Photos Viewer */}
-      {showPhotos && photos.isLoading && (
+      {hasPhotos && showPhotos && photos.isLoading && (
         <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           جارٍ تحميل الصور…
         </p>
       )}
-      {showPhotos && photos.error && (
+      {hasPhotos && showPhotos && photos.error && (
         <p role="alert" className="text-xs text-destructive">{photos.error.message}</p>
       )}
-      {showPhotos && photos.data && (
+      {hasPhotos && showPhotos && photos.data && (
         <div className="grid gap-3 sm:grid-cols-2">
           {photos.data.menPhoto && (
             <div className="overflow-hidden rounded-xl border bg-muted/20 p-2">
@@ -1201,13 +1207,28 @@ function RequestDetails({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {activeServices.map(service => {
               const meta = seasonalServices[service];
+              const requestedAmount = request.requested[service] ?? 0;
+              const ceiling = seasonalMosqueLimit(service, season.settings, request.snapshot.worshippers);
+              const exceedsCeiling = Number.isFinite(ceiling) && requestedAmount > ceiling;
               return (
                 <div key={service} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
-                  <p className="font-bold text-foreground">{meta.label}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <p className="font-bold text-foreground">{meta.label}</p>
+                    {exceedsCeiling && (
+                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-[10px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                        يتجاوز سقف المسجد
+                      </Badge>
+                    )}
+                  </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                     <span>
-                      المطلوب: <strong className="text-foreground">{displayQuantity(service, request.requested[service] ?? 0)}</strong> {meta.unit}
+                      المطلوب: <strong className="text-foreground">{displayQuantity(service, requestedAmount)}</strong> {meta.unit}
                     </span>
+                    {Number.isFinite(ceiling) && (
+                      <span>
+                        سقف المسجد: <strong className="text-foreground">{displayQuantity(service, ceiling)}</strong> {meta.unit}
+                      </span>
+                    )}
                     {request.approved && (
                       <span>
                         المعتمد: <strong className="text-sky-700 dark:text-sky-400">{displayQuantity(service, request.approved[service] ?? 0)}</strong>
