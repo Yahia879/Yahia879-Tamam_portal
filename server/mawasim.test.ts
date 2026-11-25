@@ -92,7 +92,7 @@ describe("Mawasim access and submission", () => {
     pledge: true as const,
   };
 
-  it.each(["projects_office", "project_manager", "field_team", "service_requester"])(
+  it.each(["projects_office", "project_manager", "field_team"])(
     "hides Mawasim from non-admin role %s and blocks direct access by default",
     async role => {
       expect(getMenuGroupsFromPermissions(["*"], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(false);
@@ -108,6 +108,27 @@ describe("Mawasim access and submission", () => {
       }
     },
   );
+
+  it("blocks service_requester from admin Mawasim management routes and procedures", async () => {
+    expect(getMenuGroupsFromPermissions(["*"], "service_requester").flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(false);
+    expect(hasRouteAccess("/mawasim", "service_requester", ["*"], true)).toBe(false);
+    expect(hasRouteAccess("/requests/seasonal", "service_requester", ["*"], true)).toBe(false);
+    expect(hasRouteAccess("/requester/mawasim", "service_requester", [], false)).toBe(true);
+    const api = caller("service_requester");
+    const results = await Promise.allSettled([
+      api.staff(),
+      api.searchMosques(),
+      api.photos(request),
+      api.review({ ...request, approved: { water: 1 }, note: "" }),
+      api.submit({
+        ...submission,
+        onBehalf: { name: "Tester", phone: "0500000000", reason: "تقديم بالنيابة" },
+      }),
+    ]);
+    for (const result of results) {
+      expect(result).toMatchObject({ status: "rejected", reason: { code: "FORBIDDEN" } });
+    }
+  });
 
   it.each(["super_admin", "system_admin"])(
     "shows Mawasim for admin role %s when permissions granted and hides when revoked",
