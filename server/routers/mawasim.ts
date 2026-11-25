@@ -81,6 +81,92 @@ function mosqueLinkedToUser(
   return false;
 }
 
+const requesterFields = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  phone: users.phone,
+  requesterType: users.requesterType,
+};
+
+type MosqueLinkInfo = {
+  id: number;
+  registeredBy: number | null;
+  imamEmail: string | null;
+  imamPhone: string | null;
+};
+
+type LinkedRequesterSummary = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  requesterType: string | null;
+};
+
+function isImamOrMuezzin(requesterType: string | null | undefined): boolean {
+  return ["imam", "muezzin", "إمام", "مؤذن"].includes(requesterType ?? "");
+}
+
+function pickLinkedRequesterForMosque(
+  mosque: MosqueLinkInfo,
+  candidates: LinkedRequesterSummary[],
+): LinkedRequesterSummary | null {
+  const email = mosque.imamEmail?.trim().toLowerCase();
+  const phone = mosque.imamPhone?.trim();
+  let best: LinkedRequesterSummary | null = null;
+  let bestScore = 0;
+
+  for (const user of candidates) {
+    const matchesImamContact = Boolean(
+      (email && user.email?.trim().toLowerCase() === email) ||
+      (phone && user.phone?.trim() === phone),
+    );
+    const matchesRegistrant = mosque.registeredBy !== null && user.id === mosque.registeredBy;
+    if (!matchesImamContact && !matchesRegistrant) continue;
+
+    // Prefer the mosque's imam/muezzin over a donor registrant when both exist.
+    const imamPriority = isImamOrMuezzin(user.requesterType) ? 2 : 0;
+    const contactPriority = matchesImamContact ? 2 : 1;
+    const score = imamPriority * 10 + contactPriority;
+    if (score > bestScore) {
+      bestScore = score;
+      best = user;
+    }
+  }
+  return best;
+}
+
+async function queryMosqueRequesterCandidates(
+  db: Db | Tx,
+  mosqueRows: MosqueLinkInfo[],
+): Promise<LinkedRequesterSummary[]> {
+  const userIds = Array.from(new Set(mosqueRows.map(m => m.registeredBy).filter((v): v is number => v !== null)));
+  const emails = Array.from(new Set(mosqueRows.map(m => m.imamEmail?.trim()).filter((v): v is string => Boolean(v))));
+  const phones = Array.from(new Set(mosqueRows.map(m => m.imamPhone?.trim()).filter((v): v is string => Boolean(v))));
+  const matchConditions = [
+    ...(userIds.length ? [inArray(users.id, userIds)] : []),
+    ...(emails.length ? [inArray(users.email, emails)] : []),
+    ...(phones.length ? [inArray(users.phone, phones)] : []),
+  ];
+  if (!matchConditions.length) return [];
+
+  return db.select(requesterFields).from(users).where(and(
+    eq(users.role, "service_requester"),
+    eq(users.status, "active"),
+    isNull(users.deletedAt),
+    or(...matchConditions),
+  ));
+}
+
+async function resolveMosqueRequester(
+  db: Db | Tx,
+  mosque: MosqueLinkInfo,
+): Promise<LinkedRequesterSummary | null> {
+  const candidates = await queryMosqueRequesterCandidates(db, [mosque]);
+  return pickLinkedRequesterForMosque(mosque, candidates);
+}
+
 async function attachPreviousSnapshots<T extends { id: number }>(db: Db, rows: T[]) {
   if (!rows.length) return rows.map(row => ({ ...row, previous: undefined }));
   const saved = await db.select({
@@ -140,13 +226,24 @@ export const mawasimRouter = router({
       .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
     const seasonSummaries = seasons.map(({ settings: _settings, ...rest }) => rest);
     const hasOpenSeason = seasons.some(item => item.isOpen);
+    const linkedMosques = user.status === "active"
+      ? await db.select({ id: mosques.id }).from(mosques).where(and(approvedMosque, linkedMosquesCondition(user)))
+      : [];
+    const linkedMosqueIds = linkedMosques.map(item => item.id);
+    const requestConditions = [
+      eq(mawasimRequests.applicantId, user.id),
+      eq(mawasimRequests.submittedBy, user.id),
+      ...(linkedMosqueIds.length
+        ? [and(isNull(mawasimRequests.applicantId), inArray(mawasimRequests.mosqueId, linkedMosqueIds))]
+        : []),
+    ];
     const allRequests = await db.select({
       ...requestFields,
       seasonTitle: mawasimSeasons.title,
       hijriYear: mawasimSeasons.hijriYear,
     }).from(mawasimRequests)
       .innerJoin(mawasimSeasons, eq(mawasimSeasons.id, mawasimRequests.seasonId))
-      .where(or(eq(mawasimRequests.applicantId, user.id), eq(mawasimRequests.submittedBy, user.id)))
+      .where(or(...requestConditions))
       .orderBy(desc(mawasimRequests.id));
     const choice = input
       ? seasons.find(item => item.id === input.seasonId)
@@ -157,10 +254,10 @@ export const mawasimRouter = router({
 
     const activeGrants = user.status === "active"
       ? await db.select({ mosqueId: mawasimGrants.mosqueId }).from(mawasimGrants).where(and(
-          eq(mawasimGrants.seasonId, choice.id),
-          eq(mawasimGrants.userId, user.id),
-          eq(mawasimGrants.active, true),
-        ))
+        eq(mawasimGrants.seasonId, choice.id),
+        eq(mawasimGrants.userId, user.id),
+        eq(mawasimGrants.active, true),
+      ))
       : [];
     const canApplyViaOwnership = mayApplyForSeason(user, true, false);
     const ownershipFilter = canApplyViaOwnership ? linkedMosquesCondition(user) : undefined;
@@ -224,7 +321,12 @@ export const mawasimRouter = router({
   searchMosques: mawasimProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input }) => {
     const db = await database();
     const term = input?.search?.trim() ?? "";
-    const rows = await db.select(mosqueFields).from(mosques).where(and(
+    const rows = await db.select({
+      ...mosqueFields,
+      registeredBy: mosques.registeredBy,
+      imamEmail: mosques.imamEmail,
+      imamPhone: mosques.imamPhone,
+    }).from(mosques).where(and(
       approvedMosque,
       term ? or(
         like(mosques.name, "%" + term + "%"),
@@ -232,7 +334,12 @@ export const mawasimRouter = router({
         like(mosques.district, "%" + term + "%"),
       ) : undefined,
     )).orderBy(mosques.name).limit(500);
-    return attachPreviousSnapshots(db, rows);
+    const withPrevious = await attachPreviousSnapshots(db, rows);
+    const candidates = await queryMosqueRequesterCandidates(db, rows);
+    return withPrevious.map(({ registeredBy: _rb, imamEmail: _ie, imamPhone: _ip, ...rest }, index) => ({
+      ...rest,
+      linkedRequester: pickLinkedRequesterForMosque(rows[index], candidates),
+    }));
   }),
 
   photos: mawasimProcedure.input(requestInput).query(async ({ input }) => {
@@ -331,11 +438,13 @@ export const mawasimRouter = router({
           id: mosques.id,
           name: mosques.name,
           registeredBy: mosques.registeredBy,
+          imamName: mosques.imamName,
           imamEmail: mosques.imamEmail,
           imamPhone: mosques.imamPhone,
         }).from(mosques).where(and(eq(mosques.id, input.mosqueId), approvedMosque));
         if (!mosque) invalid("اختر مسجدًا معتمدًا.");
         let applicantId: number | null = isRequester ? ctx.user.id : null;
+        let resolvedRequester: LinkedRequesterSummary | null = null;
         if (isRequester) {
           const ownsMosque = mosqueLinkedToUser(mosque, ctx.user);
           const [grant] = await tx.select({ id: mawasimGrants.id }).from(mawasimGrants).where(and(
@@ -350,6 +459,9 @@ export const mawasimRouter = router({
             eq(users.role, "service_requester"), eq(users.status, "active"), isNull(users.deletedAt)));
           if (!applicant) invalid("لم يُعثر على حساب مستفيد نشط بهذا البريد.");
           applicantId = applicant.id;
+        } else {
+          resolvedRequester = await resolveMosqueRequester(tx, mosque);
+          applicantId = resolvedRequester?.id ?? null;
         }
         const capacity = summarizeSeasonalCapacity(season.settings, await usage(tx, season.id));
         let selected = 0;
@@ -358,17 +470,30 @@ export const mawasimRouter = router({
           if (amount === 0) continue;
           selected++;
           if (!season.settings.services[row.service].enabled || amount > row.available ||
-              amount > seasonalMosqueLimit(row.service, season.settings, input.snapshot.worshippers)) {
+            amount > seasonalMosqueLimit(row.service, season.settings, input.snapshot.worshippers)) {
             invalid("راجع السعة المتاحة والحد لكل مسجد لخدمة " + seasonalServices[row.service].label + ".");
           }
         }
         if (!selected) invalid("اختر خدمة واحدة على الأقل.");
+        const fallbackContact = resolvedRequester
+          ? {
+              name: resolvedRequester.name,
+              phone: resolvedRequester.phone ?? mosque.imamPhone ?? "",
+              email: resolvedRequester.email ?? mosque.imamEmail,
+            }
+          : mosque.imamName?.trim() || mosque.imamPhone?.trim() || mosque.imamEmail?.trim()
+            ? {
+                name: mosque.imamName?.trim() || mosque.name,
+                phone: mosque.imamPhone ?? "",
+                email: mosque.imamEmail,
+              }
+            : { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email };
         const [created] = await tx.insert(mawasimRequests).values({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
           snapshot: carpet > 0 ? snapshot : { ...snapshot, men: null, women: null },
           menPhoto: carpet > 0 ? menPhoto : null, womenPhoto: carpet > 0 ? womenPhoto : null,
           requested: input.requested, specialRequest: input.specialRequest,
-          contact: onBehalf ?? { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email },
+          contact: onBehalf ?? fallbackContact,
         }).$returningId();
         return created;
       });
