@@ -2,6 +2,14 @@ import { useId, useState, type ComponentProps, type FormEvent, type ReactNode } 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,8 +21,8 @@ import {
   type SeasonalQuantities, type SeasonalService, type SeasonalRequestLimits,
 } from "@shared/mawasim";
 import {
+  AlertTriangle,
   Building2,
-  Camera,
   CheckCircle2,
   Droplets,
   Loader2,
@@ -126,21 +134,6 @@ function PrayerMeasurements({ label, value, errors, onChange }: {
 }
 
 const emptyMeasurements = { lengthCm: 0, widthCm: 0 };
-const allowedPhotoTypes = ["image/jpeg", "image/png", "image/webp"];
-
-function photoError(file: File) {
-  return file.size === 0 || file.size > 3 * 1024 * 1024 || !allowedPhotoTypes.includes(file.type)
-    ? "اختر صورة JPG أو PNG أو WebP بحجم لا يتجاوز 3 ميجابايت." : undefined;
-}
-
-function photoData(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("تعذّرت قراءة الصورة."));
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function MawasimRequestForm({ season, mosque, capacity, onSubmitted }: {
   season: { id: number; settings: SeasonalRequestLimits };
@@ -159,22 +152,17 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
   });
   const [requested, setRequested] = useState<SeasonalQuantities>({});
   const [specialRequest, setSpecialRequest] = useState("");
-  const [menPhoto, setMenPhoto] = useState<File>();
-  const [womenPhoto, setWomenPhoto] = useState<File>();
   const [pledge, setPledge] = useState(false);
-  const [reading, setReading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [ceilingConfirm, setCeilingConfirm] = useState<{
+    requestId: number;
+    exceeded: { service: SeasonalService; label: string; unit: string; requested: number; ceiling: number }[];
+  } | null>(null);
   const waterErrorId = useId();
   const carpetErrorId = useId();
   const pledgeErrorId = useId();
   const utils = trpc.useUtils();
   const submit = trpc.mawasim.submit.useMutation({
-    onSuccess: result => {
-      void utils.mawasim.invalidate();
-      void utils.mosques.invalidate();
-      toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id);
-      onSubmitted();
-    },
     onError: error => toast.error(error.message),
   });
 
@@ -182,10 +170,17 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
   const men = snapshot.men ?? emptyMeasurements;
   const area = carpetArea(men, snapshot.women);
   const water = requested.water ?? 0;
-  const serviceLimit = (service: SeasonalService) => Math.min(
-    capacity.find(row => row.service === service)?.available ?? 0,
-    seasonalMosqueLimit(service, season.settings, snapshot.worshippers),
-  );
+  const availableCapacity = (service: SeasonalService) =>
+    capacity.find(row => row.service === service)?.available ?? 0;
+  const mosqueCeiling = (service: SeasonalService) =>
+    seasonalMosqueLimit(service, season.settings, snapshot.worshippers);
+  const serviceCurrentAmount = (service: SeasonalService) =>
+    service === "carpet" ? (carpetRequested ? area : 0) : (requested[service] ?? 0);
+  const isExceedingCeiling = (service: SeasonalService) => {
+    const ceiling = mosqueCeiling(service);
+    const amount = serviceCurrentAmount(service);
+    return amount > 0 && Number.isFinite(ceiling) && amount > ceiling;
+  };
   const menErrors = carpetRequested ? measurementErrors(men) : undefined;
   const womenErrors = carpetRequested && snapshot.women ? measurementErrors(snapshot.women) : undefined;
   const errors = {
@@ -196,13 +191,9 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       : !Number.isInteger(snapshot.worshippers) || snapshot.worshippers < 1 || snapshot.worshippers > 100_000
         ? "أدخل عددًا صحيحًا بين ١ و١٠٠٬٠٠٠." : undefined,
     services: Object.values(requested).some(amount => amount > 0) ? undefined : "اختر خدمة واحدة على الأقل.",
-    water: !Number.isInteger(water) || water < 0 ? "أدخل عددًا صحيحًا غير سالب من الكراتين."
-      : water > serviceLimit("water") ? "عدد الكراتين يتجاوز الحد المتاح للطلب." : undefined,
-    carpet: carpetRequested && area > serviceLimit("carpet") ? "مساحة المصليات تتجاوز السعة المتاحة للطلب."
-      : carpetRequested && area === 0 && !menErrors?.lengthCm && !menErrors?.widthCm
-        ? "مساحة غسيل الفرش يجب أن تكون ٠٫٠١ متر مربع على الأقل." : undefined,
-    menPhoto: carpetRequested ? menPhoto ? photoError(menPhoto) : "أرفق صورة مصلى الرجال." : undefined,
-    womenPhoto: carpetRequested && snapshot.women && womenPhoto ? photoError(womenPhoto) : undefined,
+    water: !Number.isInteger(water) || water < 0 ? "أدخل عددًا صحيحًا غير سالب من الكراتين." : undefined,
+    carpet: carpetRequested && area === 0 && !menErrors?.lengthCm && !menErrors?.widthCm
+      ? "مساحة غسيل الفرش يجب أن تكون ٠٫٠١ متر مربع على الأقل." : undefined,
     pledge: pledge ? undefined : "أكّد التعهّد بصحة البيانات قبل الإرسال.",
   };
   const setSnapshotValue = <K extends keyof SeasonalMosqueSnapshot,>(key: K, value: SeasonalMosqueSnapshot[K]) =>
@@ -210,29 +201,39 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (reading || submit.isPending) return;
+    if (submit.isPending) return;
     setShowErrors(true);
     if ([...Object.values(errors), ...Object.values(menErrors ?? {}), ...Object.values(womenErrors ?? {})].some(Boolean)) {
       const form = event.currentTarget;
       requestAnimationFrame(() => form.querySelector<HTMLElement>("[aria-invalid=true], [data-service-error]")?.focus());
       return;
     }
-    setReading(true);
+    const exceeded = enabledServices
+      .filter(isExceedingCeiling)
+      .map(service => ({
+        service,
+        label: seasonalServices[service].label,
+        unit: seasonalServices[service].unit,
+        requested: serviceCurrentAmount(service),
+        ceiling: mosqueCeiling(service),
+      }));
     try {
-      const [menImage, womenImage] = await Promise.all([
-        carpetRequested && menPhoto ? photoData(menPhoto) : undefined,
-        carpetRequested && snapshot.women && womenPhoto ? photoData(womenPhoto) : undefined,
-      ]);
-      await submit.mutateAsync({
+      const result = await submit.mutateAsync({
         seasonId: season.id, mosqueId: mosque.id,
         snapshot: carpetRequested ? snapshot : { ...snapshot, men: null, women: null },
         requested: { ...requested, carpet: carpetRequested ? area : 0 },
-        specialRequest, menPhoto: menImage, womenPhoto: womenImage, pledge: true,
-      }).catch(() => { /* The mutation displays the server error. */ });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "تعذّر تجهيز الصور.");
-    } finally {
-      setReading(false);
+        specialRequest, pledge: true,
+      });
+      void utils.mawasim.invalidate();
+      void utils.mosques.invalidate();
+      toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id);
+      if (exceeded.length > 0) {
+        setCeilingConfirm({ requestId: result.id, exceeded });
+      } else {
+        onSubmitted();
+      }
+    } catch {
+      /* Mutation onError displays the server error. */
     }
   }
 
@@ -322,18 +323,22 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
               {enabledServices.map(service => {
                 const meta = seasonalServices[service];
                 const Icon = SERVICE_ICONS[service];
-                const limit = serviceLimit(service);
+                const available = availableCapacity(service);
+                const ceiling = mosqueCeiling(service);
                 const selected = Boolean(requested[service]);
-                const disabled = limit === 0 && !selected;
+                const disabled = available === 0 && !selected;
+                const exceedsCeiling = isExceedingCeiling(service);
 
                 return (
                   <div
                     key={service}
                     className={cn(
                       "space-y-2.5 rounded-xl border p-4 transition-all",
-                      selected
-                        ? "border-primary/50 bg-primary/5 shadow-2xs"
-                        : "border-border/60 bg-background hover:border-border"
+                      exceedsCeiling
+                        ? "border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/15"
+                        : selected
+                          ? "border-primary/50 bg-primary/5 shadow-2xs"
+                          : "border-border/60 bg-background hover:border-border"
                     )}
                   >
                     {service === "water" ? (
@@ -344,7 +349,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                             type="number"
                             min="0"
                             step="1"
-                            max={limit}
                             disabled={disabled}
                             aria-invalid={showErrors && errors.water ? true : undefined}
                             aria-describedby={showErrors && errors.water ? waterErrorId : undefined}
@@ -375,19 +379,32 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                           onChange={event => {
                             const checked = event.target.checked;
                             setRequested(current => ({ ...current, [service]: Number(checked) }));
-                            if (service === "carpet" && !checked) {
-                              setMenPhoto(undefined);
-                              setWomenPhoto(undefined);
-                            }
                           }}
                         />
                       </label>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {limit > 0
-                        ? `الحد المتاح لهذا الطلب: ${displayQuantity(service, limit)} ${meta.unit}`
-                        : "السعة غير متاحة حاليًا"}
+                      {available > 0 ? (
+                        <>
+                          {Number.isFinite(ceiling)
+                            ? `سقف المسجد: ${displayQuantity(service, ceiling)} ${meta.unit}`
+                            : `متاح في الموسم: ${displayQuantity(service, available)} ${meta.unit}`}
+                        </>
+                      ) : (
+                        "السعة غير متاحة حاليًا"
+                      )}
                     </p>
+                    {exceedsCeiling && (
+                      <div
+                        role="status"
+                        className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+                      >
+                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>
+                          تنبيه: الكمية المطلوبة تتجاوز سقف المسجد ({displayQuantity(service, ceiling)} {meta.unit}). يمكنك إرسال الطلب لتسجيل الاحتياج الفعلي ومراجعته.
+                        </span>
+                      </div>
+                    )}
                     {service === "carpet" && <FieldError id={carpetErrorId} message={showErrors ? errors.carpet : undefined} />}
                   </div>
                 );
@@ -416,43 +433,44 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
           <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Camera className="size-5" />
+                <Ruler className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-base font-bold">قياسات وصور المصليات</CardTitle>
+                <CardTitle className="text-base font-bold">قياسات المصليات</CardTitle>
                 <CardDescription className="text-xs">
-                  أدخل أبعاد المصليات بدقة وأرفق صورة واضحة للفرش (JPG / PNG / WebP حتى 3 ميجابايت)
+                  أدخل أبعاد المصليات بدقة لحساب المساحة المطلوبة تلقائيًا
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
+            {isExceedingCeiling("carpet") && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+              >
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>
+                  تنبيه: إجمالي مساحة المصليات ({displayQuantity("carpet", area)} م²) يتجاوز سقف المسجد المحدد ({displayQuantity("carpet", mosqueCeiling("carpet"))} م²). سيتم تسجيل المساحة الفعلية في الطلب للمراجعة.
+                </span>
+              </div>
+            )}
             <PrayerMeasurements
               label="مصلى الرجال"
               value={men}
               errors={showErrors ? menErrors : undefined}
               onChange={value => setSnapshotValue("men", value)}
             />
-            <RequestInput
-              label="صورة مصلى الرجال توضح الفرش"
-              error={showErrors || menPhoto ? errors.menPhoto : undefined}
-              required
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="h-10 cursor-pointer rounded-xl bg-background pt-2"
-              onChange={event => setMenPhoto(event.target.files?.[0])}
-            />
 
             <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">يوجد مصلى نساء</p>
-                <p className="text-xs text-muted-foreground">فعّل هذا الخيار لإدخال أبعاد وصورة مصلى النساء</p>
+                <p className="text-xs text-muted-foreground">فعّل هذا الخيار لإدخال أبعاد مصلى النساء</p>
               </div>
               <Switch
                 checked={Boolean(snapshot.women)}
                 onCheckedChange={checked => {
                   setSnapshotValue("women", checked ? previous?.women ?? emptyMeasurements : null);
-                  if (!checked) setWomenPhoto(undefined);
                 }}
                 aria-label="يوجد مصلى نساء"
                 className="cursor-pointer"
@@ -460,22 +478,12 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             </div>
 
             {snapshot.women && (
-              <div className="space-y-4">
-                <PrayerMeasurements
-                  label="مصلى النساء"
-                  value={snapshot.women}
-                  errors={showErrors ? womenErrors : undefined}
-                  onChange={value => setSnapshotValue("women", value)}
-                />
-                <RequestInput
-                  label="صورة مصلى النساء (اختيارية)"
-                  error={errors.womenPhoto}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="h-10 cursor-pointer rounded-xl bg-background pt-2"
-                  onChange={event => setWomenPhoto(event.target.files?.[0])}
-                />
-              </div>
+              <PrayerMeasurements
+                label="مصلى النساء"
+                value={snapshot.women}
+                errors={showErrors ? womenErrors : undefined}
+                onChange={value => setSnapshotValue("women", value)}
+              />
             )}
           </CardContent>
         </Card>
@@ -507,15 +515,68 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
           <div className="flex justify-end border-t border-border/60 pt-4">
             <Button
               type="submit"
-              disabled={reading || submit.isPending}
+              disabled={submit.isPending}
               className="h-11 gap-2 rounded-xl px-6 font-bold shadow-sm cursor-pointer"
             >
-              {reading || submit.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              <span>{reading || submit.isPending ? "جارٍ الإرسال…" : "إرسال طلب برنامج مواسم"}</span>
+              {submit.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              <span>{submit.isPending ? "جارٍ الإرسال…" : "إرسال طلب برنامج مواسم"}</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={Boolean(ceilingConfirm)}
+        onOpenChange={open => {
+          if (!open && ceilingConfirm) {
+            setCeilingConfirm(null);
+            onSubmitted();
+          }
+        }}
+      >
+        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl">
+          <DialogHeader className="text-right space-y-2">
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
+              <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+              <span>تم تسجيل طلبكم بنجاح</span>
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              {ceilingConfirm && (
+                <>
+                  تم تسجيل طلبكم رقم <strong>#{ceilingConfirm.requestId}</strong> بالاحتياج الفعلي، علمًا أن الحد الأقصى المسموح به للمسجد هو:
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {ceilingConfirm && (
+            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+              {ceilingConfirm.exceeded.map(item => (
+                <div key={item.service} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold">{item.label}</span>
+                  <span>
+                    المطلوب: <strong>{displayQuantity(item.service, item.requested)} {item.unit}</strong> · الحد الأقصى للمسجد:{" "}
+                    <strong>{displayQuantity(item.service, item.ceiling)} {item.unit}</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setCeilingConfirm(null);
+                onSubmitted();
+              }}
+              className="rounded-xl font-bold cursor-pointer"
+            >
+              حسناً، المتابعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }
