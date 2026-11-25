@@ -29,7 +29,8 @@ import {
 
 export type MawasimMosque = {
   id: number; name: string; city: string; district: string | null; address: string | null;
-  capacity: number | null; previous?: SeasonalMosqueSnapshot;
+  capacity: number | null; area?: string | number | null; hasPrayerHall?: boolean | null;
+  previous?: SeasonalMosqueSnapshot;
   linkedRequester?: { id: number; name: string; email: string | null; phone: string | null; requesterType: string | null } | null;
 };
 
@@ -149,12 +150,12 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
 }) {
   const previous = mosque.previous;
   const [snapshot, setSnapshot] = useState<SeasonalMosqueSnapshot>({
-    city: previous?.city ?? mosque.city,
-    district: previous?.district ?? mosque.district ?? "",
-    address: previous?.address ?? mosque.address ?? "",
-    worshippers: previous?.worshippers ?? mosque.capacity ?? 0,
+    city: previous?.city?.trim() || mosque.city || "",
+    district: previous?.district?.trim() || mosque.district || "",
+    address: previous?.address?.trim() || mosque.address || "",
+    worshippers: previous?.worshippers || mosque.capacity || 0,
     men: previous?.men ?? emptyMeasurements,
-    women: previous?.women ?? null,
+    women: previous?.women ?? (mosque.hasPrayerHall ? emptyMeasurements : null),
   });
   const [requested, setRequested] = useState<SeasonalQuantities>({});
   const [specialRequest, setSpecialRequest] = useState("");
@@ -166,8 +167,14 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
   const waterErrorId = useId();
   const carpetErrorId = useId();
   const pledgeErrorId = useId();
+  const utils = trpc.useUtils();
   const submit = trpc.mawasim.submit.useMutation({
-    onSuccess: result => { toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id); onSubmitted(); },
+    onSuccess: result => {
+      void utils.mawasim.invalidate();
+      void utils.mosques.invalidate();
+      toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id);
+      onSubmitted();
+    },
     onError: error => toast.error(error.message),
   });
 
@@ -236,16 +243,23 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       {/* Section 1: Mosque Details */}
       <Card className="border-border/60 shadow-xs">
         <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Building2 className="size-5" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">بيانات مسجد {mosque.name}</CardTitle>
+                <CardDescription className="text-xs">
+                  راجع بيانات المسجد أو عدّلها؛ تُحدَّث بيانات المسجد المسجلة تلقائيًا عند الإرسال
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base font-bold">بيانات مسجد {mosque.name}</CardTitle>
-              <CardDescription className="text-xs">
-                راجع بيانات المسجد التي سيستند إليها طلب برنامج مواسم
-              </CardDescription>
-            </div>
+            {mosque.area && Number(mosque.area) > 0 ? (
+              <Badge variant="outline" className="rounded-lg bg-background text-xs font-semibold text-primary">
+                المساحة المسجلة: {Number(mosque.area).toLocaleString("ar-SA")} م²
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="space-y-4 p-5">
