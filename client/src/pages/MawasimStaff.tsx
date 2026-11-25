@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { exportStyledExcel, type ExcelColumnDef } from "@/lib/excelExportHelper";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -29,6 +30,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
+  Download,
   Droplets,
   Image as ImageIcon,
   Inbox,
@@ -118,6 +120,72 @@ export function filterAndSortSeasonRequests<T extends SeasonRequest>(
   });
 }
 
+function formatExcelQuantities(quantities: SeasonalQuantities | null | undefined): string {
+  if (!quantities) return "-";
+  const parts = seasonalServiceIds
+    .filter(service => (quantities[service] ?? 0) > 0)
+    .map(service => `${seasonalServices[service].label}: ${displayQuantity(service, quantities[service] ?? 0)} ${seasonalServices[service].unit}`);
+  return parts.length > 0 ? parts.join(" | ") : "-";
+}
+
+export function buildSeasonalExcelPayload(
+  requests: SeasonRequest[],
+  season?: Pick<Season, "title" | "hijriYear"> | null,
+) {
+  const columns: ExcelColumnDef[] = [
+    { header: "رقم الطلب", align: "center", minWidth: 12 },
+    { header: "تاريخ الطلب", align: "center", minWidth: 14 },
+    { header: "اسم المسجد", align: "right", minWidth: 24 },
+    { header: "المحافظة", align: "center", minWidth: 16 },
+    { header: "المدينة", align: "center", minWidth: 16 },
+    { header: "الحي", align: "center", minWidth: 16 },
+    { header: "العنوان", align: "right", minWidth: 26 },
+    { header: "اسم مقدم الطلب / الإمام", align: "right", minWidth: 22 },
+    { header: "رقم الجوال", align: "center", minWidth: 16 },
+    { header: "الخدمات والكميات المطلوبة", align: "right", minWidth: 32 },
+    { header: "الكميات المعتمدة", align: "right", minWidth: 28 },
+    { header: "حالة الطلب", align: "center", minWidth: 16 },
+    { header: "الملاحظات", align: "right", minWidth: 30 },
+  ];
+
+  const rows = requests.map(req => {
+    const requesterName = req.applicantName?.trim() || req.contact?.name?.trim() || req.imamName?.trim() || "-";
+    const requesterPhone = req.applicantPhone?.trim() || req.contact?.phone?.trim() || req.imamPhone?.trim() || "-";
+    const dateValue = req.createdAt ? new Intl.DateTimeFormat("en-CA").format(new Date(req.createdAt)) : "-";
+    const notes = [
+      req.specialRequest ? `طلب خاص: ${req.specialRequest}` : "",
+      req.reviewNote ? `ملاحظة المراجعة: ${req.reviewNote}` : "",
+      req.contact?.reason ? `ملاحظة التسجيل: ${req.contact.reason}` : "",
+    ].filter(Boolean).join(" | ") || "-";
+
+    return [
+      `#${req.id}`,
+      dateValue,
+      req.mosqueName || "-",
+      requestGovernorate(req) || "-",
+      requestCity(req) || "-",
+      req.snapshot.district?.trim() || "-",
+      req.snapshot.address?.trim() || "-",
+      requesterName,
+      requesterPhone,
+      formatExcelQuantities(req.requested),
+      formatExcelQuantities(req.approved),
+      seasonalStatusLabels[req.status] ?? req.status,
+      notes,
+    ];
+  });
+
+  const dateTag = new Intl.DateTimeFormat("en-CA").format(new Date());
+  const yearTag = season?.hijriYear ? `_${season.hijriYear}` : "";
+
+  return {
+    sheetName: "طلبات الموسم",
+    fileName: `طلبات_برنامج_مواسم${yearTag}_${dateTag}.xlsx`,
+    columns,
+    rows,
+  };
+}
+
 const SERVICE_VISUALS: Record<
   SeasonalService,
   {
@@ -201,6 +269,7 @@ export default function MawasimStaff() {
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<RequestSort>("newest");
+  const [isExporting, setIsExporting] = useState(false);
 
   const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canView });
   const data = dashboard.data;
@@ -273,6 +342,25 @@ export default function MawasimStaff() {
   const enabledServicesCount = season
     ? seasonalServiceIds.filter(service => season.settings.services[service].enabled).length
     : 0;
+
+  async function handleExportExcel() {
+    if (isExporting || filteredRequests.length === 0) return;
+    setIsExporting(true);
+    try {
+      const payload = buildSeasonalExcelPayload(filteredRequests, season);
+      await exportStyledExcel({
+        ...payload,
+        includeIndex: true,
+        showTotalRow: false,
+      });
+      toast.success("تم تصدير ملف Excel بنجاح");
+    } catch (error) {
+      console.error("Failed to export seasonal requests:", error);
+      toast.error("حدث خطأ أثناء تصدير ملف Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   if (!canView) {
     return (
@@ -647,35 +735,53 @@ export default function MawasimStaff() {
                 </div>
 
                 {data.requests.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {([
-                      ["all", "الكل", data.requests.length],
-                      ["submitted", seasonalStatusLabels.submitted, requestStats.submitted],
-                      ["approved", seasonalStatusLabels.approved, requestStats.approved],
-                      ["rejected", seasonalStatusLabels.rejected, requestStats.rejected],
-                    ] as const).map(([key, label, count]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setStatusFilter(key)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
-                          statusFilter === key
-                            ? "border-primary bg-primary text-primary-foreground shadow-2xs"
-                            : "border-border/70 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
-                      >
-                        <span>{label}</span>
-                        <span
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {([
+                        ["all", "الكل", data.requests.length],
+                        ["submitted", seasonalStatusLabels.submitted, requestStats.submitted],
+                        ["approved", seasonalStatusLabels.approved, requestStats.approved],
+                        ["rejected", seasonalStatusLabels.rejected, requestStats.rejected],
+                      ] as const).map(([key, label, count]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setStatusFilter(key)}
                           className={cn(
-                            "rounded-full px-1.5 py-0.2 text-[10px] tabular-nums",
-                            statusFilter === key ? "bg-white/20 text-white" : "bg-muted text-foreground"
+                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+                            statusFilter === key
+                              ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                              : "border-border/70 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                           )}
                         >
-                          {count}
-                        </span>
-                      </button>
-                    ))}
+                          <span>{label}</span>
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 py-0.2 text-[10px] tabular-nums",
+                              statusFilter === key ? "bg-white/20 text-white" : "bg-muted text-foreground"
+                            )}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isExporting || filteredRequests.length === 0}
+                      onClick={handleExportExcel}
+                      className="h-8 gap-1.5 rounded-xl border-[#1a5f4a]/30 bg-transparent px-3 text-xs font-bold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] cursor-pointer"
+                    >
+                      {isExporting ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Download className="size-3.5" />
+                      )}
+                      <span dir="rtl">تصدير إلى Excel</span>
+                    </Button>
                   </div>
                 )}
               </div>
