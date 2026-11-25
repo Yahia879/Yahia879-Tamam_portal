@@ -21,6 +21,7 @@ import {
 } from "@shared/mawasim";
 import {
   AlertCircle,
+  ArrowUpDown,
   BarChart3,
   Building2,
   Calendar,
@@ -38,6 +39,7 @@ import {
   Plus,
   Ruler,
   Save,
+  Search,
   Settings2,
   Sparkles,
   User,
@@ -54,8 +56,66 @@ type Season = NonNullable<Dashboard["season"]>;
 type SeasonRequest = Dashboard["requests"][number];
 type RequestStatus = Exclude<SeasonRequest["status"], "scheduled" | "completed">;
 
+type RequestSort = "newest" | "governorate_asc" | "governorate_desc" | "city_asc" | "city_desc";
+
 function reviewStatus(status: SeasonRequest["status"]): RequestStatus {
   return status === "scheduled" || status === "completed" ? "approved" : status;
+}
+
+export function requestGovernorate(request: Pick<SeasonRequest, "governorate">): string {
+  return request.governorate?.trim() || "";
+}
+
+export function requestCity(request: Pick<SeasonRequest, "snapshot" | "mosqueCity">): string {
+  return request.snapshot.city?.trim() || request.mosqueCity?.trim() || "";
+}
+
+function compareTextWithEmptyLast(a: string, b: string, dir: 1 | -1): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a.localeCompare(b, "ar") * dir;
+}
+
+export function filterAndSortSeasonRequests<T extends SeasonRequest>(
+  list: T[],
+  options: {
+    statusFilter: "all" | RequestStatus;
+    governorateFilter: string;
+    cityFilter: string;
+    searchQuery: string;
+    sortBy: RequestSort;
+  },
+): T[] {
+  const term = options.searchQuery.trim().toLowerCase();
+  const filtered = list.filter(row => {
+    if (options.statusFilter !== "all" && reviewStatus(row.status) !== options.statusFilter) return false;
+    const gov = requestGovernorate(row);
+    const city = requestCity(row);
+    if (options.governorateFilter !== "all" && gov !== options.governorateFilter) return false;
+    if (options.cityFilter !== "all" && city !== options.cityFilter) return false;
+    if (term) {
+      const hay = `${row.id} ${row.mosqueName} ${gov} ${city} ${row.snapshot.district ?? ""}`.toLowerCase();
+      if (!hay.includes(term)) return false;
+    }
+    return true;
+  });
+
+  if (options.sortBy === "newest") return filtered;
+  const dir: 1 | -1 = options.sortBy.endsWith("_desc") ? -1 : 1;
+  const primaryGov = options.sortBy.startsWith("governorate_");
+
+  return [...filtered].sort((a, b) => {
+    const first = primaryGov
+      ? compareTextWithEmptyLast(requestGovernorate(a), requestGovernorate(b), dir)
+      : compareTextWithEmptyLast(requestCity(a), requestCity(b), dir);
+    if (first !== 0) return first;
+    const second = primaryGov
+      ? compareTextWithEmptyLast(requestCity(a), requestCity(b), dir)
+      : compareTextWithEmptyLast(requestGovernorate(a), requestGovernorate(b), dir);
+    if (second !== 0) return second;
+    return b.id - a.id;
+  });
 }
 
 const SERVICE_VISUALS: Record<
@@ -137,16 +197,53 @@ export default function MawasimStaff() {
   const [edit, setEdit] = useState<"new" | "saved">();
   const [expanded, setExpanded] = useState<number>();
   const [statusFilter, setStatusFilter] = useState<"all" | RequestStatus>("all");
+  const [governorateFilter, setGovernorateFilter] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<RequestSort>("newest");
 
   const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canView });
   const data = dashboard.data;
   const season = data?.season;
   const refresh = () => { void dashboard.refetch(); };
 
+  const governorateOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of data?.requests ?? []) {
+      const gov = requestGovernorate(row);
+      if (gov) set.add(gov);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [data?.requests]);
+
+  const effectiveGovernorate = governorateFilter === "all" || governorateOptions.includes(governorateFilter)
+    ? governorateFilter
+    : "all";
+
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of data?.requests ?? []) {
+      if (effectiveGovernorate !== "all" && requestGovernorate(row) !== effectiveGovernorate) continue;
+      const city = requestCity(row);
+      if (city) set.add(city);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [data?.requests, effectiveGovernorate]);
+
+  const effectiveCity = cityFilter === "all" || cityOptions.includes(cityFilter)
+    ? cityFilter
+    : "all";
+
+  const hasActiveFilters = statusFilter !== "all"
+    || effectiveGovernorate !== "all"
+    || effectiveCity !== "all"
+    || searchQuery.trim() !== ""
+    || sortBy !== "newest";
+
   const byLocation = useMemo(() => {
     const map = new Map<string, number>();
     for (const request of data?.requests ?? []) {
-      const location = request.snapshot.city + " · " + request.snapshot.district;
+      const location = [requestGovernorate(request), requestCity(request), request.snapshot.district].filter(Boolean).join(" · ");
       map.set(location, (map.get(location) ?? 0) + 1);
     }
     return map;
@@ -162,11 +259,16 @@ export default function MawasimStaff() {
     };
   }, [data?.requests]);
 
-  const filteredRequests = useMemo(() => {
-    const list = data?.requests ?? [];
-    if (statusFilter === "all") return list;
-    return list.filter(row => reviewStatus(row.status) === statusFilter);
-  }, [data?.requests, statusFilter]);
+  const filteredRequests = useMemo(
+    () => filterAndSortSeasonRequests(data?.requests ?? [], {
+      statusFilter,
+      governorateFilter: effectiveGovernorate,
+      cityFilter: effectiveCity,
+      searchQuery,
+      sortBy,
+    }),
+    [data?.requests, statusFilter, effectiveGovernorate, effectiveCity, searchQuery, sortBy],
+  );
 
   const enabledServicesCount = season
     ? seasonalServiceIds.filter(service => season.settings.services[service].enabled).length
@@ -578,6 +680,98 @@ export default function MawasimStaff() {
                 )}
               </div>
 
+              {data.requests.length > 0 && (
+                <div className="grid gap-2.5 rounded-2xl border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-12">
+                  <div className="relative lg:col-span-4">
+                    <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={event => setSearchQuery(event.target.value)}
+                      placeholder="ابحث باسم المسجد أو المحافظة أو المدينة..."
+                      className="h-9 rounded-xl bg-background pr-9 text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="lg:col-span-3">
+                    <Select
+                      value={effectiveGovernorate}
+                      onValueChange={val => {
+                        setGovernorateFilter(val);
+                        setCityFilter("all");
+                      }}
+                    >
+                      <SelectTrigger aria-label="تصفية حسب المحافظة" className="h-9 w-full rounded-xl bg-background text-xs">
+                        <SelectValue placeholder="كل المحافظات" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل المحافظات</SelectItem>
+                        {governorateOptions.map(gov => (
+                          <SelectItem key={gov} value={gov}>
+                            {gov}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="lg:col-span-2">
+                    <Select
+                      value={effectiveCity}
+                      onValueChange={setCityFilter}
+                    >
+                      <SelectTrigger aria-label="تصفية حسب المدينة" className="h-9 w-full rounded-xl bg-background text-xs">
+                        <SelectValue placeholder="كل المدن" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل المدن</SelectItem>
+                        {cityOptions.map(city => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className={cn(hasActiveFilters ? "lg:col-span-2" : "lg:col-span-3")}>
+                    <Select value={sortBy} onValueChange={val => setSortBy(val as RequestSort)}>
+                      <SelectTrigger aria-label="ترتيب الطلبات" className="h-9 w-full rounded-xl bg-background text-xs">
+                        <ArrowUpDown className="ml-1.5 size-3.5 shrink-0 text-muted-foreground" />
+                        <SelectValue placeholder="الترتيب" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">الأحدث أولاً</SelectItem>
+                        <SelectItem value="governorate_asc">المحافظة (أ - ي)</SelectItem>
+                        <SelectItem value="governorate_desc">المحافظة (ي - أ)</SelectItem>
+                        <SelectItem value="city_asc">المدينة (أ - ي)</SelectItem>
+                        <SelectItem value="city_desc">المدينة (ي - أ)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <div className="lg:col-span-1 flex items-center justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setGovernorateFilter("all");
+                          setCityFilter("all");
+                          setSearchQuery("");
+                          setSortBy("newest");
+                        }}
+                        className="h-9 w-full gap-1 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <X className="size-3.5" />
+                        <span>مسح</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {filteredRequests.length === 0 ? (
                 <Card className="border-dashed border-border/80 bg-card/60">
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -632,7 +826,7 @@ export default function MawasimStaff() {
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                   <span className="inline-flex items-center gap-1">
                                     <MapPin className="size-3.5 text-primary/70" />
-                                    {request.snapshot.city} · {request.snapshot.district}
+                                    {[requestGovernorate(request), requestCity(request), request.snapshot.district].filter(Boolean).join(" · ")}
                                   </span>
                                   <span className="inline-flex items-center gap-1">
                                     <Users className="size-3.5 text-primary/70" />
@@ -1093,7 +1287,7 @@ function RequestDetails({
             <span>بيانات الموقع والقياسات</span>
           </div>
           <p className="text-muted-foreground">
-            {request.snapshot.address} · {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
+            {[requestGovernorate(request), requestCity(request), request.snapshot.district, request.snapshot.address].filter(Boolean).join(" · ")} · {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
           </p>
           {men && (
             <>
