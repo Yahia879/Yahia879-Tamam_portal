@@ -46,6 +46,7 @@ vi.mock("@/lib/trpc", () => {
 
 let MawasimStaff: React.ComponentType;
 let filterAndSortSeasonRequests: any;
+let buildSeasonalExcelPayload: any;
 let Requests: React.ComponentType;
 let SeasonalRequestCreate: React.ComponentType;
 
@@ -54,6 +55,7 @@ beforeAll(async () => {
   const staffMod = await import("../client/src/pages/MawasimStaff");
   MawasimStaff = staffMod.default;
   filterAndSortSeasonRequests = staffMod.filterAndSortSeasonRequests;
+  buildSeasonalExcelPayload = staffMod.buildSeasonalExcelPayload;
   Requests = (await import("../client/src/pages/Requests")).default;
   SeasonalRequestCreate = (await import("../client/src/pages/SeasonalRequestCreate")).default;
 });
@@ -192,8 +194,29 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       expect(html).toContain("تصفية حسب المحافظة");
       expect(html).toContain("تصفية حسب المدينة");
       expect(html).toContain("ترتيب الطلبات");
+      expect(html).toContain("تصدير إلى Excel");
       expect(html).toContain("عسير · أبها · المنسك");
       expect(html).toContain("مكة المكرمة · جدة · الروضة");
+
+      const excelPayload = buildSeasonalExcelPayload(reqs, base.season);
+      expect(excelPayload.columns.map((c: any) => c.header)).toEqual([
+        "رقم الطلب",
+        "تاريخ الطلب",
+        "اسم المسجد",
+        "المحافظة",
+        "المدينة",
+        "الحي",
+        "العنوان",
+        "اسم مقدم الطلب / الإمام",
+        "رقم الجوال",
+        "الخدمات والكميات المطلوبة",
+        "الكميات المعتمدة",
+        "حالة الطلب",
+        "الملاحظات",
+      ]);
+      expect(excelPayload.rows[0]).toContain("0500000001");
+      expect(excelPayload.rows[0]).toContain("جامع الفاروق");
+      expect(excelPayload.rows[0]).toContain("عسير");
 
       expect(
         filterAndSortSeasonRequests(reqs, {
