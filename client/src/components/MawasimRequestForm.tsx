@@ -166,7 +166,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
   const carpetErrorId = useId();
   const pledgeErrorId = useId();
   const submit = trpc.mawasim.submit.useMutation({
-    onSuccess: result => { toast.success("تم تسجيل الطلب الموسمي رقم " + result.id); onSubmitted(); },
+    onSuccess: result => { toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id); onSubmitted(); },
     onError: error => toast.error(error.message),
   });
 
@@ -242,7 +242,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             <div>
               <CardTitle className="text-base font-bold">بيانات مسجد {mosque.name}</CardTitle>
               <CardDescription className="text-xs">
-                راجع بيانات المسجد التي سيستند إليها الطلب الموسمي
+                راجع بيانات المسجد التي سيستند إليها طلب برنامج مواسم
               </CardDescription>
             </div>
           </div>
@@ -496,7 +496,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
               className="h-11 gap-2 rounded-xl px-6 font-bold shadow-sm cursor-pointer"
             >
               {reading || submit.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              <span>{reading || submit.isPending ? "جارٍ الإرسال…" : "إرسال الطلب الموسمي"}</span>
+              <span>{reading || submit.isPending ? "جارٍ الإرسال…" : "إرسال طلب برنامج مواسم"}</span>
             </Button>
           </div>
         </CardContent>
