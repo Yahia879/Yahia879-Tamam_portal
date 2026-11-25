@@ -340,7 +340,7 @@ export default function Requests({
                 <Link href="/requests/seasonal" className="w-full sm:w-auto">
                   <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 shadow-sm font-bold border-0 transition-all whitespace-nowrap cursor-pointer">
                     <MoonStar className="w-4 h-4 text-emerald-100 shrink-0" />
-                    <span>{isEn ? "Seasonal Request" : "طلب موسمي"}</span>
+                    <span>{isEn ? "Seasonal Request" : "برنامج مواسم"}</span>
                   </Button>
                 </Link>
               </PermissionGuard>
