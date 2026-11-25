@@ -4,9 +4,9 @@ import { z } from "zod";
 import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
 import {
-  canManageMawasim, carpetArea, seasonalMosqueLimit,
+  carpetArea, mayApplyForSeason, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
-  seasonalSettingsSchema, summarizeSeasonalCapacity,
+  seasonalSettingsSchema, summarizeSeasonalCapacity, type SeasonalRequestLimits,
 } from "../../shared/mawasim";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -62,6 +62,42 @@ async function userCanView(user: NonNullable<TrpcContext["user"]>): Promise<bool
   return view || create || manage;
 }
 
+function linkedMosquesCondition(user: NonNullable<TrpcContext["user"]>) {
+  const conditions = [eq(mosques.registeredBy, user.id)];
+  if (user.email?.trim()) conditions.push(eq(mosques.imamEmail, user.email.trim()));
+  if (user.phone?.trim()) conditions.push(eq(mosques.imamPhone, user.phone.trim()));
+  return or(...conditions);
+}
+
+function mosqueLinkedToUser(
+  mosque: { registeredBy: number | null; imamEmail: string | null; imamPhone: string | null },
+  user: NonNullable<TrpcContext["user"]>,
+): boolean {
+  if (mosque.registeredBy === user.id) return true;
+  const email = user.email?.trim().toLowerCase();
+  if (email && mosque.imamEmail?.trim().toLowerCase() === email) return true;
+  const phone = user.phone?.trim();
+  if (phone && mosque.imamPhone?.trim() === phone) return true;
+  return false;
+}
+
+async function attachPreviousSnapshots<T extends { id: number }>(db: Db, rows: T[]) {
+  if (!rows.length) return rows.map(row => ({ ...row, previous: undefined }));
+  const saved = await db.select({
+    mosqueId: mawasimRequests.mosqueId,
+    snapshot: mawasimRequests.snapshot,
+  }).from(mawasimRequests).where(and(
+    inArray(mawasimRequests.mosqueId, rows.map(mosque => mosque.id)),
+    inArray(mawasimRequests.status, ["approved", "scheduled", "completed"]),
+  )).orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
+  return rows.map(mosque => {
+    const previous = saved.find(item => item.mosqueId === mosque.id)?.snapshot;
+    if (!previous || previous.men) return { ...mosque, previous };
+    const measurements = saved.find(item => item.mosqueId === mosque.id && item.snapshot.men)?.snapshot;
+    return { ...mosque, previous: measurements ? { ...previous, men: measurements.men, women: measurements.women } : previous };
+  });
+}
+
 const mawasimProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
   if (!(await userCanView(ctx.user))) denied();
@@ -96,8 +132,73 @@ const photo = z.string().max(4_194_330).regex(/^data:image\/(jpeg|png|webp);base
   }, "أرفق صورة JPG أو PNG أو WebP بحجم لا يتجاوز 3 ميجابايت.");
 
 export const mawasimRouter = router({
-  portal: protectedProcedure.input(seasonInput.optional()).query(async () => {
-    denied();
+  portal: protectedProcedure.input(seasonInput.optional()).query(async ({ input, ctx }) => {
+    const user = ctx.user;
+    if (user.role !== "service_requester" || user.deletedAt) denied();
+    const db = await database();
+    const seasons = await db.select().from(mawasimSeasons)
+      .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
+    const seasonSummaries = seasons.map(({ settings: _settings, ...rest }) => rest);
+    const hasOpenSeason = seasons.some(item => item.isOpen);
+    const allRequests = await db.select({
+      ...requestFields,
+      seasonTitle: mawasimSeasons.title,
+      hijriYear: mawasimSeasons.hijriYear,
+    }).from(mawasimRequests)
+      .innerJoin(mawasimSeasons, eq(mawasimSeasons.id, mawasimRequests.seasonId))
+      .where(or(eq(mawasimRequests.applicantId, user.id), eq(mawasimRequests.submittedBy, user.id)))
+      .orderBy(desc(mawasimRequests.id));
+    const choice = input
+      ? seasons.find(item => item.id === input.seasonId)
+      : seasons.find(item => item.isOpen) ?? seasons[0];
+    if (!choice) {
+      return { hasOpenSeason, seasons: seasonSummaries, season: null, eligible: [], requests: [], allRequests, capacity: [] };
+    }
+
+    const activeGrants = user.status === "active"
+      ? await db.select({ mosqueId: mawasimGrants.mosqueId }).from(mawasimGrants).where(and(
+          eq(mawasimGrants.seasonId, choice.id),
+          eq(mawasimGrants.userId, user.id),
+          eq(mawasimGrants.active, true),
+        ))
+      : [];
+    const canApplyViaOwnership = mayApplyForSeason(user, true, false);
+    const ownershipFilter = canApplyViaOwnership ? linkedMosquesCondition(user) : undefined;
+    const grantFilter = user.status === "active" && activeGrants.length > 0
+      ? inArray(mosques.id, activeGrants.map(grant => grant.mosqueId))
+      : undefined;
+    const eligibilityFilter = ownershipFilter && grantFilter
+      ? or(ownershipFilter, grantFilter)
+      : (ownershipFilter ?? grantFilter);
+    const registered = eligibilityFilter
+      ? await db.select(mosqueFields).from(mosques).where(and(approvedMosque, eligibilityFilter)).orderBy(mosques.name)
+      : [];
+    const eligible = await attachPreviousSnapshots(db, registered);
+    const requests = allRequests.filter(req => req.seasonId === choice.id);
+    const capacity = summarizeSeasonalCapacity(choice.settings, await usage(db, choice.id))
+      .map(({ service, available }) => ({ service, available }));
+    const { settings, ...seasonInfo } = choice;
+    const serviceLimits = Object.fromEntries(seasonalServiceIds.map(service => {
+      const { enabled, perMosqueLimit } = settings.services[service];
+      return [service, { enabled, perMosqueLimit }];
+    })) as SeasonalRequestLimits["services"];
+
+    return {
+      hasOpenSeason,
+      seasons: seasonSummaries,
+      season: {
+        ...seasonInfo,
+        settings: {
+          services: serviceLimits,
+          largeMosqueWorshippers: settings.largeMosqueWorshippers,
+          largeMosqueWaterLimit: settings.largeMosqueWaterLimit,
+        },
+      },
+      eligible,
+      requests,
+      allRequests,
+      capacity,
+    };
   }),
 
   staff: mawasimProcedure.input(seasonInput.optional()).query(async ({ input }) => {
@@ -131,19 +232,7 @@ export const mawasimRouter = router({
         like(mosques.district, "%" + term + "%"),
       ) : undefined,
     )).orderBy(mosques.name).limit(500);
-    if (!rows.length) return [];
-    const saved = await db.select({
-      mosqueId: mawasimRequests.mosqueId, snapshot: mawasimRequests.snapshot,
-    }).from(mawasimRequests).where(and(
-      inArray(mawasimRequests.mosqueId, rows.map(mosque => mosque.id)),
-      inArray(mawasimRequests.status, ["approved", "scheduled", "completed"]),
-    )).orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
-    return rows.map(mosque => {
-      const previous = saved.find(item => item.mosqueId === mosque.id)?.snapshot;
-      if (!previous || previous.men) return { ...mosque, previous };
-      const measurements = saved.find(item => item.mosqueId === mosque.id && item.snapshot.men)?.snapshot;
-      return { ...mosque, previous: measurements ? { ...previous, men: measurements.men, women: measurements.women } : previous };
-    });
+    return attachPreviousSnapshots(db, rows);
   }),
 
   photos: mawasimProcedure.input(requestInput).query(async ({ input }) => {
@@ -206,7 +295,7 @@ export const mawasimRouter = router({
     });
   }),
 
-  submit: mawasimProcedure.input(seasonInput.extend({
+  submit: protectedProcedure.input(seasonInput.extend({
     mosqueId: id, snapshot: seasonalMosqueSnapshotSchema, menPhoto: photo.optional(), womenPhoto: photo.optional(),
     requested: seasonalQuantitiesSchema, specialRequest: z.string().trim().max(2000).optional(),
     pledge: z.literal(true),
@@ -215,6 +304,13 @@ export const mawasimRouter = router({
       reason: z.string().trim().min(3).max(500), email: z.email().max(320).optional(),
     }).optional(),
   })).mutation(async ({ input, ctx }) => {
+    if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
+    const isRequester = ctx.user.role === "service_requester";
+    if (isRequester) {
+      if (input.onBehalf) denied();
+    } else if (!(await userCanView(ctx.user))) {
+      denied();
+    }
     const { onBehalf, snapshot, menPhoto, womenPhoto } = input;
     const carpet = input.requested.carpet ?? 0;
     if (carpet > 0) {
@@ -231,11 +327,25 @@ export const mawasimRouter = router({
       return await db.transaction(async tx => {
         const season = await lockedSeason(tx, input.seasonId);
         if (!season.isOpen) invalid("التسجيل لهذا الموسم مغلق.");
-        const [mosque] = await tx.select({ id: mosques.id, name: mosques.name })
-          .from(mosques).where(and(eq(mosques.id, input.mosqueId), approvedMosque));
+        const [mosque] = await tx.select({
+          id: mosques.id,
+          name: mosques.name,
+          registeredBy: mosques.registeredBy,
+          imamEmail: mosques.imamEmail,
+          imamPhone: mosques.imamPhone,
+        }).from(mosques).where(and(eq(mosques.id, input.mosqueId), approvedMosque));
         if (!mosque) invalid("اختر مسجدًا معتمدًا.");
-        let applicantId: number | null = null;
-        if (onBehalf?.email) {
+        let applicantId: number | null = isRequester ? ctx.user.id : null;
+        if (isRequester) {
+          const ownsMosque = mosqueLinkedToUser(mosque, ctx.user);
+          const [grant] = await tx.select({ id: mawasimGrants.id }).from(mawasimGrants).where(and(
+            eq(mawasimGrants.seasonId, season.id),
+            eq(mawasimGrants.mosqueId, mosque.id),
+            eq(mawasimGrants.userId, ctx.user.id),
+            eq(mawasimGrants.active, true),
+          ));
+          if (!mayApplyForSeason(ctx.user, ownsMosque, Boolean(grant))) denied();
+        } else if (onBehalf?.email) {
           const [applicant] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, onBehalf.email),
             eq(users.role, "service_requester"), eq(users.status, "active"), isNull(users.deletedAt)));
           if (!applicant) invalid("لم يُعثر على حساب مستفيد نشط بهذا البريد.");
