@@ -117,6 +117,9 @@ function buildPortalPayload(open: boolean) {
             city: "المدينة",
             district: "العوالي",
             address: "شارع الملك فهد",
+            capacity: 280,
+            area: "450.00",
+            hasPrayerHall: true,
             previous: null,
           },
         ]
@@ -198,12 +201,18 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(dashClosed).not.toContain('href="/requester/mawasim"');
   });
 
-  it("binds the requester's linked mosque automatically on MawasimPortal without mosque search", () => {
+  it("binds the requester's linked mosque automatically on MawasimPortal with editable pre-filled fields", () => {
     state.location = "/requester/mawasim";
     const html = renderToStaticMarkup(<MawasimPortal />);
     expect(html).toContain("برنامج مواسم");
     expect(html).toContain("مسجد النور");
     expect(html).toContain("طلباتي في برنامج مواسم");
+    expect(html).toContain('value="المدينة"');
+    expect(html).toContain('value="العوالي"');
+    expect(html).toContain('value="شارع الملك فهد"');
+    expect(html).toContain('value="280"');
+    expect(html).toContain("المساحة المسجلة:");
+    expect(html).not.toContain("readonly");
     expect(html).not.toContain("ابحث باسم المسجد");
   });
 
