@@ -19,7 +19,7 @@ const requestInput = z.object({ seasonId: id, requestId: id });
 const approvedMosque = eq(mosques.approvalStatus, "approved");
 const mosqueFields = {
   id: mosques.id, name: mosques.name, city: mosques.city, district: mosques.district,
-  address: mosques.address, capacity: mosques.capacity,
+  address: mosques.address, capacity: mosques.capacity, area: mosques.area, hasPrayerHall: mosques.hasPrayerHall,
 };
 const { menPhoto, womenPhoto, ...requestFields } = getTableColumns(mawasimRequests);
 const usageFields = {
@@ -437,6 +437,12 @@ export const mawasimRouter = router({
         const [mosque] = await tx.select({
           id: mosques.id,
           name: mosques.name,
+          city: mosques.city,
+          district: mosques.district,
+          address: mosques.address,
+          capacity: mosques.capacity,
+          area: mosques.area,
+          hasPrayerHall: mosques.hasPrayerHall,
           registeredBy: mosques.registeredBy,
           imamName: mosques.imamName,
           imamEmail: mosques.imamEmail,
@@ -477,16 +483,16 @@ export const mawasimRouter = router({
         if (!selected) invalid("اختر خدمة واحدة على الأقل.");
         const fallbackContact = resolvedRequester
           ? {
-              name: resolvedRequester.name,
-              phone: resolvedRequester.phone ?? mosque.imamPhone ?? "",
-              email: resolvedRequester.email ?? mosque.imamEmail,
-            }
+            name: resolvedRequester.name,
+            phone: resolvedRequester.phone ?? mosque.imamPhone ?? "",
+            email: resolvedRequester.email ?? mosque.imamEmail,
+          }
           : mosque.imamName?.trim() || mosque.imamPhone?.trim() || mosque.imamEmail?.trim()
             ? {
-                name: mosque.imamName?.trim() || mosque.name,
-                phone: mosque.imamPhone ?? "",
-                email: mosque.imamEmail,
-              }
+              name: mosque.imamName?.trim() || mosque.name,
+              phone: mosque.imamPhone ?? "",
+              email: mosque.imamEmail,
+            }
             : { name: ctx.user.name, phone: ctx.user.phone ?? "", email: ctx.user.email };
         const [created] = await tx.insert(mawasimRequests).values({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
@@ -495,6 +501,22 @@ export const mawasimRouter = router({
           requested: input.requested, specialRequest: input.specialRequest,
           contact: onBehalf ?? fallbackContact,
         }).$returningId();
+
+        // مزامنة بيانات المسجد الأساسية مع التعديلات المدخلة في النموذج
+        const mosqueUpdates: Partial<typeof mosques.$inferInsert> = {};
+        if (snapshot.city !== mosque.city) mosqueUpdates.city = snapshot.city;
+        if (snapshot.district !== (mosque.district ?? "")) mosqueUpdates.district = snapshot.district;
+        if (snapshot.address !== (mosque.address ?? "")) mosqueUpdates.address = snapshot.address;
+        if (snapshot.worshippers !== mosque.capacity) mosqueUpdates.capacity = snapshot.worshippers;
+        if (carpet > 0) {
+          const hasWomenHall = Boolean(snapshot.women);
+          if (hasWomenHall && !mosque.hasPrayerHall) mosqueUpdates.hasPrayerHall = true;
+          if (!mosque.area) mosqueUpdates.area = (carpet / seasonalServices.carpet.scale).toFixed(2);
+        }
+        if (Object.keys(mosqueUpdates).length > 0) {
+          await tx.update(mosques).set(mosqueUpdates).where(eq(mosques.id, mosque.id));
+        }
+
         return created;
       });
     } catch (error) {
