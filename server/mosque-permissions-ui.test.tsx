@@ -263,4 +263,20 @@ describe("mosque map permission controls", () => {
     expect(state.queries.find(q => q.path === "mosques.search")?.enabled).toBe(false);
     expect(renderToStaticMarkup(<PermissionRouteGuard><span>Authorized map</span></PermissionRouteGuard>)).not.toContain("Authorized map");
   });
+
+  it("displays saved seasonal prayer hall dimensions inside MosqueDetails", () => {
+    state.permissions = ["mosques.view_details"];
+    state.data["mosques.getById"] = {
+      ...state.data["mosques.getById"],
+      prayerHallDimensions: {
+        men: { lengthCm: 2000, widthCm: 1500 },
+        women: { lengthCm: 800, widthCm: 500 },
+      },
+    };
+    const html = renderToStaticMarkup(<MosqueDetails />);
+    expect(html).toContain("قياسات مصلى الرجال (الطول × العرض)");
+    expect(html).toContain("20 م × 15 م");
+    expect(html).toContain("قياسات مصلى النساء (الطول × العرض)");
+    expect(html).toContain("8 م × 5 م");
+  });
 });
