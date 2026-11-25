@@ -15,6 +15,7 @@ import {
   XCircle,
   AlertCircle,
   Sparkles,
+  MoonStar,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -78,6 +79,10 @@ export default function RequesterDashboard() {
   const { data: sedanaInquiry } = trpc.sedanaInquiries.getMyInquiryStatus.useQuery(undefined, {
     enabled: !!user,
   });
+  // جلب بيانات برنامج مواسم للمستفيد
+  const { data: mawasimPortal } = trpc.mawasim.portal.useQuery(undefined, {
+    enabled: !!user && user.role === "service_requester",
+  });
 
   const myRequests = Array.isArray(myRequestsData)
     ? myRequestsData
@@ -135,6 +140,39 @@ export default function RequesterDashboard() {
               </AlertDescription>
             </div>
           </Alert>
+        </div>
+      )}
+
+      {/* بطاقة بوابة برنامج مواسم عند وجود موسم متاح للتسجيل */}
+      {mawasimPortal?.hasOpenSeason && (
+        <div className="mb-6 sm:mb-8 dir-rtl">
+          <div className="rounded-2xl p-4 sm:p-5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                <MoonStar className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                    متاح للتسجيل
+                  </span>
+                  <h3 className="font-bold text-sm sm:text-base text-foreground">
+                    {mawasimPortal.season?.isOpen ? mawasimPortal.season.title : "برنامج مواسم"}
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  يمكنك الآن تقديم طلب تأهيل مسجدك ضمن الخدمات الرمضانية المتاحة في برنامج مواسم.
+                </p>
+              </div>
+            </div>
+            <Link href="/requester/mawasim">
+              <Button className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-xs shrink-0">
+                <MoonStar className="w-4 h-4" />
+                <span>برنامج مواسم</span>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       )}
 
