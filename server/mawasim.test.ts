@@ -161,7 +161,7 @@ describe("Mawasim access and submission", () => {
     await expect(api.submit({ ...submission, pledge: false as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("requires men\u2019s prayer hall measurements and a photo for carpet cleaning", async () => {
+  it("requires men\u2019s prayer hall measurements for carpet cleaning without requiring photos", async () => {
     const api = caller("super_admin");
     const carpet = { ...submission, requested: { carpet: carpetArea(men) } };
     await expect(api.submit(carpet)).rejects.toMatchObject({
@@ -169,9 +169,6 @@ describe("Mawasim access and submission", () => {
     });
     const measured = { ...carpet, snapshot: { ...submission.snapshot, men } };
     await expect(api.submit(measured)).rejects.toMatchObject({
-      code: "BAD_REQUEST", message: "أرفق صورة مصلى الرجال لطلب غسيل الفرش.",
-    });
-    await expect(api.submit({ ...measured, menPhoto: "data:image/jpeg;base64,/9j/" })).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
     });
   });
