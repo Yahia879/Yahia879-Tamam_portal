@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, getTableColumns, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { z } from "zod";
 import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
@@ -174,7 +175,7 @@ async function attachPreviousSnapshots<T extends { id: number }>(db: Db, rows: T
     snapshot: mawasimRequests.snapshot,
   }).from(mawasimRequests).where(and(
     inArray(mawasimRequests.mosqueId, rows.map(mosque => mosque.id)),
-    inArray(mawasimRequests.status, ["approved", "scheduled", "completed"]),
+    inArray(mawasimRequests.status, ["submitted", "approved", "scheduled", "completed"]),
   )).orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
   return rows.map(mosque => {
     const previous = saved.find(item => item.mosqueId === mosque.id)?.snapshot;
@@ -304,14 +305,20 @@ export const mawasimRouter = router({
       .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
     const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
     if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [] };
+    const applicantUsers = alias(users, "applicantUser");
     const requests = await db.select({
       ...requestFields,
       assignee: users.name,
+      applicantName: applicantUsers.name,
+      applicantPhone: applicantUsers.phone,
       governorate: mosques.governorate,
       mosqueCity: mosques.city,
+      imamName: mosques.imamName,
+      imamPhone: mosques.imamPhone,
       hasPhotos: sql<boolean>`(${mawasimRequests.menPhoto} IS NOT NULL OR ${mawasimRequests.womenPhoto} IS NOT NULL)`,
     }).from(mawasimRequests)
       .leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
+      .leftJoin(applicantUsers, eq(applicantUsers.id, mawasimRequests.applicantId))
       .leftJoin(mosques, eq(mosques.id, mawasimRequests.mosqueId))
       .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
     const capacity = summarizeSeasonalCapacity(season.settings, requests);
