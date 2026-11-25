@@ -640,6 +640,7 @@ export const EXEMPT_ROUTES = new Set([
 export const REQUESTER_ROUTES = new Set([
   "/requester",
   "/requester/dashboard",
+  "/requester/mawasim",
   "/requester/evaluations",
   "/my-mosques",
   "/requester/mosques/new",
@@ -690,7 +691,7 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
-  if (pathname.replace(/\/$/, "") === "/requester/mawasim") return false;
+  if (pathname.replace(/\/$/, "") === "/requester/mawasim") return userRole === "service_requester";
   if (["/mawasim", "/requests/seasonal"].includes(pathname.replace(/\/$/, ""))) return canViewMawasim(userRole, userPermissions);
   if (pathname.replace(/\/$/, "") === "/board-executive") {
     return userPermissions.includes("board_chairman");
