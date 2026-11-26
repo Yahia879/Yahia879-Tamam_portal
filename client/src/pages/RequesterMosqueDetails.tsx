@@ -395,7 +395,7 @@ export default function RequesterMosqueDetails() {
                       <span>المساحة (م²)</span>
                     </label>
                     <Input
-                      value={extractedWomenArea ? `${extractedWomenArea} م²` : prayerHallDimensions?.women ? `${((prayerHallDimensions.women.lengthCm * prayerHallDimensions.women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²` : "غير محدد"}
+                      value={prayerHallDimensions?.women ? `${((prayerHallDimensions.women.lengthCm * prayerHallDimensions.women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²` : extractedWomenArea ? `${extractedWomenArea} م²` : "غير محدد"}
                       readOnly
                       disabled
                       className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 font-bold text-foreground cursor-default"

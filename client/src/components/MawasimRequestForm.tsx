@@ -1,4 +1,5 @@
 import { useId, useState, type ComponentProps, type FormEvent, type ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,8 @@ import {
 export type MawasimMosque = {
   id: number; name: string; city: string; district: string | null; address: string | null;
   capacity: number | null; area?: string | number | null; hasPrayerHall?: boolean | null;
+  menLengthCm?: number | null; menWidthCm?: number | null;
+  womenLengthCm?: number | null; womenWidthCm?: number | null;
   previous?: SeasonalMosqueSnapshot;
   linkedRequester?: { id: number; name: string; email: string | null; phone: string | null; requesterType: string | null } | null;
 };
@@ -49,6 +52,9 @@ export function MawasimField({ label, children }: { label: string; children: Rea
 export function displayQuantity(service: SeasonalService, quantity: number) {
   return (quantity / seasonalServices[service].scale).toLocaleString("ar-SA", { maximumFractionDigits: 2 });
 }
+
+export const SEASONAL_PRE_SUBMIT_NOTICE =
+  "نؤكد على أن التسجيل الحالي لحصر الاحتياج فقط، وسيتم التواصل معكم بعد اكتمال الدعم واكتمال الشروط والمعايير.";
 
 export const SEASONAL_SUBMISSION_NOTICE =
   "تم تسجيل طلبكم ونؤكد على أن التسجيل الحالي لحصر الاحتياج فقط وسيتم التواصل معكم بعد اكتمال الدعم واكتمال الشروط والمعايير";
@@ -84,13 +90,20 @@ function measurementErrors({ lengthCm, widthCm }: Measurements) {
   };
 }
 
-function PrayerMeasurements({ label, value, errors, onChange }: {
+export function PrayerMeasurements({ label, value, fallbackArea, errors, onChange }: {
   label: string;
   value: Measurements;
+  fallbackArea?: string | number | null;
   errors?: ReturnType<typeof measurementErrors>;
   onChange: (value: Measurements) => void;
 }) {
-  const areaSqM = value.lengthCm && value.widthCm ? ((value.lengthCm * value.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 }) : null;
+  const numericFallback = fallbackArea !== null && fallbackArea !== undefined ? Number(fallbackArea) : 0;
+  const areaSqM = value.lengthCm && value.widthCm
+    ? ((value.lengthCm * value.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })
+    : numericFallback > 0
+      ? numericFallback.toLocaleString("ar-SA", { maximumFractionDigits: 2 })
+      : "";
+  const isMissingDimensions = !value.lengthCm || !value.widthCm;
   return (
     <fieldset className="rounded-xl border border-border/60 bg-muted/20 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -98,13 +111,8 @@ function PrayerMeasurements({ label, value, errors, onChange }: {
           <Ruler className="size-4 text-primary" />
           {label}
         </legend>
-        {areaSqM && (
-          <Badge variant="outline" className="rounded-md bg-background text-xs font-semibold text-primary">
-            المساحة: {areaSqM} م²
-          </Badge>
-        )}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <RequestInput
           label="الطول بالمتر"
           error={errors?.lengthCm}
@@ -131,7 +139,22 @@ function PrayerMeasurements({ label, value, errors, onChange }: {
           value={value.widthCm ? value.widthCm / 100 : ""}
           onChange={event => onChange({ ...value, widthCm: Math.round(Number(event.target.value) * 100) })}
         />
+        <MawasimField label="المساحة (م²)">
+          <Input
+            type="text"
+            readOnly
+            tabIndex={-1}
+            placeholder="تُحسب تلقائياً"
+            className="h-9 rounded-lg bg-muted/50 font-semibold text-primary tabular-nums cursor-default"
+            value={areaSqM ? `${areaSqM} م²` : ""}
+          />
+        </MawasimField>
       </div>
+      {isMissingDimensions && (
+        <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+          يرجى تعبئة الطول بالمتر والعرض بالمتر لحساب المساحة تلقائياً.
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -145,20 +168,34 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
   onSubmitted: () => void;
 }) {
   const previous = mosque.previous;
+  const savedMen = mosque.menLengthCm && mosque.menWidthCm
+    ? { lengthCm: mosque.menLengthCm, widthCm: mosque.menWidthCm }
+    : null;
+  const savedWomen = mosque.womenLengthCm && mosque.womenWidthCm
+    ? { lengthCm: mosque.womenLengthCm, widthCm: mosque.womenWidthCm }
+    : null;
   const [snapshot, setSnapshot] = useState<SeasonalMosqueSnapshot>({
     city: previous?.city?.trim() || mosque.city || "",
     district: previous?.district?.trim() || mosque.district || "",
     address: previous?.address?.trim() || mosque.address || "",
     worshippers: previous?.worshippers || mosque.capacity || 0,
-    men: previous?.men ?? emptyMeasurements,
-    women: previous?.women ?? (mosque.hasPrayerHall ? emptyMeasurements : null),
+    men: previous?.men ?? savedMen ?? emptyMeasurements,
+    women: previous?.women ?? savedWomen ?? (mosque.hasPrayerHall ? emptyMeasurements : null),
   });
   const [requested, setRequested] = useState<SeasonalQuantities>({});
   const [specialRequest, setSpecialRequest] = useState("");
   const [pledge, setPledge] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
-  const [ceilingConfirm, setCeilingConfirm] = useState<{
-    requestId: number;
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    payload: {
+      seasonId: number;
+      mosqueId: number;
+      snapshot: SeasonalMosqueSnapshot;
+      requested: SeasonalQuantities;
+      specialRequest: string;
+      pledge: true;
+    };
+    selectedItems: { service: SeasonalService; label: string; unit: string; requested: number }[];
     exceeded: { service: SeasonalService; label: string; unit: string; requested: number; ceiling: number }[];
   } | null>(null);
   const waterErrorId = useId();
@@ -211,6 +248,14 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       requestAnimationFrame(() => form.querySelector<HTMLElement>("[aria-invalid=true], [data-service-error]")?.focus());
       return;
     }
+    const selectedItems = enabledServices
+      .filter(service => serviceCurrentAmount(service) > 0)
+      .map(service => ({
+        service,
+        label: seasonalServices[service].label,
+        unit: seasonalServices[service].unit,
+        requested: serviceCurrentAmount(service),
+      }));
     const exceeded = enabledServices
       .filter(isExceedingCeiling)
       .map(service => ({
@@ -220,17 +265,32 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
         requested: serviceCurrentAmount(service),
         ceiling: mosqueCeiling(service),
       }));
-    try {
-      const result = await submit.mutateAsync({
-        seasonId: season.id, mosqueId: mosque.id,
+
+    // Defer backend submission until the user confirms inside the pre-submit alert dialog.
+    setPendingConfirm({
+      payload: {
+        seasonId: season.id,
+        mosqueId: mosque.id,
         snapshot: carpetRequested ? snapshot : { ...snapshot, men: null, women: null },
         requested: { ...requested, carpet: carpetRequested ? area : 0 },
-        specialRequest, pledge: true,
+        specialRequest,
+        pledge: true,
+      },
+      selectedItems,
+      exceeded,
+    });
+  }
+
+  async function handleConfirmSubmit() {
+    if (!pendingConfirm || submit.isPending) return;
+    try {
+      const result = await submit.mutateAsync(pendingConfirm.payload);
+      await Promise.all([utils.mawasim.invalidate(), utils.mosques.invalidate()]);
+      toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id, {
+        description: SEASONAL_SUBMISSION_NOTICE,
       });
-      void utils.mawasim.invalidate();
-      void utils.mosques.invalidate();
-      toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id);
-      setCeilingConfirm({ requestId: result.id, exceeded });
+      setPendingConfirm(null);
+      onSubmitted();
     } catch {
       /* Mutation onError displays the server error. */
     }
@@ -326,18 +386,15 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                 const ceiling = mosqueCeiling(service);
                 const selected = Boolean(requested[service]);
                 const disabled = available === 0 && !selected;
-                const exceedsCeiling = isExceedingCeiling(service);
 
                 return (
                   <div
                     key={service}
                     className={cn(
                       "space-y-2.5 rounded-xl border p-4 transition-all",
-                      exceedsCeiling
-                        ? "border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/15"
-                        : selected
-                          ? "border-primary/50 bg-primary/5 shadow-2xs"
-                          : "border-border/60 bg-background hover:border-border"
+                      selected
+                        ? "border-primary/50 bg-primary/5 shadow-2xs"
+                        : "border-border/60 bg-background hover:border-border"
                     )}
                   >
                     {service === "water" ? (
@@ -393,17 +450,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                         "السعة غير متاحة حاليًا"
                       )}
                     </p>
-                    {exceedsCeiling && (
-                      <div
-                        role="status"
-                        className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-                      >
-                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <span>
-                          سيتم تسجيل طلبكم بالكمية المطلوبة، علمًا أن الحد الأقصى المسموح به للمسجد هو {displayQuantity(service, ceiling)} {meta.unit}.
-                        </span>
-                      </div>
-                    )}
                     {service === "carpet" && <FieldError id={carpetErrorId} message={showErrors ? errors.carpet : undefined} />}
                   </div>
                 );
@@ -443,20 +489,10 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            {isExceedingCeiling("carpet") && (
-              <div
-                role="status"
-                className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-              >
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>
-                  سيتم تسجيل طلبكم بالمساحة الفعلية ({displayQuantity("carpet", area)} م²)، علمًا أن الحد الأقصى المسموح به للمسجد هو {displayQuantity("carpet", mosqueCeiling("carpet"))} م².
-                </span>
-              </div>
-            )}
             <PrayerMeasurements
               label="مصلى الرجال"
               value={men}
+              fallbackArea={mosque.area}
               errors={showErrors ? menErrors : undefined}
               onChange={value => setSnapshotValue("men", value)}
             />
@@ -469,7 +505,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
               <Switch
                 checked={Boolean(snapshot.women)}
                 onCheckedChange={checked => {
-                  setSnapshotValue("women", checked ? previous?.women ?? emptyMeasurements : null);
+                  setSnapshotValue("women", checked ? previous?.women ?? savedWomen ?? emptyMeasurements : null);
                 }}
                 aria-label="يوجد مصلى نساء"
                 className="cursor-pointer"
@@ -525,52 +561,87 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       </Card>
 
       <Dialog
-        open={Boolean(ceilingConfirm)}
+        open={Boolean(pendingConfirm)}
         onOpenChange={open => {
-          if (!open && ceilingConfirm) {
-            setCeilingConfirm(null);
-            onSubmitted();
+          if (!open && !submit.isPending) {
+            setPendingConfirm(null);
           }
         }}
       >
-        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl">
-          <DialogHeader className="text-right space-y-2">
-            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-              <span>تم تسجيل طلبكم بنجاح {ceilingConfirm ? `(#${ceilingConfirm.requestId})` : ""}</span>
+        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl p-6 text-right">
+          <DialogHeader className="items-start space-y-2 ps-8 text-right sm:text-right">
+            <DialogTitle className="flex w-full items-center justify-start gap-2.5 text-right text-base sm:text-lg font-extrabold text-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                <AlertTriangle className="size-5" />
+              </span>
+              <span>تنبيه وتأكيد قبل إرسال الطلب</span>
             </DialogTitle>
-            <DialogDescription className="text-sm text-foreground/90 font-medium leading-relaxed">
-              {SEASONAL_SUBMISSION_NOTICE}
+            <DialogDescription className="w-full text-right text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              يرجى قراءة التنبيه ومراجعة بيانات طلب مسجد <strong className="text-foreground">{mosque.name}</strong> قبل التأكيد النهائي.
             </DialogDescription>
           </DialogHeader>
 
-          {ceilingConfirm && ceilingConfirm.exceeded.length > 0 && (
-            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+          <Alert className="rounded-xl border-amber-300 bg-amber-50/90 text-right text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/35 dark:text-amber-100">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-right text-sm font-bold text-amber-900 dark:text-amber-200">
+              تنبيه هام حول التسجيل
+            </AlertTitle>
+            <AlertDescription className="text-right text-xs sm:text-sm leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+              {SEASONAL_PRE_SUBMIT_NOTICE}
+            </AlertDescription>
+          </Alert>
+
+          {pendingConfirm && pendingConfirm.selectedItems.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3.5 text-right text-xs">
+              <p className="font-bold text-foreground">ملخص الخدمات المطلوبة:</p>
+              <div className="space-y-1.5">
+                {pendingConfirm.selectedItems.map(item => (
+                  <div key={item.service} className="flex flex-wrap items-center justify-start gap-2 text-right text-muted-foreground">
+                    <span className="font-medium text-foreground">{item.label}:</span>
+                    <span className="font-bold text-primary tabular-nums">
+                      {displayQuantity(item.service, item.requested)} {item.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pendingConfirm && pendingConfirm.exceeded.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-right text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
               <p className="font-semibold">
                 علمًا أن الحد الأقصى المسموح به للمسجد للخدمات التالية هو:
               </p>
-              {ceilingConfirm.exceeded.map(item => (
-                <div key={item.service} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-bold">{item.label}</span>
+              {pendingConfirm.exceeded.map(item => (
+                <div key={item.service} className="flex flex-wrap items-center justify-start gap-x-2 gap-y-1 text-right">
+                  <span className="font-bold">{item.label}:</span>
                   <span>
-                    المطلوب: <strong>{displayQuantity(item.service, item.requested)} {item.unit}</strong> · الحد الأقصى للمسجد:{" "}
-                    <strong>{displayQuantity(item.service, item.ceiling)} {item.unit}</strong>
+                    المطلوب: <strong className="tabular-nums">{displayQuantity(item.service, item.requested)} {item.unit}</strong> · الحد الأقصى للمسجد:{" "}
+                    <strong className="tabular-nums">{displayQuantity(item.service, item.ceiling)} {item.unit}</strong>
                   </span>
                 </div>
               ))}
             </div>
           )}
 
-          <DialogFooter className="sm:justify-end">
+          <DialogFooter className="flex-row flex-wrap items-center justify-start sm:justify-start gap-2 pt-2">
             <Button
               type="button"
-              onClick={() => {
-                setCeilingConfirm(null);
-                onSubmitted();
-              }}
-              className="rounded-xl font-bold cursor-pointer"
+              disabled={submit.isPending}
+              onClick={() => void handleConfirmSubmit()}
+              className="gap-2 rounded-xl font-bold shadow-sm cursor-pointer"
             >
-              حسناً، المتابعة
+              {submit.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              <span>{submit.isPending ? "جارٍ إرسال الطلب…" : "تأكيد وإرسال الطلب"}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submit.isPending}
+              onClick={() => setPendingConfirm(null)}
+              className="rounded-xl font-semibold cursor-pointer"
+            >
+              مراجعة وتعديل
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -527,6 +527,51 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // إضافة أعمدة أبعاد المسجد ومصلى النساء في جدول mosques إن لم تكن موجودة
+    const [mosqueDimCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM mosques");
+    const mosqueDimNames = new Set(Array.isArray(mosqueDimCols) ? mosqueDimCols.map((c: any) => c.Field) : []);
+    if (!mosqueDimNames.has("menLengthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN menLengthCm INT NULL");
+    if (!mosqueDimNames.has("menWidthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN menWidthCm INT NULL");
+    if (!mosqueDimNames.has("womenLengthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN womenLengthCm INT NULL");
+    if (!mosqueDimNames.has("womenWidthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN womenWidthCm INT NULL");
+
+    // إنشاء جدول استثناءات برنامج مواسم وتحديث فهرس الموسم/المسجد ليدعم الاستثناءات المعتمدة
+    await promisePool.query(`
+      CREATE TABLE IF NOT EXISTS mawasim_exceptions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        activeRequestId INT NULL,
+        consumedByRequestId INT NULL,
+        reason TEXT NOT NULL,
+        attachment VARCHAR(500) NULL,
+        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        reviewedBy INT NULL,
+        reviewedAt TIMESTAMP NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX mawasim_exception_user (userId, status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    try {
+      // يجب إنشاء الفهرس غير الفريد أولاً لأن InnoDB يعتمد على عمود seasonId في المفتاح الأجنبي قبل حذف الفهرس الفريد القديم
+      const [newIdxRows] = await promisePool.query<mysql.RowDataPacket[]>(
+        "SHOW INDEX FROM mawasim_requests WHERE Key_name = 'mawasim_season_mosque_idx'",
+      );
+      if (!Array.isArray(newIdxRows) || newIdxRows.length === 0) {
+        await promisePool.query(
+          "ALTER TABLE mawasim_requests ADD INDEX mawasim_season_mosque_idx (seasonId, mosqueId)",
+        );
+      }
+      const [idxRows] = await promisePool.query<mysql.RowDataPacket[]>(
+        "SHOW INDEX FROM mawasim_requests WHERE Key_name = 'mawasim_season_mosque'",
+      );
+      if (Array.isArray(idxRows) && idxRows.length > 0 && Number(idxRows[0].Non_unique) === 0) {
+        await promisePool.query("ALTER TABLE mawasim_requests DROP INDEX mawasim_season_mosque");
+      }
+    } catch (idxErr) {
+      console.warn("[Database] mawasim_requests index update warning:", idxErr);
+    }
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);

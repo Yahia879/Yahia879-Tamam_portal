@@ -222,8 +222,8 @@ export default function MosqueDetails() {
                         <p className="font-medium text-sm sm:text-base break-words mt-0.5">{mosque.district || "-"}</p>
                       </div>
                       <div className="p-3 bg-muted/50 rounded-lg min-w-0">
-                        <p className="text-xs sm:text-sm text-muted-foreground">المنطقة</p>
-                        <p className="font-medium text-sm sm:text-base break-words mt-0.5">{mosque.area || "-"}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">المساحة (م²)</p>
+                        <p className="font-medium text-sm sm:text-base break-words mt-0.5 tabular-nums">{mosque.area ? `${mosque.area} م²` : "-"}</p>
                       </div>
                       <div className="p-3 bg-muted/50 rounded-lg min-w-0">
                         <p className="text-xs sm:text-sm text-muted-foreground">تاريخ التسجيل</p>
@@ -238,28 +238,59 @@ export default function MosqueDetails() {
                       </div>
                     )}
 
-                    {(mosque as any).prayerHallDimensions?.men && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="p-3 bg-muted/50 rounded-lg min-w-0">
-                          <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى الرجال (الطول × العرض)</p>
-                          <p className="font-medium text-sm sm:text-base mt-0.5 tabular-nums">
-                            {(mosque as any).prayerHallDimensions.men.lengthCm / 100} م × {(mosque as any).prayerHallDimensions.men.widthCm / 100} م
-                            {" · "}
-                            {(((mosque as any).prayerHallDimensions.men.lengthCm * (mosque as any).prayerHallDimensions.men.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
-                          </p>
-                        </div>
-                        {(mosque as any).prayerHallDimensions?.women && (
-                          <div className="p-3 bg-muted/50 rounded-lg min-w-0">
-                            <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى النساء (الطول × العرض)</p>
-                            <p className="font-medium text-sm sm:text-base mt-0.5 tabular-nums">
-                              {(mosque as any).prayerHallDimensions.women.lengthCm / 100} م × {(mosque as any).prayerHallDimensions.women.widthCm / 100} م
-                              {" · "}
-                              {(((mosque as any).prayerHallDimensions.women.lengthCm * (mosque as any).prayerHallDimensions.women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
-                            </p>
+                    {(() => {
+                      const dims = (mosque as any).prayerHallDimensions as {
+                        men?: { lengthCm: number; widthCm: number } | null;
+                        women?: { lengthCm: number; widthCm: number } | null;
+                      } | null | undefined;
+                      const men = dims?.men;
+                      const women = dims?.women;
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                          <div className="p-3 bg-muted/50 rounded-lg min-w-0 space-y-1">
+                            <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى الرجال (الطول × العرض)</p>
+                            {men ? (
+                              <>
+                                <p className="font-medium text-sm sm:text-base tabular-nums">
+                                  {men.lengthCm / 100} م × {men.widthCm / 100} م
+                                  {" · "}
+                                  {((men.lengthCm * men.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
+                                </p>
+                                <p className="text-xs text-muted-foreground tabular-nums">
+                                  الطول بالمتر: {men.lengthCm / 100} م · العرض بالمتر: {men.widthCm / 100} م
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-xs text-muted-foreground tabular-nums">
+                                الطول بالمتر: غير محدد · العرض بالمتر: غير محدد
+                                {mosque.area ? ` · المساحة: ${Number(mosque.area).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²` : ""}
+                              </p>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )}
+                          {(women || mosque.hasPrayerHall) && (
+                            <div className="p-3 bg-muted/50 rounded-lg min-w-0 space-y-1">
+                              <p className="text-xs sm:text-sm text-muted-foreground">قياسات مصلى النساء (الطول × العرض)</p>
+                              {women ? (
+                                <>
+                                  <p className="font-medium text-sm sm:text-base tabular-nums">
+                                    {women.lengthCm / 100} م × {women.widthCm / 100} م
+                                    {" · "}
+                                    {((women.lengthCm * women.widthCm) / 10000).toLocaleString("ar-SA", { maximumFractionDigits: 2 })} م²
+                                  </p>
+                                  <p className="text-xs text-muted-foreground tabular-nums">
+                                    الطول بالمتر: {women.lengthCm / 100} م · العرض بالمتر: {women.widthCm / 100} م
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  الطول بالمتر: غير محدد · العرض بالمتر: غير محدد
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </TabsContent>

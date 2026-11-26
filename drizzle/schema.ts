@@ -1,6 +1,6 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext, longtext, date, unique, datetime, foreignKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
-export { mawasimGrants, mawasimRequests, mawasimSeasons } from "./mawasim";
+export { mawasimExceptions, mawasimGrants, mawasimRequests, mawasimSeasons } from "./mawasim";
 
 // ==================== الأدوار والحالات ====================
 
@@ -203,8 +203,12 @@ export const mosques = mysqlTable("mosques", {
   governorate: varchar("governorate", { length: 100 }), // المحافظة
   center: varchar("center", { length: 100 }), // المركز
   area: decimal("area", { precision: 10, scale: 2 }), // المساحة بالمتر المربع
+  menLengthCm: int("menLengthCm"), // طول المسجد / مصلى الرجال بالسنتيمتر
+  menWidthCm: int("menWidthCm"), // عرض المسجد / مصلى الرجال بالسنتيمتر
   capacity: int("capacity"), // السعة (عدد المصلين)
   hasPrayerHall: boolean("hasPrayerHall").default(false), // هل يوجد مصلى
+  womenLengthCm: int("womenLengthCm"), // طول مصلى النساء بالسنتيمتر
+  womenWidthCm: int("womenWidthCm"), // عرض مصلى النساء بالسنتيمتر
   mosqueAge: int("mosqueAge"), // عمر المسجد بالسنوات
   imamName: varchar("imamName", { length: 255 }),
   imamPhone: varchar("imamPhone", { length: 20 }),

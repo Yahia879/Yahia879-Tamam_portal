@@ -161,7 +161,7 @@ export default function RequesterDashboard() {
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  يمكنك الآن تقديم طلب تأهيل مسجدك ضمن الخدمات الرمضانية المتاحة في برنامج مواسم.
+                  يمكنك الآن تقديم طلب لمسجدك ضمن الخدمات المتاحة في برنامج مواسم.
                 </p>
               </div>
             </div>

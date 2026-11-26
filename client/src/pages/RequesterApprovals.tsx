@@ -82,8 +82,9 @@ import {
   Copy,
   Check,
   UserPlus,
+  MoonStar,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -299,8 +300,12 @@ export default function RequesterApprovals() {
   // نافذة تفاصيل ومراجعة الطلب الخارجي / الاستفسار
   const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
 
-  // طلبات الاستثناء
+  // طلبات الاستثناء (الطلبات العادية + برنامج مواسم بشكل منفصل وموضح)
+  const [exceptionSourceFilter, setExceptionSourceFilter] = useState<"all" | "regular" | "mawasim">("all");
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
+    enabled: canViewExceptions
+  });
+  const { data: mawasimExceptionRequests = [], refetch: refetchMawasimExceptions } = trpc.mawasim.getExceptionRequests.useQuery(undefined, {
     enabled: canViewExceptions
   });
 
@@ -314,7 +319,37 @@ export default function RequesterApprovals() {
     }
   });
 
-  const pendingExceptionsCount = exceptionRequests.filter(e => e.exception.status === "pending").length;
+  const reviewMawasimExceptionMutation = trpc.mawasim.reviewException.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة طلب استثناء برنامج مواسم بنجاح");
+      refetchMawasimExceptions();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء مراجعة طلب استثناء برنامج مواسم");
+    }
+  });
+
+  const combinedExceptions = useMemo(() => {
+    const regularList = (exceptionRequests || []).map((item: any) => ({
+      ...item,
+      kind: "regular" as const,
+      attachmentUrl: item.exception?.attachment || item.exception?.documentUrl || null,
+    }));
+    const mawasimList = (mawasimExceptionRequests || []).map((item: any) => ({
+      ...item,
+      kind: "mawasim" as const,
+      attachmentUrl: item.exception?.attachment || null,
+    }));
+    const merged = [...regularList, ...mawasimList].sort(
+      (a, b) => new Date(b.exception?.createdAt ?? 0).getTime() - new Date(a.exception?.createdAt ?? 0).getTime(),
+    );
+    if (exceptionSourceFilter === "all") return merged;
+    return merged.filter(item => item.kind === exceptionSourceFilter);
+  }, [exceptionRequests, mawasimExceptionRequests, exceptionSourceFilter]);
+
+  const pendingExceptionsCount =
+    exceptionRequests.filter(e => e.exception.status === "pending").length +
+    mawasimExceptionRequests.filter(e => e.exception.status === "pending").length;
 
   const utils = trpc.useUtils();
   const createRequester = trpc.users.createRequester.useMutation({
@@ -1167,11 +1202,47 @@ export default function RequesterApprovals() {
         {activeTab === 'exceptions' && canViewExceptions && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
-              <div>
-                <CardTitle className="text-base sm:text-lg font-black text-foreground">طلبات الاستثناء المرفوعة</CardTitle>
-                <CardDescription className="text-xs sm:text-sm mt-0.5">
-                  مراجعة طلبات استثناء الأئمة لتقديم طلبات جديدة بالرغم من وجود طلبات سابقة معلقة.
-                </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-black text-foreground">طلبات الاستثناء المرفوعة</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
+                    مراجعة طلبات الاستثناء للطلبات العادية وطلبات برنامج مواسم بشكل مستقل وموضح.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={exceptionSourceFilter === "all" ? "default" : "outline"}
+                    onClick={() => setExceptionSourceFilter("all")}
+                    className="h-8 rounded-xl text-xs font-bold cursor-pointer"
+                  >
+                    الكل ({exceptionRequests.length + mawasimExceptionRequests.length})
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={exceptionSourceFilter === "regular" ? "default" : "outline"}
+                    onClick={() => setExceptionSourceFilter("regular")}
+                    className="h-8 rounded-xl text-xs font-bold cursor-pointer"
+                  >
+                    الطلبات العادية ({exceptionRequests.length})
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={exceptionSourceFilter === "mawasim" ? "default" : "outline"}
+                    onClick={() => setExceptionSourceFilter("mawasim")}
+                    className={`h-8 rounded-xl text-xs font-bold gap-1.5 cursor-pointer ${
+                      exceptionSourceFilter === "mawasim"
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                        : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    }`}
+                  >
+                    <MoonStar className="w-3.5 h-3.5" />
+                    <span>برنامج مواسم ({mawasimExceptionRequests.length})</span>
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -1180,7 +1251,8 @@ export default function RequesterApprovals() {
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="text-right">اسم الإمام</TableHead>
+                      <TableHead className="text-right">اسم الإمام / المستفيد</TableHead>
+                      <TableHead className="text-right px-4">النوع / البرنامج</TableHead>
                       <TableHead className="text-right px-6">التاريخ</TableHead>
                       <TableHead className="text-right px-6">سبب الاستثناء</TableHead>
                       <TableHead className="text-right">المرفق</TableHead>
@@ -1189,18 +1261,27 @@ export default function RequesterApprovals() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {exceptionRequests.length === 0 ? (
+                    {combinedExceptions.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
                           لا توجد طلبات استثناء حالياً
                         </TableCell>
                       </TableRow>
                     ) : (
-                      exceptionRequests.map((item: any) => {
+                      combinedExceptions.map((item: any) => {
                         const isPending = item.exception.status === "pending";
+                        const isMawasim = item.kind === "mawasim";
+                        const isReviewPending = isMawasim ? reviewMawasimExceptionMutation.isPending : reviewExceptionMutation.isPending;
+                        const handleReview = (status: "approved" | "rejected") => {
+                          if (isMawasim) {
+                            reviewMawasimExceptionMutation.mutate({ id: item.exception.id, status });
+                          } else {
+                            reviewExceptionMutation.mutate({ id: item.exception.id, status });
+                          }
+                        };
                         return (
                           <TableRow 
-                            key={item.exception.id} 
+                            key={`${item.kind}-${item.exception.id}`} 
                             className={`transition-all ${
                               isPending 
                                 ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
@@ -1220,6 +1301,25 @@ export default function RequesterApprovals() {
                                 </div>
                               </div>
                             </TableCell>
+                          <TableCell className="px-4">
+                            {isMawasim ? (
+                              <div className="space-y-1">
+                                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[11px] font-bold">
+                                  <MoonStar className="w-3 h-3" />
+                                  برنامج مواسم
+                                </Badge>
+                                {item.activeRequestMosqueName && (
+                                  <span className="block text-[10px] text-muted-foreground">
+                                    {item.activeRequestMosqueName}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className="text-[11px] font-semibold">
+                                الطلبات العادية
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="px-6 text-right text-xs text-muted-foreground whitespace-nowrap">
                             <span dir="ltr">{formatSubmissionDate(item.exception.createdAt)}</span>
                           </TableCell>
@@ -1227,12 +1327,12 @@ export default function RequesterApprovals() {
                             {item.exception.reason}
                           </TableCell>
                           <TableCell>
-                            {item.exception.documentUrl ? (
+                            {item.attachmentUrl ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-xs gap-1 border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
-                                onClick={() => setPreviewUrl(item.exception.documentUrl)}
+                                onClick={() => setPreviewUrl(item.attachmentUrl)}
                               >
                                 <Eye className="w-3.5 h-3.5" />
                                 معاينة المرفق
@@ -1257,8 +1357,8 @@ export default function RequesterApprovals() {
                                   <Button
                                     size="sm"
                                     className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                                    onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
-                                    disabled={reviewExceptionMutation.isPending}
+                                    onClick={() => handleReview("approved")}
+                                    disabled={isReviewPending}
                                   >
                                     قبول
                                   </Button>
@@ -1271,10 +1371,10 @@ export default function RequesterApprovals() {
                                     onClick={() => {
                                       const reason = prompt("يرجى إدخال سبب الرفض:");
                                       if (reason !== null) {
-                                        reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
+                                        handleReview("rejected");
                                       }
                                     }}
-                                    disabled={reviewExceptionMutation.isPending}
+                                    disabled={isReviewPending}
                                   >
                                     رفض
                                   </Button>
@@ -1296,16 +1396,25 @@ export default function RequesterApprovals() {
 
               {/* عرض بطاقات الموبايل */}
               <div className="lg:hidden divide-y">
-                {exceptionRequests.length === 0 ? (
+                {combinedExceptions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     لا توجد طلبات استثناء حالياً
                   </div>
                 ) : (
-                  exceptionRequests.map((item: any) => {
+                  combinedExceptions.map((item: any) => {
                     const isPending = item.exception.status === "pending";
+                    const isMawasim = item.kind === "mawasim";
+                    const isReviewPending = isMawasim ? reviewMawasimExceptionMutation.isPending : reviewExceptionMutation.isPending;
+                    const handleReview = (status: "approved" | "rejected") => {
+                      if (isMawasim) {
+                        reviewMawasimExceptionMutation.mutate({ id: item.exception.id, status });
+                      } else {
+                        reviewExceptionMutation.mutate({ id: item.exception.id, status });
+                      }
+                    };
                     return (
                       <div
-                        key={item.exception.id}
+                        key={`${item.kind}-${item.exception.id}`}
                         className={`p-4 space-y-3 transition-all ${
                           isPending
                             ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 border-y border-amber-200/80 dark:border-amber-900/60 shadow-xs"
@@ -1313,15 +1422,30 @@ export default function RequesterApprovals() {
                         }`}
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {isPending && (
                                 <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                               )}
                               <p className="font-bold text-sm text-foreground">{item.userName}</p>
+                              {isMawasim ? (
+                                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                                  <MoonStar className="w-3 h-3" />
+                                  برنامج مواسم
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] font-semibold">
+                                  الطلبات العادية
+                                </Badge>
+                              )}
                             </div>
                             {item.userPhone && (
                               <p className="text-xs text-muted-foreground mt-0.5">{item.userPhone}</p>
+                            )}
+                            {isMawasim && item.activeRequestMosqueName && (
+                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                                المسجد: {item.activeRequestMosqueName}
+                              </p>
                             )}
                           </div>
                           <Badge variant={
@@ -1343,12 +1467,12 @@ export default function RequesterApprovals() {
                             <Calendar className="w-3.5 h-3.5" />
                             <span>{formatSubmissionDate(item.exception.createdAt)}</span>
                           </div>
-                          {item.exception.documentUrl && (
+                          {item.attachmentUrl && (
                             <Button
                               size="sm"
                               variant="outline"
                               className="h-8 text-xs gap-1.5 rounded-xl border-primary/30 text-primary"
-                              onClick={() => setPreviewUrl(item.exception.documentUrl)}
+                              onClick={() => setPreviewUrl(item.attachmentUrl)}
                             >
                               <Eye className="w-3.5 h-3.5" />
                               معاينة المرفق
@@ -1361,8 +1485,8 @@ export default function RequesterApprovals() {
                             {canApproveExceptions && (
                               <Button
                                 className="w-full h-9 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                                onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
-                                disabled={reviewExceptionMutation.isPending}
+                                onClick={() => handleReview("approved")}
+                                disabled={isReviewPending}
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5 ml-1.5" />
                                 قبول
@@ -1375,10 +1499,10 @@ export default function RequesterApprovals() {
                                 onClick={() => {
                                   const reason = prompt("يرجى إدخال سبب الرفض:");
                                   if (reason !== null) {
-                                    reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
+                                    handleReview("rejected");
                                   }
                                 }}
-                                disabled={reviewExceptionMutation.isPending}
+                                disabled={isReviewPending}
                               >
                                 <XCircle className="w-3.5 h-3.5 ml-1.5" />
                                 رفض

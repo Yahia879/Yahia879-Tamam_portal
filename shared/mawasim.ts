@@ -126,3 +126,61 @@ export function summarizeSeasonalCapacity(
     return { service, limit, requested, approved, performed, reserved, available: Math.max(0, limit - reserved) };
   });
 }
+
+export function isActiveSeasonalRequestStatus(status: string): boolean {
+  return status !== "completed" && status !== "rejected";
+}
+
+export interface MawasimActiveRequestSummary {
+  id: number;
+  status: string;
+  createdAt: Date | string;
+  mosqueName?: string | null;
+  seasonTitle?: string | null;
+}
+
+export interface MawasimExceptionSummary {
+  id: number;
+  activeRequestId?: number | null;
+  consumedByRequestId?: number | null;
+  status: string;
+  reason?: string;
+  createdAt: Date | string;
+  reviewedAt?: Date | string | null;
+}
+
+/**
+ * Evaluates whether a service_requester is blocked from submitting a new Mawasim request
+ * due to an active seasonal request, strictly isolated from regular service requests/exceptions.
+ */
+export function evaluateMawasimExceptionState<
+  TReq extends MawasimActiveRequestSummary,
+  TExc extends MawasimExceptionSummary,
+>(
+  activeRequest: TReq | null | undefined,
+  latestException: TExc | null | undefined,
+) {
+  if (!activeRequest || !isActiveSeasonalRequestStatus(activeRequest.status)) {
+    return {
+      isBlocked: false,
+      activeRequest: null,
+      exceptionForCycle: null as TExc | null,
+    };
+  }
+
+  const activeTime = new Date(activeRequest.createdAt).getTime();
+  const isForCurrentCycle = Boolean(
+    latestException &&
+    !latestException.consumedByRequestId &&
+    (latestException.activeRequestId
+      ? latestException.activeRequestId === activeRequest.id
+      : new Date(latestException.createdAt).getTime() >= activeTime),
+  );
+  const exceptionForCycle = isForCurrentCycle && latestException ? latestException : null;
+
+  return {
+    isBlocked: exceptionForCycle?.status !== "approved",
+    activeRequest,
+    exceptionForCycle,
+  };
+}

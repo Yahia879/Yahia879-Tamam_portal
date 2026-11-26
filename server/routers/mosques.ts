@@ -28,8 +28,12 @@ const createMosqueSchema = z.object({
   governorate: z.string().optional(), // المحافظة
   center: z.string().optional(), // المركز
   area: z.number().optional(), // مساحة المسجد
+  menLengthCm: z.number().int().min(1).max(100_000).optional(), // طول المسجد / مصلى الرجال (سم)
+  menWidthCm: z.number().int().min(1).max(100_000).optional(), // عرض المسجد / مصلى الرجال (سم)
   capacity: z.number().optional(), // عدد المصلين
   hasPrayerHall: z.boolean().optional(), // هل يوجد مصلى
+  womenLengthCm: z.number().int().min(1).max(100_000).optional(), // طول مصلى النساء (سم)
+  womenWidthCm: z.number().int().min(1).max(100_000).optional(), // عرض مصلى النساء (سم)
   mosqueAge: z.number().optional(), // عمر المسجد بالسنوات
   imamName: z.string().optional(),
   imamPhone: z.string().optional(),
@@ -76,8 +80,12 @@ export const mosquesRouter = router({
         governorate: input.governorate || null,
         center: input.center || null,
         area: input.area ? input.area.toString() : null,
+        menLengthCm: input.menLengthCm ?? null,
+        menWidthCm: input.menWidthCm ?? null,
         capacity: input.capacity || null,
         hasPrayerHall: input.hasPrayerHall ?? false,
+        womenLengthCm: input.womenLengthCm ?? null,
+        womenWidthCm: input.womenWidthCm ?? null,
         mosqueAge: input.mosqueAge || null,
         imamName: input.imamName || null,
         imamPhone: input.imamPhone || null,
@@ -147,8 +155,12 @@ export const mosquesRouter = router({
       if (updateData.governorate !== undefined) updateValues.governorate = updateData.governorate;
       if (updateData.center !== undefined) updateValues.center = updateData.center;
       if (updateData.area !== undefined) updateValues.area = updateData.area?.toString();
+      if (updateData.menLengthCm !== undefined) updateValues.menLengthCm = updateData.menLengthCm;
+      if (updateData.menWidthCm !== undefined) updateValues.menWidthCm = updateData.menWidthCm;
       if (updateData.capacity !== undefined) updateValues.capacity = updateData.capacity;
       if (updateData.hasPrayerHall !== undefined) updateValues.hasPrayerHall = updateData.hasPrayerHall;
+      if (updateData.womenLengthCm !== undefined) updateValues.womenLengthCm = updateData.womenLengthCm;
+      if (updateData.womenWidthCm !== undefined) updateValues.womenWidthCm = updateData.womenWidthCm;
       if (updateData.mosqueAge !== undefined) updateValues.mosqueAge = updateData.mosqueAge;
       if (updateData.imamName !== undefined) updateValues.imamName = updateData.imamName;
       if (updateData.imamPhone !== undefined) updateValues.imamPhone = updateData.imamPhone;
@@ -226,16 +238,25 @@ export const mosquesRouter = router({
       // الحصول على صور المسجد
       const images = await db.select().from(mosqueImages).where(eq(mosqueImages.mosqueId, input.id));
 
-      // أحدث قياسات مصليات مسجلة للمسجد عبر برنامج مواسم (غير المرفوضة)
-      const seasonalRows = await db
-        .select({ snapshot: mawasimRequests.snapshot })
-        .from(mawasimRequests)
-        .where(and(eq(mawasimRequests.mosqueId, input.id), ne(mawasimRequests.status, "rejected")))
-        .orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
-      const latestWithMen = seasonalRows.find(item => Boolean(item.snapshot?.men))?.snapshot;
-      const prayerHallDimensions = latestWithMen?.men
-        ? { men: latestWithMen.men, women: latestWithMen.women ?? null }
+      // قياسات مصليات المسجد (من جدول المساجد أولاً، ثم آخر طلب مواسم غير مرفوض كمرجع إضافي)
+      const mosqueMen = row.mosque.menLengthCm && row.mosque.menWidthCm
+        ? { lengthCm: row.mosque.menLengthCm, widthCm: row.mosque.menWidthCm }
         : null;
+      const mosqueWomen = row.mosque.womenLengthCm && row.mosque.womenWidthCm
+        ? { lengthCm: row.mosque.womenLengthCm, widthCm: row.mosque.womenWidthCm }
+        : null;
+      let prayerHallDimensions = mosqueMen || mosqueWomen ? { men: mosqueMen, women: mosqueWomen } : null;
+      if (!prayerHallDimensions || !prayerHallDimensions.men || (row.mosque.hasPrayerHall && !prayerHallDimensions.women)) {
+        const seasonalRows = await db
+          .select({ snapshot: mawasimRequests.snapshot })
+          .from(mawasimRequests)
+          .where(and(eq(mawasimRequests.mosqueId, input.id), ne(mawasimRequests.status, "rejected")))
+          .orderBy(desc(mawasimRequests.createdAt), desc(mawasimRequests.id));
+        const latestWithMen = seasonalRows.find(item => Boolean(item.snapshot?.men))?.snapshot;
+        const men = mosqueMen ?? latestWithMen?.men ?? null;
+        const women = mosqueWomen ?? latestWithMen?.women ?? null;
+        prayerHallDimensions = men || women ? { men, women } : null;
+      }
 
       return { ...mosque, images, prayerHallDimensions };
     }),

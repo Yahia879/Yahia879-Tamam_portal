@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -106,11 +106,20 @@ export default function MyRequests() {
   const { user } = useAuth();
   const searchString = useSearch();
   const seasonalSubmitted = new URLSearchParams(searchString).get("seasonal") === "submitted";
+  const [viewMode, setViewMode] = useState<"regular" | "mawasim">(seasonalSubmitted ? "mawasim" : "regular");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
+  const [seasonalStatusFilter, setSeasonalStatusFilter] = useState<string>("all");
+  const [seasonalSearch, setSeasonalSearch] = useState<string>("");
   const [page, setPage, resetPage] = usePersistedPage("my_requests_page");
+
+  useEffect(() => {
+    if (seasonalSubmitted) {
+      setViewMode("mawasim");
+    }
+  }, [seasonalSubmitted]);
 
   // البحث المؤجل لتخفيف الاستعلامات على الخادم
   useEffect(() => {
@@ -146,29 +155,39 @@ export default function MyRequests() {
     enabled: user?.role === "service_requester",
   });
 
+  const seasonalRequests = mawasimPortal?.allRequests ?? [];
+  const seasonalRequestsWithOrder = useMemo(
+    () =>
+      seasonalRequests.map((item, idx) => ({
+        ...item,
+        userOrderNumber: seasonalRequests.length - idx,
+      })),
+    [seasonalRequests],
+  );
+  const normalizeSeasonalStatus = (status: string): "submitted" | "approved" | "rejected" =>
+    status === "scheduled" || status === "completed" ? "approved" : (status as "submitted" | "approved" | "rejected");
+
+  const seasonalStats = useMemo(() => ({
+    total: seasonalRequests.length,
+    submitted: seasonalRequests.filter((r) => normalizeSeasonalStatus(r.status) === "submitted").length,
+    approved: seasonalRequests.filter((r) => normalizeSeasonalStatus(r.status) === "approved").length,
+    rejected: seasonalRequests.filter((r) => normalizeSeasonalStatus(r.status) === "rejected").length,
+  }), [seasonalRequests]);
+
   const filteredSeasonalRequests = useMemo(() => {
-    const allSeasonal = mawasimPortal?.allRequests ?? [];
-    if (programFilter !== "all" && programFilter !== "mawasim") return [];
-    const statusBucket: Record<string, string> = {
-      submitted: "pending",
-      approved: "in_progress",
-      scheduled: "in_progress",
-      completed: "completed",
-      rejected: "rejected",
-    };
-    const term = debouncedSearch.trim().toLowerCase();
-    return allSeasonal.filter((item) => {
-      if (statusTab !== "all" && statusBucket[item.status] !== statusTab) {
+    const term = seasonalSearch.trim().toLowerCase();
+    return seasonalRequestsWithOrder.filter((item) => {
+      if (seasonalStatusFilter !== "all" && normalizeSeasonalStatus(item.status) !== seasonalStatusFilter) {
         return false;
       }
       if (!term) return true;
       return (
         item.mosqueName.toLowerCase().includes(term) ||
         item.seasonTitle.toLowerCase().includes(term) ||
-        "برنامج مواسم".includes(term)
+        String(item.userOrderNumber).includes(term)
       );
     });
-  }, [mawasimPortal?.allRequests, programFilter, statusTab, debouncedSearch]);
+  }, [seasonalRequestsWithOrder, seasonalStatusFilter, seasonalSearch]);
 
   // استخراج البيانات مع حماية كاملة ضد أي هيكل استجابة
   const requests = Array.isArray(myRequestsData)
@@ -241,96 +260,199 @@ export default function MyRequests() {
         </Card>
       )}
 
-      {/* KPI Stats Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 lg:gap-5 mb-4 sm:mb-8">
-        <Card
-          onClick={() => setStatusTab("all")}
-          className={`col-span-2 lg:col-span-1 border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
-            statusTab === "all" ? "border-primary ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
+      {/* Top Section Tabs: Regular Requests vs Mawasim */}
+      <div className="inline-flex flex-wrap items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 mb-4 sm:mb-6">
+        <button
+          type="button"
+          onClick={() => setViewMode("regular")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            viewMode === "regular"
+              ? "bg-background dark:bg-card text-primary shadow-xs border border-border/60"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">إجمالي الطلبات</p>
-              <p className="text-lg sm:text-3xl font-extrabold text-foreground mt-0.5 sm:mt-1">{stats.total}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-              <FileText className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          onClick={() => setStatusTab("pending")}
-          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
-            statusTab === "pending" ? "border-amber-500 ring-1 ring-amber-500/30" : "border-border/60 hover:border-amber-500/40"
+          <FileText className="w-4 h-4" />
+          <span>الطلبات العادية ({stats.total})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("mawasim")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            viewMode === "mawasim"
+              ? "bg-background dark:bg-card text-teal-600 dark:text-teal-400 shadow-xs border border-border/60"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">قيد المراجعة</p>
-              <p className="text-lg sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">{stats.pending}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform">
-              <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          onClick={() => setStatusTab("in_progress")}
-          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
-            statusTab === "in_progress" ? "border-blue-500 ring-1 ring-blue-500/30" : "border-border/60 hover:border-blue-500/40"
-          }`}
-        >
-          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">قيد التنفيذ</p>
-              <p className="text-lg sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 sm:mt-1">{stats.inProgress}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          onClick={() => setStatusTab("completed")}
-          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
-            statusTab === "completed" ? "border-emerald-500 ring-1 ring-emerald-500/30" : "border-border/60 hover:border-emerald-500/40"
-          }`}
-        >
-          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">مكتملة</p>
-              <p className="text-lg sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">{stats.completed}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          onClick={() => setStatusTab("rejected")}
-          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
-            statusTab === "rejected" ? "border-rose-500 ring-1 ring-rose-500/30" : "border-border/60 hover:border-rose-500/40"
-          }`}
-        >
-          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">مرفوضة</p>
-              <p className="text-lg sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5 sm:mt-1">{stats.rejected}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
-              <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
-          </CardContent>
-        </Card>
+          <MoonStar className="w-4 h-4" />
+          <span>طلبات برنامج مواسم ({seasonalStats.total})</span>
+        </button>
       </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+      {/* KPI Stats Overview Cards (switch dynamically based on active tab) */}
+      {viewMode === "regular" ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 lg:gap-5 mb-4 sm:mb-8">
+          <Card
+            onClick={() => setStatusTab("all")}
+            className={`col-span-2 lg:col-span-1 border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              statusTab === "all" ? "border-primary ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">إجمالي الطلبات</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-foreground mt-0.5 sm:mt-1">{stats.total}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
+                <FileText className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setStatusTab("pending")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              statusTab === "pending" ? "border-amber-500 ring-1 ring-amber-500/30" : "border-border/60 hover:border-amber-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">قيد المراجعة</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">{stats.pending}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform">
+                <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setStatusTab("in_progress")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              statusTab === "in_progress" ? "border-blue-500 ring-1 ring-blue-500/30" : "border-border/60 hover:border-blue-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">قيد التنفيذ</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 sm:mt-1">{stats.inProgress}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform">
+                <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setStatusTab("completed")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              statusTab === "completed" ? "border-emerald-500 ring-1 ring-emerald-500/30" : "border-border/60 hover:border-emerald-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">مكتملة</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">{stats.completed}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setStatusTab("rejected")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              statusTab === "rejected" ? "border-rose-500 ring-1 ring-rose-500/30" : "border-border/60 hover:border-rose-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">مرفوضة</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5 sm:mt-1">{stats.rejected}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
+                <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5 mb-4 sm:mb-8">
+          <Card
+            onClick={() => setSeasonalStatusFilter("all")}
+            data-testid="kpi-mawasim-card"
+            className={`col-span-2 lg:col-span-1 border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              seasonalStatusFilter === "all" ? "border-teal-600 ring-1 ring-teal-600/30" : "border-border/60 hover:border-teal-600/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">إجمالي طلبات مواسم</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-teal-600 dark:text-teal-400 mt-0.5 sm:mt-1">{seasonalStats.total}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0 group-hover:scale-110 transition-transform">
+                <MoonStar className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setSeasonalStatusFilter("submitted")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              seasonalStatusFilter === "submitted" ? "border-amber-500 ring-1 ring-amber-500/30" : "border-border/60 hover:border-amber-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">قيد المراجعة</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">{seasonalStats.submitted}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform">
+                <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setSeasonalStatusFilter("approved")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              seasonalStatusFilter === "approved" ? "border-emerald-500 ring-1 ring-emerald-500/30" : "border-border/60 hover:border-emerald-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">معتمد</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">{seasonalStats.approved}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            onClick={() => setSeasonalStatusFilter("rejected")}
+            className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+              seasonalStatusFilter === "rejected" ? "border-rose-500 ring-1 ring-rose-500/30" : "border-border/60 hover:border-rose-500/40"
+            }`}
+          >
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">معتذر عنه</p>
+                <p className="text-lg sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5 sm:mt-1">{seasonalStats.rejected}</p>
+              </div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
+                <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {viewMode === "regular" && (
+        <>
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         {/* Status Tabs Pills */}
         <div className="w-full md:w-auto overflow-x-auto scrollbar-none pb-1.5 md:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0">
           <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/60 dark:bg-muted/30 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-border/50 min-w-max">
@@ -429,7 +551,6 @@ export default function MyRequests() {
                   <SelectItem value="furnishing">فرش وتطوير</SelectItem>
                 </>
               )}
-              <SelectItem value="mawasim">برنامج مواسم</SelectItem>
             </SelectContent>
           </Select>
 
@@ -447,80 +568,6 @@ export default function MyRequests() {
           )}
         </div>
       </div>
-
-      {filteredSeasonalRequests.length > 0 && (
-        <Card className="mb-4 sm:mb-6 border border-emerald-200/70 dark:border-emerald-900/40 shadow-xs rounded-2xl sm:rounded-3xl bg-card">
-          <CardContent className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
-                  <MoonStar className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-sm sm:text-base text-foreground">طلبات برنامج مواسم</h2>
-                  <p className="text-[11px] text-muted-foreground">
-                    إجمالي الطلبات الموسمية: {filteredSeasonalRequests.length}
-                  </p>
-                </div>
-              </div>
-              {mawasimPortal?.hasOpenSeason && (
-                <Link href="/requester/mawasim">
-                  <Button size="sm" variant="outline" className="rounded-xl text-xs font-bold gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer">
-                    <MoonStar className="w-3.5 h-3.5" />
-                    <span>برنامج مواسم</span>
-                  </Button>
-                </Link>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filteredSeasonalRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="rounded-2xl border border-border/60 bg-background/60 p-3.5 space-y-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs sm:text-sm text-foreground truncate">
-                        {req.mosqueName}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {req.seasonTitle} ({req.hijriYear} هـ)
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="shrink-0 text-[10px] rounded-full">
-                      {seasonalStatusLabels[req.status] ?? req.status}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted-foreground">
-                    {seasonalServiceIds.map((serviceId) => {
-                      const amount = Number(req.requested?.[serviceId] ?? 0);
-                      const approved = req.approved?.[serviceId];
-                      if (!amount && !approved) return null;
-                      const service = seasonalServices[serviceId];
-                      return (
-                        <div key={serviceId} className="truncate">
-                          <span className="font-medium text-foreground">{service.label}:</span>{" "}
-                          {displayQuantity(serviceId, amount)}
-                          {approved != null && (
-                            <span className="text-emerald-600 dark:text-emerald-400">
-                              {" "}• المعتمد {displayQuantity(serviceId, approved)}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {req.reviewNote && (
-                    <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-1.5">
-                      ملاحظة اللجنة: {req.reviewNote}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Requests List */}
       {isLoading ? (
@@ -645,7 +692,7 @@ export default function MyRequests() {
             className="rounded-2xl sm:rounded-3xl border border-border/60"
           />
         </div>
-      ) : filteredSeasonalRequests.length === 0 ? (
+      ) : (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -676,7 +723,181 @@ export default function MyRequests() {
             </Link>
           )}
         </Card>
-      ) : null}
+      )}
+        </>
+      )}
+
+      {viewMode === "mawasim" && (
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="overflow-x-auto scrollbar-none pb-1 md:pb-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/60 dark:bg-muted/30 p-1 rounded-xl sm:rounded-2xl border border-border/50 min-w-max">
+                {([
+                  ["all", "الكل"],
+                  ["submitted", seasonalStatusLabels.submitted],
+                  ["approved", seasonalStatusLabels.approved],
+                  ["rejected", seasonalStatusLabels.rejected],
+                ] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSeasonalStatusFilter(key)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      seasonalStatusFilter === key
+                        ? "bg-background dark:bg-card text-teal-600 shadow-xs border border-border/60"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="ابحث برقم الطلب أو المسجد أو الموسم..."
+                  value={seasonalSearch}
+                  onChange={(e) => setSeasonalSearch(e.target.value)}
+                  className="pr-8 pl-7 rounded-xl sm:rounded-2xl h-9 border-border/60 bg-background text-[11px] sm:text-xs"
+                />
+                {seasonalSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setSeasonalSearch("")}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                    title="مسح البحث"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {mawasimPortal?.hasOpenSeason && (
+                <Link href="/requester/mawasim">
+                  <Button size="sm" className="rounded-xl text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shrink-0">
+                    <MoonStar className="w-3.5 h-3.5" />
+                    <span>بوابة مواسم</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {filteredSeasonalRequests.length > 0 ? (
+            <Card className="border border-emerald-200/70 dark:border-emerald-900/40 shadow-xs rounded-2xl sm:rounded-3xl bg-card">
+              <CardContent className="p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+                      <MoonStar className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-sm sm:text-base text-foreground">طلبات برنامج مواسم</h2>
+                      <p className="text-[11px] text-muted-foreground">
+                        إجمالي الطلبات الموسمية: {filteredSeasonalRequests.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {filteredSeasonalRequests.map((req) => {
+                    const reqDate = req.createdAt
+                      ? new Date(req.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
+                      : null;
+                    return (
+                      <div
+                        key={req.id}
+                        className="rounded-2xl border border-border/60 bg-background/60 p-4 space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="flex items-start sm:items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                              <MoonStar className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded-md text-foreground">
+                                  #{req.userOrderNumber}
+                                </span>
+                                <p className="font-bold text-sm text-foreground truncate">
+                                  {req.mosqueName}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1">
+                                <span>{req.seasonTitle} ({req.hijriYear} هـ)</span>
+                                {reqDate && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-muted-foreground/70" />
+                                    <span>{reqDate}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="shrink-0 self-start sm:self-center text-[11px] font-semibold rounded-full">
+                            {seasonalStatusLabels[normalizeSeasonalStatus(req.status)] ?? req.status}
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {seasonalServiceIds.map((serviceId) => {
+                            const amount = Number(req.requested?.[serviceId] ?? 0);
+                            const approved = req.approved?.[serviceId];
+                            if (!amount && !approved) return null;
+                            const service = seasonalServices[serviceId];
+                            return (
+                              <div
+                                key={serviceId}
+                                className="inline-flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 px-2.5 py-1 text-[11px]"
+                              >
+                                <span className="font-semibold text-foreground">{service.label}:</span>
+                                <span>{displayQuantity(serviceId, amount)} {service.unit}</span>
+                                {approved != null && (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    • المعتمد {displayQuantity(serviceId, approved)}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {req.reviewNote && (
+                          <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                            ملاحظة اللجنة: {req.reviewNote}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-teal-500/10 text-teal-600 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <MoonStar className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+              <h3 className="font-bold text-base sm:text-lg text-foreground mb-1">
+                لا توجد طلبات في برنامج مواسم
+              </h3>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
+                لم يتم العثور على طلبات مواسم مطابقة. يمكنك تقديم طلب عبر بوابة برنامج مواسم عند وجود موسم مفتوح.
+              </p>
+              {mawasimPortal?.hasOpenSeason && (
+                <Link href="/requester/mawasim">
+                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-md gap-1.5 px-4 sm:px-6 h-9 sm:h-10 text-[11px] sm:text-xs cursor-pointer">
+                    <MoonStar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>الانتقال إلى برنامج مواسم</span>
+                  </Button>
+                </Link>
+              )}
+            </Card>
+          )}
+        </div>
+      )}
     </BeneficiaryLayout>
   );
 }

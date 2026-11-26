@@ -2,16 +2,18 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, getTableColumns, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { z } from "zod";
-import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
+import { mawasimExceptions, mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
 import {
-  carpetArea, MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalMosqueLimit,
+  carpetArea, evaluateMawasimExceptionState, isActiveSeasonalRequestStatus,
+  MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
   seasonalSettingsSchema, summarizeSeasonalCapacity, type SeasonalRequestLimits,
 } from "../../shared/mawasim";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { checkPermission } from "../permissions";
+import { createNotification, sendEmailNotification } from "./notifications";
 import type { TrpcContext } from "../_core/context";
 
 const id = z.number().int().positive();
@@ -21,6 +23,8 @@ const approvedMosque = eq(mosques.approvalStatus, "approved");
 const mosqueFields = {
   id: mosques.id, name: mosques.name, city: mosques.city, district: mosques.district,
   address: mosques.address, capacity: mosques.capacity, area: mosques.area, hasPrayerHall: mosques.hasPrayerHall,
+  menLengthCm: mosques.menLengthCm, menWidthCm: mosques.menWidthCm,
+  womenLengthCm: mosques.womenLengthCm, womenWidthCm: mosques.womenWidthCm,
 };
 const { menPhoto, womenPhoto, ...requestFields } = getTableColumns(mawasimRequests);
 const usageFields = {
@@ -279,11 +283,27 @@ export const mawasimRouter = router({
       .innerJoin(mawasimSeasons, eq(mawasimSeasons.id, mawasimRequests.seasonId))
       .where(or(...requestConditions))
       .orderBy(desc(mawasimRequests.id));
+    const [latestException = null] = await db.select()
+      .from(mawasimExceptions)
+      .where(eq(mawasimExceptions.userId, user.id))
+      .orderBy(desc(mawasimExceptions.id))
+      .limit(1);
+    const activeRequest = allRequests.find(req => isActiveSeasonalRequestStatus(req.status)) ?? null;
     const choice = input
       ? seasons.find(item => item.id === input.seasonId)
       : seasons.find(item => item.isOpen) ?? seasons[0];
     if (!choice) {
-      return { hasOpenSeason, seasons: seasonSummaries, season: null, eligible: [], requests: [], allRequests, capacity: [] };
+      return {
+        hasOpenSeason,
+        seasons: seasonSummaries,
+        season: null,
+        eligible: [],
+        requests: [],
+        allRequests,
+        capacity: [],
+        activeRequest,
+        latestException,
+      };
     }
 
     const activeGrants = user.status === "active"
@@ -329,6 +349,8 @@ export const mawasimRouter = router({
       requests,
       allRequests,
       capacity,
+      activeRequest,
+      latestException,
     };
   }),
 
@@ -512,6 +534,10 @@ export const mawasimRouter = router({
           capacity: mosques.capacity,
           area: mosques.area,
           hasPrayerHall: mosques.hasPrayerHall,
+          menLengthCm: mosques.menLengthCm,
+          menWidthCm: mosques.menWidthCm,
+          womenLengthCm: mosques.womenLengthCm,
+          womenWidthCm: mosques.womenWidthCm,
           registeredBy: mosques.registeredBy,
           imamName: mosques.imamName,
           imamEmail: mosques.imamEmail,
@@ -520,6 +546,7 @@ export const mawasimRouter = router({
         if (!mosque) invalid("اختر مسجدًا معتمدًا.");
         let applicantId: number | null = isRequester ? ctx.user.id : null;
         let resolvedRequester: LinkedRequesterSummary | null = null;
+        let exceptionToConsumeId: number | null = null;
         if (isRequester) {
           const ownsMosque = mosqueLinkedToUser(mosque, ctx.user);
           const [grant] = await tx.select({ id: mawasimGrants.id }).from(mawasimGrants).where(and(
@@ -529,6 +556,41 @@ export const mawasimRouter = router({
             eq(mawasimGrants.active, true),
           ));
           if (!mayApplyForSeason(ctx.user, ownsMosque, Boolean(grant))) denied();
+
+          // منع تقديم أكثر من طلب مواسم فعال في نفس الوقت إلا باستثناء معتمد خاص ببرنامج مواسم
+          const userLinkedMosques = await tx
+            .select({ id: mosques.id })
+            .from(mosques)
+            .where(and(approvedMosque, linkedMosquesCondition(ctx.user)));
+          const userLinkedMosqueIds = userLinkedMosques.map(m => m.id);
+          const activeConditions = [
+            eq(mawasimRequests.applicantId, ctx.user.id),
+            eq(mawasimRequests.submittedBy, ctx.user.id),
+            ...(userLinkedMosqueIds.length
+              ? [and(isNull(mawasimRequests.applicantId), inArray(mawasimRequests.mosqueId, userLinkedMosqueIds))]
+              : []),
+          ];
+          const existingUserRequests = await tx.select({
+            id: mawasimRequests.id,
+            status: mawasimRequests.status,
+            createdAt: mawasimRequests.createdAt,
+            mosqueName: mawasimRequests.mosqueName,
+          }).from(mawasimRequests)
+            .where(or(...activeConditions))
+            .orderBy(desc(mawasimRequests.id));
+          const latestActive = existingUserRequests.find(req => isActiveSeasonalRequestStatus(req.status)) ?? null;
+          if (latestActive) {
+            const [latestMawasimException = null] = await tx.select()
+              .from(mawasimExceptions)
+              .where(eq(mawasimExceptions.userId, ctx.user.id))
+              .orderBy(desc(mawasimExceptions.id))
+              .limit(1);
+            const exceptionEval = evaluateMawasimExceptionState(latestActive, latestMawasimException);
+            if (exceptionEval.isBlocked) {
+              invalid("لا يمكن تقديم طلب جديد في برنامج مواسم لوجود طلب سابق فعال. يمكنك رفع طلب استثناء خاص ببرنامج مواسم للمراجعة.");
+            }
+            exceptionToConsumeId = exceptionEval.exceptionForCycle?.id ?? null;
+          }
         } else if (onBehalf?.email) {
           const [applicant] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, onBehalf.email),
             eq(users.role, "service_requester"), eq(users.status, "active"), isNull(users.deletedAt)));
@@ -570,16 +632,46 @@ export const mawasimRouter = router({
           contact: onBehalf ?? fallbackContact,
         }).$returningId();
 
-        // مزامنة بيانات المسجد الأساسية مع التعديلات المدخلة في النموذج
+        if (exceptionToConsumeId) {
+          await tx.update(mawasimExceptions)
+            .set({ consumedByRequestId: created.id })
+            .where(eq(mawasimExceptions.id, exceptionToConsumeId));
+        }
+
+        // مزامنة الحقول المعدّلة فقط في بيانات المسجد الأساسية مع النموذج
         const mosqueUpdates: Partial<typeof mosques.$inferInsert> = {};
-        if (snapshot.city !== mosque.city) mosqueUpdates.city = snapshot.city;
-        if (snapshot.district !== (mosque.district ?? "")) mosqueUpdates.district = snapshot.district;
-        if (snapshot.address !== (mosque.address ?? "")) mosqueUpdates.address = snapshot.address;
+        const nextCity = snapshot.city.trim();
+        const nextDistrict = snapshot.district.trim();
+        const nextAddress = snapshot.address.trim();
+
+        if (nextCity !== (mosque.city ?? "").trim()) mosqueUpdates.city = nextCity;
+        if (nextDistrict !== (mosque.district ?? "").trim()) mosqueUpdates.district = nextDistrict;
+        if (nextAddress !== (mosque.address ?? "").trim()) mosqueUpdates.address = nextAddress;
         if (snapshot.worshippers !== mosque.capacity) mosqueUpdates.capacity = snapshot.worshippers;
+
         if (carpet > 0) {
-          const hasWomenHall = Boolean(snapshot.women);
-          if (hasWomenHall && !mosque.hasPrayerHall) mosqueUpdates.hasPrayerHall = true;
-          if (!mosque.area) mosqueUpdates.area = (carpet / seasonalServices.carpet.scale).toFixed(2);
+          if (snapshot.men) {
+            const menLengthChanged = snapshot.men.lengthCm !== mosque.menLengthCm;
+            const menWidthChanged = snapshot.men.widthCm !== mosque.menWidthCm;
+            if (menLengthChanged) mosqueUpdates.menLengthCm = snapshot.men.lengthCm;
+            if (menWidthChanged) mosqueUpdates.menWidthCm = snapshot.men.widthCm;
+
+            if (menLengthChanged || menWidthChanged || !mosque.area) {
+              const nextMenArea = ((snapshot.men.lengthCm * snapshot.men.widthCm) / 10000).toFixed(2);
+              if (!mosque.area || Number(mosque.area) !== Number(nextMenArea)) {
+                mosqueUpdates.area = nextMenArea;
+              }
+            }
+          }
+          if (snapshot.women) {
+            if (!mosque.hasPrayerHall) mosqueUpdates.hasPrayerHall = true;
+            if (snapshot.women.lengthCm !== mosque.womenLengthCm) {
+              mosqueUpdates.womenLengthCm = snapshot.women.lengthCm;
+            }
+            if (snapshot.women.widthCm !== mosque.womenWidthCm) {
+              mosqueUpdates.womenWidthCm = snapshot.women.widthCm;
+            }
+          }
         }
         if (Object.keys(mosqueUpdates).length > 0) {
           await tx.update(mosques).set(mosqueUpdates).where(eq(mosques.id, mosque.id));
@@ -624,6 +716,202 @@ export const mawasimRouter = router({
         .where(eq(mawasimRequests.id, request.id));
     });
   }),
+
+  // تقديم طلب استثناء خاص ببرنامج مواسم (منفصل تماماً عن استثناءات الطلبات العادية)
+  submitException: protectedProcedure
+    .input(z.object({
+      reason: z.string().trim().min(5, "يرجى كتابة سبب طلب الاستثناء (5 أحرف على الأقل)"),
+      attachment: z.string().trim().max(500).nullable().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "service_requester" || ctx.user.status !== "active" || ctx.user.deletedAt) {
+        denied();
+      }
+      const db = await database();
+      const linkedMosques = await db
+        .select({ id: mosques.id })
+        .from(mosques)
+        .where(and(approvedMosque, linkedMosquesCondition(ctx.user)));
+      const linkedMosqueIds = linkedMosques.map(item => item.id);
+      const conditions = [
+        eq(mawasimRequests.applicantId, ctx.user.id),
+        eq(mawasimRequests.submittedBy, ctx.user.id),
+        ...(linkedMosqueIds.length
+          ? [and(isNull(mawasimRequests.applicantId), inArray(mawasimRequests.mosqueId, linkedMosqueIds))]
+          : []),
+      ];
+      const userSeasonalRequests = await db
+        .select({
+          id: mawasimRequests.id,
+          status: mawasimRequests.status,
+          createdAt: mawasimRequests.createdAt,
+          mosqueName: mawasimRequests.mosqueName,
+        })
+        .from(mawasimRequests)
+        .where(or(...conditions))
+        .orderBy(desc(mawasimRequests.id));
+      const latestActive = userSeasonalRequests.find(req => isActiveSeasonalRequestStatus(req.status)) ?? null;
+      if (!latestActive) {
+        invalid("لا يوجد طلب فعال حالياً في برنامج مواسم يتطلب استثناءً.");
+      }
+
+      const [latestMawasimException = null] = await db
+        .select()
+        .from(mawasimExceptions)
+        .where(eq(mawasimExceptions.userId, ctx.user.id))
+        .orderBy(desc(mawasimExceptions.id))
+        .limit(1);
+      const evaluation = evaluateMawasimExceptionState(latestActive, latestMawasimException);
+      if (evaluation.exceptionForCycle?.status === "pending") {
+        invalid("لديك طلب استثناء في برنامج مواسم قيد المراجعة حالياً.");
+      }
+      if (evaluation.exceptionForCycle?.status === "approved") {
+        invalid("لديك طلب استثناء مقبول بالفعل في برنامج مواسم، يمكنك تقديم طلبك الآن.");
+      }
+      if (evaluation.exceptionForCycle?.status === "rejected") {
+        invalid("تم رفض طلب الاستثناء السابق في برنامج مواسم لهذا الطلب الفعال.");
+      }
+
+      await db.insert(mawasimExceptions).values({
+        userId: ctx.user.id,
+        activeRequestId: latestActive.id,
+        reason: input.reason,
+        attachment: input.attachment ?? null,
+        status: "pending",
+      });
+
+      try {
+        await createNotification({
+          userId: ctx.user.id,
+          type: "system",
+          title: "تم تقديم طلب استثناء (برنامج مواسم)",
+          message: "تم استلام طلب الاستثناء الخاص بك في برنامج مواسم وهو قيد المراجعة حالياً من قبل الإدارة.",
+          relatedType: "user",
+          relatedId: ctx.user.id,
+          triggerId: "beneficiary_exception_submitted",
+        });
+      } catch (err) {
+        console.error("Error sending self notification for mawasim exception:", err);
+      }
+
+      try {
+        const admins = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(inArray(users.role, ["super_admin", "system_admin"]));
+        for (const admin of admins) {
+          await createNotification({
+            userId: admin.id,
+            type: "system",
+            title: "طلب استثناء جديد (برنامج مواسم)",
+            message: `قام المستفيد ${ctx.user.name} بتقديم طلب استثناء لتقديم طلب جديد في برنامج مواسم.`,
+            relatedType: "user",
+            relatedId: ctx.user.id,
+          });
+        }
+      } catch (err) {
+        console.error("Error sending admin notifications for mawasim exception:", err);
+      }
+
+      return { success: true };
+    }),
+
+  // جلب طلبات استثناء برنامج مواسم لقسم الاستثناءات في /requester-approvals
+  getExceptionRequests: protectedProcedure.query(async ({ ctx }) => {
+    const db = await database();
+    const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+    const canView =
+      isAdmin ||
+      (await checkPermission(ctx.user.id, "requester_exceptions.view")) ||
+      (await checkPermission(ctx.user.id, "requests.view"));
+    if (!canView) return [];
+
+    const results = await db
+      .select({
+        exception: mawasimExceptions,
+        userName: users.name,
+        userEmail: users.email,
+        userPhone: users.phone,
+        activeRequestMosqueName: mawasimRequests.mosqueName,
+        activeRequestStatus: mawasimRequests.status,
+      })
+      .from(mawasimExceptions)
+      .innerJoin(users, eq(mawasimExceptions.userId, users.id))
+      .leftJoin(mawasimRequests, eq(mawasimExceptions.activeRequestId, mawasimRequests.id))
+      .orderBy(desc(mawasimExceptions.createdAt), desc(mawasimExceptions.id));
+
+    return results;
+  }),
+
+  // مراجعة وقبول/رفض طلب استثناء برنامج مواسم
+  reviewException: protectedProcedure
+    .input(z.object({
+      id,
+      status: z.enum(["approved", "rejected"]),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await database();
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isApproved = input.status === "approved";
+      const hasPermission = isApproved
+        ? await checkPermission(ctx.user.id, "requester_exceptions.approve")
+        : await checkPermission(ctx.user.id, "requester_exceptions.reject");
+      if (!isAdmin && !hasPermission) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: isApproved
+            ? "غير مصرح لك بقبول طلبات الاستثناء (تتطلب صلاحية قبول طلب الاستثناء)"
+            : "غير مصرح لك برفض طلبات الاستثناء (تتطلب صلاحية رفض طلب الاستثناء)",
+        });
+      }
+
+      await db
+        .update(mawasimExceptions)
+        .set({
+          status: input.status,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(mawasimExceptions.id, input.id));
+
+      const [exRow] = await db
+        .select()
+        .from(mawasimExceptions)
+        .where(eq(mawasimExceptions.id, input.id))
+        .limit(1);
+
+      if (exRow) {
+        try {
+          const [targetUser] = await db.select().from(users).where(eq(users.id, exRow.userId)).limit(1);
+          const emailTitle = "إشعار جديد من جمعية عمارة المساجد (منارة) - برنامج مواسم";
+          const emailMessage = isApproved
+            ? `بوابة تمام - قبول طلب استثناء برنامج مواسم\n\nالسلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه قد تم قبول طلب الاستثناء الخاص بكم رقم ${exRow.id} في برنامج مواسم. يمكنك الآن الدخول لبوابة مواسم وتقديم طلبك الجديد.\n\nجمعية عمارة المساجد`
+            : `تم رفض طلب الاستثناء (برنامج مواسم)\n\nعذراً، تم رفض طلب الاستثناء الخاص بك في برنامج مواسم.`;
+
+          await createNotification({
+            userId: exRow.userId,
+            type: "system",
+            title: isApproved ? "تم قبول طلب استثناء برنامج مواسم" : "تم رفض طلب استثناء برنامج مواسم",
+            message: isApproved
+              ? "تم قبول طلب الاستثناء الخاص بك في برنامج مواسم، يمكنك الآن تقديم طلب مواسم جديد."
+              : "عذراً، تم رفض طلب الاستثناء الخاص بك في برنامج مواسم.",
+            relatedType: "user",
+            relatedId: exRow.userId,
+            triggerId: isApproved ? "beneficiary_exception_approved" : "beneficiary_exception_rejected",
+          });
+
+          if (targetUser?.email) {
+            sendEmailNotification(targetUser.email, emailTitle, emailMessage).catch(e => {
+              console.error("Failed to send mawasim exception email:", e);
+            });
+          }
+        } catch (err) {
+          console.error("Error sending user notification for mawasim exception review:", err);
+        }
+      }
+
+      return { success: true };
+    }),
 });
 
 function isDuplicate(error: unknown): boolean {

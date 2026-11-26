@@ -207,6 +207,8 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(navOpen).not.toContain("برنامج مواسم");
     expect(dashOpen).toContain('href="/requester/mawasim"');
     expect(dashOpen).toContain("متاح للتسجيل");
+    expect(dashOpen).toContain("يمكنك الآن تقديم طلب لمسجدك ضمن الخدمات المتاحة في برنامج مواسم.");
+    expect(dashOpen).not.toContain("تأهيل مسجدك ضمن الخدمات الرمضانية");
 
     state.data["mawasim.portal"] = buildPortalPayload(false);
     const navClosed = renderToStaticMarkup(
@@ -229,12 +231,39 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).toContain('href="/requester/mosques/new"');
   });
 
+  it("renders area field next to length/width and prompts when dimensions are missing", async () => {
+    const { PrayerMeasurements } = await import("../client/src/components/MawasimRequestForm");
+    const emptyWithFallbackHtml = renderToStaticMarkup(
+      <PrayerMeasurements
+        label="مصلى الرجال"
+        value={{ lengthCm: 0, widthCm: 0 }}
+        fallbackArea="500.00"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(emptyWithFallbackHtml).toContain("الطول بالمتر");
+    expect(emptyWithFallbackHtml).toContain("العرض بالمتر");
+    expect(emptyWithFallbackHtml).toContain("المساحة (م²)");
+    expect(emptyWithFallbackHtml).toContain("٥٠٠ م²");
+    expect(emptyWithFallbackHtml).toContain("يرجى تعبئة الطول بالمتر والعرض بالمتر لحساب المساحة تلقائياً.");
+
+    const filledHtml = renderToStaticMarkup(
+      <PrayerMeasurements
+        label="مصلى النساء"
+        value={{ lengthCm: 2000, widthCm: 1500 }}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(filledHtml).toContain("٣٠٠ م²");
+    expect(filledHtml).not.toContain("يرجى تعبئة الطول بالمتر والعرض بالمتر لحساب المساحة تلقائياً.");
+  });
+
   it("binds the requester's linked mosque automatically on MawasimPortal with editable pre-filled fields", () => {
     state.location = "/requester/mawasim";
     const html = renderToStaticMarkup(<MawasimPortal />);
     expect(html).toContain("برنامج مواسم");
     expect(html).toContain("مسجد النور");
-    expect(html).toContain("طلباتي في برنامج مواسم");
+    expect(html).not.toContain("طلباتي في برنامج مواسم");
     expect(html).toContain('value="المدينة"');
     expect(html).toContain('value="العوالي"');
     expect(html).toContain('value="شارع الملك فهد"');
@@ -255,7 +284,14 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).not.toContain('type="file"');
     expect(html).not.toContain("صورة مصلى الرجال");
 
-    const { SEASONAL_SUBMISSION_NOTICE } = await import("../client/src/components/MawasimRequestForm");
+    // Inline ceiling warnings must not appear before clicking Submit
+    expect(html).not.toContain("سيتم تسجيل طلبكم بالكمية المطلوبة");
+    expect(html).not.toContain("سيتم تسجيل طلبكم بالمساحة الفعلية");
+
+    const { SEASONAL_PRE_SUBMIT_NOTICE, SEASONAL_SUBMISSION_NOTICE } = await import("../client/src/components/MawasimRequestForm");
+    expect(SEASONAL_PRE_SUBMIT_NOTICE).toBe(
+      "نؤكد على أن التسجيل الحالي لحصر الاحتياج فقط، وسيتم التواصل معكم بعد اكتمال الدعم واكتمال الشروط والمعايير.",
+    );
     expect(SEASONAL_SUBMISSION_NOTICE).toBe(
       "تم تسجيل طلبكم ونؤكد على أن التسجيل الحالي لحصر الاحتياج فقط وسيتم التواصل معكم بعد اكتمال الدعم واكتمال الشروط والمعايير",
     );
@@ -266,10 +302,89 @@ describe("Mawasim service requester portal UI & routing", () => {
     state.search = "?seasonal=submitted";
     const html = renderToStaticMarkup(<MyRequests />);
     expect(html).toContain("تم إرسال طلبك في برنامج مواسم بنجاح");
+    expect(html).toContain("الطلبات العادية (0)");
+    expect(html).toContain("طلبات برنامج مواسم (1)");
+    expect(html).toContain("إجمالي طلبات مواسم");
+    expect(html).toContain("معتمد");
+    expect(html).toContain("معتذر عنه");
+    expect(html).not.toContain("مجدول");
+    expect(html).not.toContain("منفّذ");
     expect(html).toContain("طلبات برنامج مواسم");
     expect(html).toContain("مسجد النور");
     expect(html).toContain("موسم رمضان 1448");
+    // User-relative numbering (#1 instead of global DB id #88) and date display
+    expect(html).toContain("#1");
+    expect(html).not.toContain("#88");
+    expect(html).not.toContain("md:grid-cols-2");
     expect(html).not.toContain("لا توجد طلبات سابقة");
+
+    // Default regular view on /my-requests renders top tabs + regular KPI cards only
+    state.search = "";
+    const regularHtml = renderToStaticMarkup(<MyRequests />);
+    expect(regularHtml).toContain("الطلبات العادية (0)");
+    expect(regularHtml).toContain("طلبات برنامج مواسم (1)");
+    expect(regularHtml).toContain("إجمالي الطلبات");
+    expect(regularHtml).not.toContain("إجمالي طلبات مواسم");
+    expect(regularHtml).toContain("لا توجد طلبات سابقة");
+    expect(regularHtml).not.toContain("موسم رمضان 1448");
+  });
+
+  it("blocks active seasonal request on MawasimPortal and requires Mawasim exception approval", () => {
+    state.location = "/requester/mawasim";
+    const base = buildPortalPayload(true);
+    state.data["mawasim.portal"] = {
+      ...base,
+      activeRequest: {
+        id: 88,
+        status: "submitted",
+        mosqueName: "مسجد النور",
+        createdAt: new Date("2026-03-01T00:00:00Z").toISOString(),
+      },
+      latestException: null,
+    };
+    const blockedHtml = renderToStaticMarkup(<MawasimPortal />);
+    expect(blockedHtml).toContain("لا يمكن تقديم طلب مواسم جديد حالياً");
+    expect(blockedHtml).toContain("طلب استثناء (برنامج مواسم)");
+    expect(blockedHtml).not.toContain("إرسال طلب برنامج مواسم");
+
+    state.data["mawasim.portal"] = {
+      ...base,
+      activeRequest: {
+        id: 88,
+        status: "submitted",
+        mosqueName: "مسجد النور",
+        createdAt: new Date("2026-03-01T00:00:00Z").toISOString(),
+      },
+      latestException: {
+        id: 15,
+        activeRequestId: 88,
+        consumedByRequestId: null,
+        status: "pending",
+        createdAt: new Date("2026-03-01T01:00:00Z").toISOString(),
+      },
+    };
+    const pendingHtml = renderToStaticMarkup(<MawasimPortal />);
+    expect(pendingHtml).toContain("طلب الاستثناء قيد المراجعة حالياً");
+
+    state.data["mawasim.portal"] = {
+      ...base,
+      activeRequest: {
+        id: 88,
+        status: "submitted",
+        mosqueName: "مسجد النور",
+        createdAt: new Date("2026-03-01T00:00:00Z").toISOString(),
+      },
+      latestException: {
+        id: 15,
+        activeRequestId: 88,
+        consumedByRequestId: null,
+        status: "approved",
+        createdAt: new Date("2026-03-01T01:00:00Z").toISOString(),
+      },
+    };
+    const approvedHtml = renderToStaticMarkup(<MawasimPortal />);
+    expect(approvedHtml).toContain("تم قبول طلب الاستثناء الخاص بك في برنامج مواسم");
+    expect(approvedHtml).toContain("إرسال طلب برنامج مواسم");
   });
 
   it("displays saved seasonal prayer hall length and width inside RequesterMosqueDetails", () => {
@@ -298,5 +413,6 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(html).toContain('value="7 م"');
     expect(html).toContain("عرض مصلى النساء (م)");
     expect(html).toContain('value="5 م"');
+    expect(html).toContain('value="٣٥ م²"');
   });
 });

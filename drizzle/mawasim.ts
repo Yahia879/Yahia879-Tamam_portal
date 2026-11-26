@@ -43,8 +43,24 @@ export const mawasimRequests = mysqlTable("mawasim_requests", {
   executedBy: int("executedBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }, table => [
-  unique("mawasim_season_mosque").on(table.seasonId, table.mosqueId),
+  index("mawasim_season_mosque_idx").on(table.seasonId, table.mosqueId),
   index("mawasim_assigned").on(table.assignedTo, table.seasonId),
+]);
+
+export const mawasimExceptions = mysqlTable("mawasim_exceptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  activeRequestId: int("activeRequestId").references(() => mawasimRequests.id, { onDelete: "set null" }),
+  consumedByRequestId: int("consumedByRequestId").references(() => mawasimRequests.id, { onDelete: "set null" }),
+  reason: text("reason").notNull(),
+  attachment: varchar("attachment", { length: 500 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  reviewedBy: int("reviewedBy").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow().onUpdateNow(),
+}, table => [
+  index("mawasim_exception_user").on(table.userId, table.status),
 ]);
 
 export const mawasimGrants = mysqlTable("mawasim_grants", {

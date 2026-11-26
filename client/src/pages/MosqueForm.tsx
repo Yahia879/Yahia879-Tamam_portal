@@ -1,63 +1,20 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Send } from "lucide-react";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { LocationPicker } from "@/components/LocationPicker";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-
-const mosqueTypes = [
-  { value: "jami", label: "جامع" },
-  { value: "masjid", label: "مسجد" },
-  { value: "musalla", label: "مصلى" },
-];
-
-const CITY_COORDINATES: Record<string, { lat: number; lng: number; region: string }> = {
-  "أبها": { lat: 18.2164, lng: 42.5053, region: "عسير" },
-  "خميس مشيط": { lat: 18.3012, lng: 42.7308, region: "عسير" },
-  "الرياض": { lat: 24.7136, lng: 46.6753, region: "الرياض" },
-  "جدة": { lat: 21.5433, lng: 39.1728, region: "مكة المكرمة" },
-  "مكة المكرمة": { lat: 21.4225, lng: 39.8262, region: "مكة المكرمة" },
-  "المدينة المنورة": { lat: 24.4672, lng: 39.6111, region: "المدينة المنورة" },
-  "الدمام": { lat: 26.4207, lng: 50.0888, region: "المنطقة الشرقية" },
-  "الخبر": { lat: 26.2172, lng: 50.1971, region: "المنطقة الشرقية" },
-  "الجبيل": { lat: 27.0112, lng: 49.6582, region: "المنطقة الشرقية" },
-  "الهفوف": { lat: 25.3789, lng: 49.5878, region: "المنطقة الشرقية" },
-  "الطائف": { lat: 21.2854, lng: 40.4164, region: "مكة المكرمة" },
-  "تبوك": { lat: 28.3835, lng: 36.5662, region: "تبوك" },
-  "بريدة": { lat: 26.3260, lng: 43.9750, region: "القصيم" },
-  "حائل": { lat: 27.5219, lng: 41.6961, region: "حائل" },
-  "نجران": { lat: 17.5656, lng: 44.2289, region: "نجران" },
-  "جازان": { lat: 16.8892, lng: 42.5511, region: "جازان" },
-  "الباحة": { lat: 20.0129, lng: 41.4677, region: "الباحة" },
-  "عرعر": { lat: 30.9753, lng: 41.0381, region: "الحدود الشمالية" },
-  "الجوف": { lat: 29.9539, lng: 40.2064, region: "الجوف" },
-  "ينبع": { lat: 24.0891, lng: 38.0637, region: "المدينة المنورة" }
-};
-
-
-
-// ترجمة صفة طالب الخدمة
-const getRequesterTypeLabel = (type: string | null | undefined) => {
-  const types: Record<string, string> = {
-    imam: "إمام المسجد",
-    muezzin: "مؤذن المسجد",
-    board_member: "عضو مجلس إدارة",
-    committee_member: "عضو لجنة",
-    volunteer: "متطوع",
-    donor: "متبرع",
-  };
-  return types[type || ""] || type || "غير محدد";
-};
+import {
+  CITY_COORDINATES,
+  INITIAL_MOSQUE_FORM_STATE,
+  MosqueFormFields,
+  MosqueFormState,
+  MosqueLocationValue,
+  applyMosqueFormChange,
+} from "@/components/MosqueFormFields";
 
 export default function MosqueForm() {
   const params = useParams<{ id: string }>();
@@ -65,26 +22,7 @@ export default function MosqueForm() {
   const isEdit = !!mosqueId;
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    name: "",
-    mosqueType: "",
-    city: "أبها",
-    governorate: "عسير", // Default to Asir region
-    center: "",
-    district: "",
-    address: "",
-    latitude: "",
-    longitude: "",
-    area: "",
-    capacity: "",
-    hasPrayerHall: false,
-    womenPrayerCapacity: "",
-    womenPrayerArea: "",
-    womenPrayerNotes: "",
-    mosqueAge: "",
-    description: "",
-  });
-
+  const [formData, setFormData] = useState<MosqueFormState>(INITIAL_MOSQUE_FORM_STATE);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
@@ -102,16 +40,16 @@ export default function MosqueForm() {
       let wArea = "";
       let wNotes = "";
       let mainDescription = mosque.notes || "";
-      
+
       if (mosque.notes && mosque.notes.includes("[معلومات مصلى النساء]:")) {
         const parts = mosque.notes.split("[معلومات مصلى النساء]:");
         mainDescription = parts[0].trim();
         const details = parts[1];
-        
+
         const capacityMatch = details.match(/- السعة:\s*([^\n]+)/);
         const areaMatch = details.match(/- المساحة:\s*([^\n]+)/);
-        const notesMatch = details.match(/- ملاحظات إضافية:\s*([^\n]+)/);
-        
+        const notesMatch = details.match(/- ملاحظات(?: إضافية)?:\s*([^\n]+)/);
+
         if (capacityMatch) {
           wCapacity = capacityMatch[1].replace(" مصلية", "").replace("غير حدد", "").replace("غير محدد", "").trim();
         }
@@ -123,6 +61,15 @@ export default function MosqueForm() {
         }
       }
 
+      const dims = (mosque as any).prayerHallDimensions as {
+        men?: { lengthCm: number; widthCm: number } | null;
+        women?: { lengthCm: number; widthCm: number } | null;
+      } | null | undefined;
+      const menL = (mosque as any).menLengthCm ?? dims?.men?.lengthCm ?? null;
+      const menW = (mosque as any).menWidthCm ?? dims?.men?.widthCm ?? null;
+      const womenL = (mosque as any).womenLengthCm ?? dims?.women?.lengthCm ?? null;
+      const womenW = (mosque as any).womenWidthCm ?? dims?.women?.widthCm ?? null;
+
       setFormData({
         name: mosque.name || "",
         mosqueType: (mosque as any).mosqueType || "",
@@ -133,11 +80,21 @@ export default function MosqueForm() {
         address: mosque.address || "",
         latitude: mosque.latitude || "",
         longitude: mosque.longitude || "",
-        area: mosque.area || "",
+        area:
+          menL && menW
+            ? Number(((menL * menW) / 10000).toFixed(2)).toString()
+            : mosque.area || "",
+        menLengthM: menL ? String(menL / 100) : "",
+        menWidthM: menW ? String(menW / 100) : "",
         capacity: mosque.capacity?.toString() || "",
         hasPrayerHall: mosque.hasPrayerHall || false,
         womenPrayerCapacity: wCapacity,
-        womenPrayerArea: wArea,
+        womenPrayerArea:
+          womenL && womenW
+            ? Number(((womenL * womenW) / 10000).toFixed(2)).toString()
+            : wArea,
+        womenLengthM: womenL ? String(womenL / 100) : "",
+        womenWidthM: womenW ? String(womenW / 100) : "",
         womenPrayerNotes: wNotes,
         mosqueAge: mosque.mosqueAge?.toString() || "",
         description: mainDescription,
@@ -155,16 +112,20 @@ export default function MosqueForm() {
     ? existingMosques
     : (Array.isArray(existingMosques?.mosques) ? existingMosques.mosques : []);
   const hasExistingMosque = mosqueList.length > 0;
-  // التحقق من الاستثناءات الممنوحة
   const exemptionsGranted = user?.mosqueExemptions || 0;
   const pendingMosquesCount = mosqueList.filter((m: any) => m.approvalStatus === 'pending').length;
-  // يمكن للمستخدم تسجيل مسجد واحد مجاناً + عدد الاستثناءات
   const canRegisterMore = pendingMosquesCount < (1 + exemptionsGranted);
+
+  const listHref = user?.role === "service_requester" ? "/my-mosques" : "/mosques";
 
   const createMutation = trpc.mosques.create.useMutation({
     onSuccess: () => {
-      toast.success("تم إرسال طلب تسجيل المسجد بنجاح. سيتم مراجعته من قبل الإدارة.");
-      navigate("/mosques");
+      toast.success(
+        user?.role === "service_requester"
+          ? "تم إرسال طلب تسجيل المسجد بنجاح. سيتم مراجعته من قبل الجمعية."
+          : "تم إرسال طلب تسجيل المسجد بنجاح. سيتم مراجعته من قبل الإدارة."
+      );
+      navigate(listHref);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -174,25 +135,26 @@ export default function MosqueForm() {
   const updateMutation = trpc.mosques.update.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث بيانات المسجد بنجاح");
-      navigate(user?.role === "service_requester" ? "/my-mosques" : "/mosques");
+      navigate(listHref);
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  const handleChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (field === "area") {
-      const val = value as string;
-      if (!val) {
+  const handleChange = (field: keyof MosqueFormState, value: string | boolean) => {
+    setFormData((prev) => applyMosqueFormChange(prev, field, value));
+
+    if (field === "menLengthM" || field === "menWidthM") {
+      const nextArea = applyMosqueFormChange(formData, field, value).area;
+      if (!nextArea) {
         setErrors((prev) => {
           const updated = { ...prev };
           delete updated.area;
           return updated;
         });
       } else {
-        const areaNum = parseFloat(val);
+        const areaNum = parseFloat(nextArea);
         if (!isNaN(areaNum) && areaNum >= 10 && areaNum <= 10000) {
           setErrors((prev) => {
             const updated = { ...prev };
@@ -204,7 +166,7 @@ export default function MosqueForm() {
     }
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
+  const handleLocationChange = useCallback((location: MosqueLocationValue) => {
     const detectedCity = location.city || "";
     const cityExists = availableCities.includes(detectedCity);
 
@@ -215,12 +177,18 @@ export default function MosqueForm() {
       address: location.address || prev.address,
       governorate: location.region || prev.governorate,
       city: cityExists ? detectedCity : prev.city,
+      district: location.district || prev.district,
     }));
 
     if (detectedCity && !cityExists) {
       toast.warning(`الموقع المحدد يتبع لـ "${detectedCity}"، وهي ليست ضمن القائمة المتاحة. يرجى اختيار المدينة يدوياً.`);
     }
-  };
+  }, [availableCities]);
+
+  const locationValue = useMemo(() => ({
+    lat: formData.latitude ? parseFloat(formData.latitude) : 18.2164,
+    lng: formData.longitude ? parseFloat(formData.longitude) : 42.5053,
+  }), [formData.latitude, formData.longitude]);
 
   const handleCityChange = async (value: string) => {
     handleChange("city", value);
@@ -244,7 +212,7 @@ export default function MosqueForm() {
           const firstResult = data[0];
           const addr = firstResult.address || {};
           const region = addr.state || addr.province || addr.region || "عسير";
-          
+
           setFormData((prev) => ({
             ...prev,
             latitude: firstResult.lat,
@@ -258,10 +226,38 @@ export default function MosqueForm() {
     }
   };
 
+  const handleTogglePrayerHall = () => {
+    setFormData((prev) => {
+      const isChecked = !prev.hasPrayerHall;
+      return {
+        ...prev,
+        hasPrayerHall: isChecked,
+        ...(isChecked
+          ? {}
+          : {
+              womenPrayerArea: "",
+              womenPrayerCapacity: "",
+              womenLengthM: "",
+              womenWidthM: "",
+              womenPrayerNotes: "",
+            }),
+      };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name || !formData.city || !formData.mosqueType || !formData.area || !formData.capacity) {
+
+    const menLengthVal = parseFloat(formData.menLengthM);
+    const menWidthVal = parseFloat(formData.menWidthM);
+    if (!Number.isFinite(menLengthVal) || menLengthVal <= 0 || !Number.isFinite(menWidthVal) || menWidthVal <= 0) {
+      toast.error("يرجى إدخال الطول بالمتر والعرض بالمتر للمسجد");
+      return;
+    }
+
+    const computedArea = Number((menLengthVal * menWidthVal).toFixed(2));
+
+    if (!formData.name || !formData.city || !formData.mosqueType || !formData.capacity) {
       toast.error("يرجى ملء كافة الحقول المطلوبة للمسجد (الاسم، المدينة، النوع، المساحة، السعة)");
       return;
     }
@@ -271,17 +267,28 @@ export default function MosqueForm() {
       return;
     }
 
-    if (formData.hasPrayerHall && (!formData.womenPrayerCapacity || !formData.womenPrayerArea)) {
+    const womenLengthVal = parseFloat(formData.womenLengthM);
+    const womenWidthVal = parseFloat(formData.womenWidthM);
+    if (
+      formData.hasPrayerHall &&
+      (!Number.isFinite(womenLengthVal) || womenLengthVal <= 0 || !Number.isFinite(womenWidthVal) || womenWidthVal <= 0)
+    ) {
+      toast.error("يرجى إدخال الطول بالمتر والعرض بالمتر لمصلى النساء");
+      return;
+    }
+
+    const computedWomenArea = formData.hasPrayerHall
+      ? Number((womenLengthVal * womenWidthVal).toFixed(2))
+      : undefined;
+
+    if (formData.hasPrayerHall && (!formData.womenPrayerCapacity || !computedWomenArea)) {
       toast.error("يرجى ملء الحقول المطلوبة لمصلى النساء (السعة والمساحة)");
       return;
     }
 
     const newErrors: Record<string, string> = {};
-    if (formData.area) {
-      const areaNum = parseFloat(formData.area);
-      if (isNaN(areaNum) || areaNum < 10 || areaNum > 10000) {
-        newErrors.area = "المساحة يجب أن تكون بين 10 و 10000 متر مربع";
-      }
+    if (isNaN(computedArea) || computedArea < 10 || computedArea > 10000) {
+      newErrors.area = "المساحة يجب أن تكون بين 10 و 10000 متر مربع";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -292,7 +299,6 @@ export default function MosqueForm() {
 
     setErrors({});
 
-    // التحقق من عدم وجود طلب سابق (مع مراعاة الاستثناءات) - فقط عند الإضافة
     if (!isEdit && user?.role === "service_requester" && !canRegisterMore) {
       toast.error("لا يمكنك تقديم أكثر من طلب تسجيل مسجد واحد. يرجى التواصل مع الإدارة للحصول على استثناء.");
       return;
@@ -300,7 +306,7 @@ export default function MosqueForm() {
 
     let finalNotes = formData.description || "";
     if (formData.hasPrayerHall) {
-      const womenDetails = `\n\n[معلومات مصلى النساء]:\n- السعة: ${formData.womenPrayerCapacity ? formData.womenPrayerCapacity + " مصلية" : "غير محدد"}\n- المساحة: ${formData.womenPrayerArea ? formData.womenPrayerArea + " م²" : "غير محدد"}\n- ملاحظات إضافية: ${formData.womenPrayerNotes || "لا يوجد"}`;
+      const womenDetails = `\n\n[معلومات مصلى النساء]:\n- السعة: ${formData.womenPrayerCapacity ? formData.womenPrayerCapacity + " مصلية" : "غير محدد"}\n- المساحة: ${computedWomenArea ? computedWomenArea + " م²" : "غير محدد"}\n- ملاحظات إضافية: ${formData.womenPrayerNotes || "لا يوجد"}`;
       finalNotes += womenDetails;
     }
 
@@ -311,12 +317,16 @@ export default function MosqueForm() {
       governorate: formData.governorate || undefined,
       center: formData.center || undefined,
       district: formData.district || undefined,
-      area: formData.area ? parseFloat(formData.area) : undefined,
+      area: computedArea,
+      menLengthCm: Math.round(menLengthVal * 100),
+      menWidthCm: Math.round(menWidthVal * 100),
       address: formData.address || undefined,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
       hasPrayerHall: formData.hasPrayerHall,
+      womenLengthCm: formData.hasPrayerHall ? Math.round(womenLengthVal * 100) : undefined,
+      womenWidthCm: formData.hasPrayerHall ? Math.round(womenWidthVal * 100) : undefined,
       mosqueAge: formData.mosqueAge ? parseInt(formData.mosqueAge) : undefined,
       notes: finalNotes || undefined,
     };
@@ -328,38 +338,25 @@ export default function MosqueForm() {
     }
   };
 
-  // إذا كان لديه طلب سابق ولا يملك استثناءات، عرض رسالة تنبيه - فقط عند الإضافة
   if (!isEdit && hasExistingMosque && user?.role === "service_requester" && !canRegisterMore) {
     return (
       <DashboardLayout>
-        <div className="space-y-6 max-w-4xl mx-auto">
-          <div className="flex items-center gap-4">
-            <Link href="/requester/mosques">
-              <Button variant="ghost" size="icon">
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">إضافة مسجد جديد</h1>
-              <p className="text-muted-foreground">أدخل بيانات المسجد المراد إضافته</p>
+        <div className="max-w-2xl mx-auto space-y-6 text-center py-8">
+          <Alert variant="destructive" className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300 rounded-3xl p-6 text-right">
+            <AlertCircle className="h-6 w-6 shrink-0 mt-0.5 text-red-600" />
+            <div className="mr-3 space-y-1">
+              <AlertTitle className="text-base font-bold">لا يمكن تقديم طلب تسجيل مسجد جديد حالياً</AlertTitle>
+              <AlertDescription className="text-xs sm:text-sm leading-relaxed">
+                لديك طلب تسجيل مسجد سابق. لا يمكنك تقديم أكثر من طلب واحد إلا بعد الحصول على استثناء من الإدارة.
+              </AlertDescription>
             </div>
-          </div>
-
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>لا يمكن تقديم طلب جديد</AlertTitle>
-            <AlertDescription>
-              لديك طلب تسجيل مسجد سابق. لا يمكنك تقديم أكثر من طلب واحد إلا بعد الحصول على استثناء من الإدارة.
-              <br />
-              يرجى التواصل مع الإدارة إذا كنت بحاجة لتسجيل مسجد إضافي.
-            </AlertDescription>
           </Alert>
 
-          <div className="flex justify-end">
-            <Link href="/requester/mosques">
-              <Button variant="outline">العودة لقائمة المساجد</Button>
-            </Link>
-          </div>
+          <Link href={listHref}>
+            <Button className="rounded-2xl gradient-primary text-white font-bold px-8 h-11 shadow-md">
+              العودة لقائمة المساجد
+            </Button>
+          </Link>
         </div>
       </DashboardLayout>
     );
@@ -375,330 +372,58 @@ export default function MosqueForm() {
     );
   }
 
+  const submitLabel = isEdit
+    ? "حفظ التعديلات"
+    : user?.role === "service_requester"
+      ? "إرسال طلب تسجيل المسجد"
+      : "حفظ المسجد";
+
+  const submittingLabel = isEdit ? "جاري حفظ التعديلات..." : "جاري إرسال الطلب...";
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto">
-        {/* العنوان */}
-        <div className="flex items-center gap-4">
-          <Link href={user?.role === "service_requester" ? "/my-mosques" : "/mosques"}>
-            <Button variant="ghost" size="icon">
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {isEdit ? "تعديل بيانات المسجد" : "إضافة مسجد جديد"}
-            </h1>
-            <p className="text-muted-foreground">
-              {isEdit ? "قم بتعديل بيانات المسجد الحالية" : "أدخل بيانات المسجد المراد إضافته"}
-            </p>
+      <div className="max-w-4xl mx-auto">
+        <div className="print:hidden flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <Link href={listHref}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-pointer"
+                title="العودة لقائمة المساجد"
+              >
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-2xl font-black text-foreground tracking-tight truncate">
+                {isEdit ? "تعديل بيانات المسجد" : "تسجيل مسجد جديد"}
+              </h1>
+              <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
+                {isEdit
+                  ? "تعديل البيانات الأساسية والمكانية للمسجد"
+                  : "إدخال البيانات الأساسية والمكانية للمسجد المراد تسجيله في المنصة"}
+              </p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* بيانات مقدم الطلب - للقراءة فقط - تظهر فقط عند الإضافة للمستفيد */}
-          {!isEdit && user?.role === "service_requester" && (
-            <Card className="border-0 shadow-sm bg-muted/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  بيانات مقدم الطلب
-                </CardTitle>
-                <CardDescription>بياناتك كمقدم للطلب (غير قابلة للتعديل)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground text-sm">الاسم</Label>
-                    <p className="font-medium">{user?.name || "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">الصفة</Label>
-                    <p className="font-medium">{getRequesterTypeLabel(user?.requesterType)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">رقم الجوال</Label>
-                    <p className="font-medium" dir="ltr">{user?.phone || "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">البريد الإلكتروني</Label>
-                    <p className="font-medium text-sm" dir="ltr">{user?.email || "غير محدد"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* المعلومات الأساسية */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                المعلومات الأساسية
-              </CardTitle>
-              <CardDescription>البيانات الرئيسية للمسجد</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>اسم المسجد *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    placeholder="مثال: مسجد الرحمة"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>نوع المسجد *</Label>
-                  <Select key={formData.mosqueType} value={formData.mosqueType || undefined} onValueChange={(v) => handleChange("mosqueType", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر النوع" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mosqueTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="area">مساحة المسجد (م²) *</Label>
-                  <Input
-                    id="area"
-                    type="number"
-                    value={formData.area}
-                    onChange={(e) => handleChange("area", e.target.value)}
-                    placeholder="مثال: 500"
-                    className={errors.area ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    required
-                  />
-                  {errors.area && (
-                    <p className="text-[11px] sm:text-xs text-red-500">{errors.area}</p>
-                  )}
-                </div>
-                <div>
-                  <Label>عدد المصلين *</Label>
-                  <Input
-                    type="number"
-                    value={formData.capacity}
-                    onChange={(e) => handleChange("capacity", e.target.value)}
-                    placeholder="مثال: 300"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>عمر المسجد (بالسنوات)</Label>
-                  <Input
-                    type="number"
-                    value={formData.mosqueAge}
-                    onChange={(e) => handleChange("mosqueAge", e.target.value)}
-                    placeholder="مثال: 15"
-                  />
-                </div>
-                <div className="flex items-center gap-3 pt-6">
-                  <Checkbox
-                    id="hasPrayerHall"
-                    checked={formData.hasPrayerHall}
-                    onCheckedChange={(checked) => {
-                      const isChecked = checked === true;
-                      handleChange("hasPrayerHall", isChecked);
-                      if (!isChecked) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          womenPrayerCapacity: "",
-                          womenPrayerArea: "",
-                          womenPrayerNotes: "",
-                        }));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="hasPrayerHall" className="cursor-pointer">هل يوجد مصلى نساء؟</Label>
-                </div>
-              </div>
-
-              {formData.hasPrayerHall && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <h4 className="font-semibold text-xs sm:text-sm text-primary flex items-center gap-1.5 border-b pb-2">
-                    <Building2 className="w-4 h-4" />
-                    معلومات مصلى النساء
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="womenPrayerCapacity" className="text-[11px] sm:text-xs">سعة مصلى النساء (مصلي) *</Label>
-                      <Input
-                        id="womenPrayerCapacity"
-                        type="number"
-                        value={formData.womenPrayerCapacity}
-                        onChange={(e) => handleChange("womenPrayerCapacity", e.target.value)}
-                        placeholder="مثال: 50"
-                        className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
-                        required={formData.hasPrayerHall}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="womenPrayerArea" className="text-[11px] sm:text-xs">المساحة (م²) *</Label>
-                      <Input
-                        id="womenPrayerArea"
-                        type="number"
-                        value={formData.womenPrayerArea}
-                        onChange={(e) => handleChange("womenPrayerArea", e.target.value)}
-                        placeholder="مثال: 80"
-                        className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
-                        required={formData.hasPrayerHall}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="womenPrayerNotes" className="text-[11px] sm:text-xs">ملاحظات مصلى النساء</Label>
-                    <Input
-                      id="womenPrayerNotes"
-                      type="text"
-                      value={formData.womenPrayerNotes}
-                      onChange={(e) => handleChange("womenPrayerNotes", e.target.value)}
-                      placeholder="مثال: منفصل وله مدخل خاص ودورة مياه..."
-                      className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* الموقع على الخريطة */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                الموقع الجغرافي
-              </CardTitle>
-              <CardDescription>حدد موقع المسجد على الخريطة بالنقر أو البحث</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* مكون اختيار الموقع */}
-              <LocationPicker
-                value={formData.latitude && formData.longitude ? {
-                  lat: parseFloat(formData.latitude),
-                  lng: parseFloat(formData.longitude)
-                } : undefined}
-                onChange={handleLocationChange}
-              />
-
-              {/* معلومات الموقع من الخريطة */}
-              {(formData.latitude || formData.longitude || formData.address) && (
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
-                  <h4 className="font-semibold text-primary flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    معلومات الموقع من الخريطة
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">خط العرض (Latitude)</Label>
-                      <p className="font-mono text-sm bg-background px-3 py-2 rounded border">{formData.latitude || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">خط الطول (Longitude)</Label>
-                      <p className="font-mono text-sm bg-background px-3 py-2 rounded border">{formData.longitude || "-"}</p>
-                    </div>
-                  </div>
-                  {formData.address && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">العنوان من خرائط جوجل</Label>
-                      <p className="text-sm bg-background px-3 py-2 rounded border">{formData.address}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* حقول الموقع اليدوية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-                <div>
-                  <Label>المدينة / المركز *</Label>
-                  <Select key={formData.city} value={formData.city} onValueChange={handleCityChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المدينة أو المركز" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      {availableCities.map((location: string) => (
-                        <SelectItem key={location} value={location}>{location}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>المنطقة</Label>
-                  <Input
-                    value={formData.governorate}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label>الحي</Label>
-                  <Input
-                    value={formData.district}
-                    onChange={(e) => handleChange("district", e.target.value)}
-                    placeholder="مثال: النسيم"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>العنوان التفصيلي</Label>
-                <Textarea
-                  value={formData.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                  placeholder="العنوان التفصيلي للمسجد..."
-                  rows={2}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ملاحظة للموافقة */}
-          {!isEdit && user?.role === "service_requester" && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>ملاحظة هامة</AlertTitle>
-              <AlertDescription>
-                سيتم مراجعة طلب تسجيل المسجد من قبل الإدارة قبل اعتماده. ستصلك إشعار عند الموافقة على الطلب.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* زر الحفظ */}
-          <div className="flex justify-end gap-4">
-            <Link href={user?.role === "service_requester" ? "/my-mosques" : "/mosques"}>
-              <Button type="button" variant="outline">إلغاء</Button>
-            </Link>
-            <Button 
-              type="submit" 
-              className="gradient-primary text-white"
-              disabled={createMutation.isPending || updateMutation.isPending || checkingMosques}
-            >
-              {createMutation.isPending || updateMutation.isPending ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
-                  جاري الحفظ...
-                </>
-              ) : isEdit ? (
-                <>
-                  <Save className="w-4 h-4 ml-2" />
-                  حفظ التعديلات
-                </>
-              ) : user?.role === "service_requester" ? (
-                <>
-                  <Send className="w-4 h-4 ml-2" />
-                  إرسال للموافقة
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 ml-2" />
-                  حفظ المسجد
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+        <MosqueFormFields
+          formData={formData}
+          errors={errors}
+          availableCities={availableCities}
+          locationValue={locationValue}
+          onFieldChange={handleChange}
+          onCityChange={handleCityChange}
+          onLocationChange={handleLocationChange}
+          onTogglePrayerHall={handleTogglePrayerHall}
+          onSubmit={handleSubmit}
+          cancelHref={listHref}
+          submitLabel={submitLabel}
+          submittingLabel={submittingLabel}
+          isSubmitting={createMutation.isPending || updateMutation.isPending}
+          disableSubmit={checkingMosques}
+        />
       </div>
     </DashboardLayout>
   );

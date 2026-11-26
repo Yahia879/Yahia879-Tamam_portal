@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mawasimGrants, mawasimRequests, mawasimSeasons, mosques, users } from "../drizzle/schema";
+import { mawasimExceptions, mawasimGrants, mawasimRequests, mawasimSeasons, mosques, users } from "../drizzle/schema";
 import { defaultSeasonalSettings } from "../shared/mawasim";
 import type { TrpcContext } from "./_core/context";
 import { mawasimRouter } from "./routers/mawasim";
@@ -7,6 +7,8 @@ import { mawasimRouter } from "./routers/mawasim";
 const state = vi.hoisted(() => ({
   seasons: [] as any[],
   allRequests: [] as any[],
+  requesterActiveRequests: [] as any[],
+  mawasimExceptions: [] as any[],
   grants: [] as any[],
   eligibleMosques: [] as any[],
   previousSnapshots: [] as any[],
@@ -16,7 +18,9 @@ const state = vi.hoisted(() => ({
   candidateUsers: [] as any[],
   allowAdmin: false,
   insertedValues: [] as any[],
+  insertedExceptions: [] as any[],
   updatedMosques: [] as any[],
+  updatedExceptions: [] as any[],
 }));
 
 function makeSelectChain(table: any, columns: any) {
@@ -27,9 +31,11 @@ function makeSelectChain(table: any, columns: any) {
     if (table === mawasimGrants) return isForUpdate ? state.submitGrants : state.grants;
     if (table === mosques) return isForUpdate ? (state.submitMosque ? [state.submitMosque] : []) : state.eligibleMosques;
     if (table === users) return state.candidateUsers;
+    if (table === mawasimExceptions) return state.mawasimExceptions;
     if (table === mawasimRequests) {
       if (hasJoin) return state.allRequests;
       if (columns && "menPhoto" in columns) return state.previousSnapshots;
+      if (columns && "createdAt" in columns) return state.requesterActiveRequests;
       return state.usageRows;
     }
     return [];
@@ -87,9 +93,13 @@ function makeDb(inTx = false) {
         return chain;
       },
     }),
-    insert: () => ({
+    insert: (table?: any) => ({
       values: (vals: any) => {
-        state.insertedValues.push(vals);
+        if (table === mawasimExceptions) {
+          state.insertedExceptions.push(vals);
+        } else {
+          state.insertedValues.push(vals);
+        }
         return {
           $returningId: async () => [{ id: 700 }],
         };
@@ -98,7 +108,11 @@ function makeDb(inTx = false) {
     update: (table: any) => ({
       set: (vals: any) => ({
         where: () => {
-          state.updatedMosques.push({ table, vals });
+          if (table === mawasimExceptions) {
+            state.updatedExceptions.push(vals);
+          } else {
+            state.updatedMosques.push({ table, vals });
+          }
           return Promise.resolve();
         },
       }),
@@ -113,6 +127,11 @@ vi.mock("./db", () => ({
 
 vi.mock("./permissions", () => ({
   checkPermission: async () => state.allowAdmin,
+}));
+
+vi.mock("./routers/notifications", () => ({
+  createNotification: vi.fn(async () => undefined),
+  sendEmailNotification: vi.fn(async () => undefined),
 }));
 
 function buildSettings() {
@@ -194,8 +213,12 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     state.submitGrants = [];
     state.candidateUsers = [];
     state.allowAdmin = false;
+    state.requesterActiveRequests = [];
+    state.mawasimExceptions = [];
     state.insertedValues = [];
+    state.insertedExceptions = [];
     state.updatedMosques = [];
+    state.updatedExceptions = [];
   });
 
   it("blocks non-requesters from calling portal and returns sanitized season limits + linked mosques for service_requester", async () => {
@@ -407,5 +430,146 @@ describe("Mawasim requester portal & submit server enforcement", () => {
       menPhoto: null,
       womenPhoto: null,
     });
+  });
+
+  it("syncs only modified mosque fields and recalculates area even when mosque.area was already set", async () => {
+    state.submitMosque = {
+      id: 201,
+      name: "مسجد النور",
+      city: "المدينة",
+      district: "العوالي",
+      address: "الشارع العام",
+      capacity: 50,
+      area: "500.00",
+      hasPrayerHall: false,
+      menLengthCm: 2500,
+      menWidthCm: 2000,
+      womenLengthCm: null,
+      womenWidthCm: null,
+      registeredBy: 42,
+      imamEmail: "imam@mosque.sa",
+      imamPhone: "0551234567",
+    };
+
+    const reqApi = callerFor({ id: 42, requesterType: "imam" });
+    await reqApi.submit({
+      seasonId: 10,
+      mosqueId: 201,
+      snapshot: {
+        city: "المدينة",
+        district: "حي النخيل",
+        address: "الشارع العام",
+        worshippers: 50,
+        men: { lengthCm: 5000, widthCm: 6000 },
+        women: { lengthCm: 5000, widthCm: 5000 },
+      },
+      requested: { carpet: 550000 },
+      pledge: true,
+    });
+
+    expect(state.updatedMosques).toHaveLength(1);
+    expect(state.updatedMosques[0].vals).toEqual({
+      district: "حي النخيل",
+      menLengthCm: 5000,
+      menWidthCm: 6000,
+      area: "3000.00",
+      hasPrayerHall: true,
+      womenLengthCm: 5000,
+      womenWidthCm: 5000,
+    });
+
+    // Re-submitting identical data triggers zero mosque column updates
+    state.updatedMosques = [];
+    state.submitMosque = {
+      ...state.submitMosque,
+      district: "حي النخيل",
+      menLengthCm: 5000,
+      menWidthCm: 6000,
+      area: "3000.00",
+      hasPrayerHall: true,
+      womenLengthCm: 5000,
+      womenWidthCm: 5000,
+    };
+
+    await reqApi.submit({
+      seasonId: 10,
+      mosqueId: 201,
+      snapshot: {
+        city: "المدينة",
+        district: "حي النخيل",
+        address: "الشارع العام",
+        worshippers: 50,
+        men: { lengthCm: 5000, widthCm: 6000 },
+        women: { lengthCm: 5000, widthCm: 5000 },
+      },
+      requested: { carpet: 550000 },
+      pledge: true,
+    });
+
+    expect(state.updatedMosques).toHaveLength(0);
+  });
+
+  it("blocks a second active Mawasim request unless an isolated Mawasim exception is submitted and approved", async () => {
+    const activeReq = {
+      id: 88,
+      status: "submitted",
+      createdAt: new Date("2026-03-01T10:00:00Z"),
+      mosqueName: "مسجد النور",
+    };
+    state.requesterActiveRequests = [activeReq];
+    state.mawasimExceptions = [];
+
+    const reqApi = callerFor({ id: 42, requesterType: "imam" });
+
+    // Blocked when active Mawasim request exists without an approved Mawasim exception
+    await expect(reqApi.submit(baseSubmission)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+
+    // Submitting Mawasim exception stores into mawasim_exceptions linked to activeRequestId
+    await expect(
+      reqApi.submitException({
+        reason: "نحتاج طلباً موسمياً إضافياً بسبب زيادة عدد المصلين",
+        attachment: null,
+      }),
+    ).resolves.toEqual({ success: true });
+    expect(state.insertedExceptions).toHaveLength(1);
+    expect(state.insertedExceptions[0]).toMatchObject({
+      userId: 42,
+      activeRequestId: 88,
+      status: "pending",
+    });
+
+    // Duplicate exception while pending is rejected
+    state.mawasimExceptions = [
+      {
+        id: 15,
+        userId: 42,
+        activeRequestId: 88,
+        consumedByRequestId: null,
+        status: "pending",
+        reason: "مبرر إضافي",
+        createdAt: new Date("2026-03-01T11:00:00Z"),
+      },
+    ];
+    await expect(
+      reqApi.submitException({ reason: "محاولة أخرى أثناء المراجعة", attachment: null }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // Admin reviews and approves Mawasim exception via mawasim.reviewException
+    const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+    await expect(adminApi.reviewException({ id: 15, status: "approved" })).resolves.toEqual({ success: true });
+    expect(state.updatedExceptions[0]).toMatchObject({ status: "approved", reviewedBy: 1 });
+
+    // Approved unconsumed Mawasim exception unlocks the second submission and gets consumed atomically
+    state.mawasimExceptions = [
+      {
+        ...state.mawasimExceptions[0],
+        status: "approved",
+      },
+    ];
+    const secondCreated = await reqApi.submit(baseSubmission);
+    expect(secondCreated).toEqual({ id: 700 });
+    expect(state.updatedExceptions).toContainEqual({ consumedByRequestId: 700 });
   });
 });
