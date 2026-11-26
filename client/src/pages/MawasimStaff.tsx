@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { displayQuantity, MawasimField } from "@/components/MawasimRequestForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,25 @@ import { cn } from "@/lib/utils";
 import { exportStyledExcel, type ExcelColumnDef } from "@/lib/excelExportHelper";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../server/routers";
 import {
-  defaultSeasonalSettings, seasonalCapacity, seasonalMosqueLimit, seasonalServiceIds, seasonalServices, seasonalStatusLabels,
-  type SeasonalQuantities, type SeasonalService, type SeasonalSettings,
+  defaultSeasonalSettings,
+  filterAndSortSeasonalRequests,
+  getSeasonalCity,
+  getSeasonalGovernorate,
+  normalizeSeasonalReviewStatus,
+  seasonalCapacity,
+  seasonalMosqueLimit,
+  seasonalServiceIds,
+  seasonalServices,
+  seasonalStatusLabels,
+  summarizeSeasonalByGovernorateCity,
+  type SeasonalQuantities,
+  type SeasonalRequestSort,
+  type SeasonalService,
+  type SeasonalSettings,
 } from "@shared/mawasim";
 import {
   AlertCircle,
@@ -53,72 +68,18 @@ import {
   XCircle,
 } from "lucide-react";
 
+const PAGE_SIZE = 10;
+
 type Dashboard = inferRouterOutputs<AppRouter>["mawasim"]["staff"];
 type Season = NonNullable<Dashboard["season"]>;
 type SeasonRequest = Dashboard["requests"][number];
 type RequestStatus = Exclude<SeasonRequest["status"], "scheduled" | "completed">;
+type RequestSort = SeasonalRequestSort;
 
-type RequestSort = "newest" | "governorate_asc" | "governorate_desc" | "city_asc" | "city_desc";
-
-function reviewStatus(status: SeasonRequest["status"]): RequestStatus {
-  return status === "scheduled" || status === "completed" ? "approved" : status;
-}
-
-export function requestGovernorate(request: Pick<SeasonRequest, "governorate">): string {
-  return request.governorate?.trim() || "";
-}
-
-export function requestCity(request: Pick<SeasonRequest, "snapshot" | "mosqueCity">): string {
-  return request.snapshot.city?.trim() || request.mosqueCity?.trim() || "";
-}
-
-function compareTextWithEmptyLast(a: string, b: string, dir: 1 | -1): number {
-  if (!a && !b) return 0;
-  if (!a) return 1;
-  if (!b) return -1;
-  return a.localeCompare(b, "ar") * dir;
-}
-
-export function filterAndSortSeasonRequests<T extends SeasonRequest>(
-  list: T[],
-  options: {
-    statusFilter: "all" | RequestStatus;
-    governorateFilter: string;
-    cityFilter: string;
-    searchQuery: string;
-    sortBy: RequestSort;
-  },
-): T[] {
-  const term = options.searchQuery.trim().toLowerCase();
-  const filtered = list.filter(row => {
-    if (options.statusFilter !== "all" && reviewStatus(row.status) !== options.statusFilter) return false;
-    const gov = requestGovernorate(row);
-    const city = requestCity(row);
-    if (options.governorateFilter !== "all" && gov !== options.governorateFilter) return false;
-    if (options.cityFilter !== "all" && city !== options.cityFilter) return false;
-    if (term) {
-      const hay = `${row.id} ${row.mosqueName} ${gov} ${city} ${row.snapshot.district ?? ""}`.toLowerCase();
-      if (!hay.includes(term)) return false;
-    }
-    return true;
-  });
-
-  if (options.sortBy === "newest") return filtered;
-  const dir: 1 | -1 = options.sortBy.endsWith("_desc") ? -1 : 1;
-  const primaryGov = options.sortBy.startsWith("governorate_");
-
-  return [...filtered].sort((a, b) => {
-    const first = primaryGov
-      ? compareTextWithEmptyLast(requestGovernorate(a), requestGovernorate(b), dir)
-      : compareTextWithEmptyLast(requestCity(a), requestCity(b), dir);
-    if (first !== 0) return first;
-    const second = primaryGov
-      ? compareTextWithEmptyLast(requestCity(a), requestCity(b), dir)
-      : compareTextWithEmptyLast(requestGovernorate(a), requestGovernorate(b), dir);
-    if (second !== 0) return second;
-    return b.id - a.id;
-  });
-}
+const reviewStatus = normalizeSeasonalReviewStatus;
+export const requestGovernorate = getSeasonalGovernorate;
+export const requestCity = getSeasonalCity;
+export const filterAndSortSeasonRequests = filterAndSortSeasonalRequests;
 
 function formatExcelQuantities(quantities: SeasonalQuantities | null | undefined): string {
   if (!quantities) return "-";
@@ -272,28 +233,61 @@ export default function MawasimStaff() {
   const [governorateFilter, setGovernorateFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [sortBy, setSortBy] = useState<RequestSort>("newest");
+  const [page, setPage, resetPage] = usePersistedPage("mawasim_requests_page");
   const [isExporting, setIsExporting] = useState(false);
 
-  const dashboard = trpc.mawasim.staff.useQuery(seasonId ? { seasonId } : undefined, { enabled: canView });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const isFirstFilterMount = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterMount.current) {
+      isFirstFilterMount.current = false;
+      return;
+    }
+    resetPage();
+  }, [seasonId, debouncedSearch, statusFilter, governorateFilter, cityFilter, sortBy, resetPage]);
+
+  const utils = trpc.useUtils();
+  const dashboard = trpc.mawasim.staff.useQuery(
+    {
+      seasonId,
+      search: debouncedSearch || undefined,
+      status: statusFilter,
+      governorate: governorateFilter !== "all" ? governorateFilter : undefined,
+      city: cityFilter !== "all" ? cityFilter : undefined,
+      sortBy,
+      page,
+      limit: PAGE_SIZE,
+    },
+    { enabled: canView },
+  );
   const data = dashboard.data;
   const season = data?.season;
   const refresh = () => { void dashboard.refetch(); };
 
   const governorateOptions = useMemo(() => {
+    if (data?.filterOptions?.governorates) return data.filterOptions.governorates;
     const set = new Set<string>();
     for (const row of data?.requests ?? []) {
       const gov = requestGovernorate(row);
       if (gov) set.add(gov);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [data?.requests]);
+  }, [data?.filterOptions?.governorates, data?.requests]);
 
   const effectiveGovernorate = governorateFilter === "all" || governorateOptions.includes(governorateFilter)
     ? governorateFilter
     : "all";
 
   const cityOptions = useMemo(() => {
+    if (data?.filterOptions?.cities) return data.filterOptions.cities;
     const set = new Set<string>();
     for (const row of data?.requests ?? []) {
       if (effectiveGovernorate !== "all" && requestGovernorate(row) !== effectiveGovernorate) continue;
@@ -301,7 +295,7 @@ export default function MawasimStaff() {
       if (city) set.add(city);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [data?.requests, effectiveGovernorate]);
+  }, [data?.filterOptions?.cities, data?.requests, effectiveGovernorate]);
 
   const effectiveCity = cityFilter === "all" || cityOptions.includes(cityFilter)
     ? cityFilter
@@ -313,14 +307,10 @@ export default function MawasimStaff() {
     || searchQuery.trim() !== ""
     || sortBy !== "newest";
 
-  const byLocation = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const request of data?.requests ?? []) {
-      const location = [requestGovernorate(request), requestCity(request), request.snapshot.district].filter(Boolean).join(" · ");
-      map.set(location, (map.get(location) ?? 0) + 1);
-    }
-    return map;
-  }, [data?.requests]);
+  const byLocation = useMemo(
+    () => data?.locationDistribution ?? summarizeSeasonalByGovernorateCity(data?.requests ?? []),
+    [data?.locationDistribution, data?.requests],
+  );
 
   const requestStats = useMemo(() => {
     if (data?.stats) return data.stats;
@@ -333,7 +323,7 @@ export default function MawasimStaff() {
     };
   }, [data?.requests, data?.stats]);
 
-  const filteredRequests = useMemo(
+  const localFilteredRequests = useMemo(
     () => filterAndSortSeasonRequests(data?.requests ?? [], {
       statusFilter,
       governorateFilter: effectiveGovernorate,
@@ -344,15 +334,43 @@ export default function MawasimStaff() {
     [data?.requests, statusFilter, effectiveGovernorate, effectiveCity, searchQuery, sortBy],
   );
 
+  const hasBackendPagination = Boolean(data?.pagination);
+  const totalFilteredItems = data?.pagination?.total ?? localFilteredRequests.length;
+  const totalPages = data?.pagination?.totalPages ?? Math.max(1, Math.ceil(totalFilteredItems / PAGE_SIZE));
+  const currentPage = Math.min(data?.pagination?.page ?? page, totalPages);
+  const filteredRequests = hasBackendPagination
+    ? (data?.requests ?? [])
+    : localFilteredRequests.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setPage(newPage);
+    }
+  };
+
   const enabledServicesCount = season
     ? seasonalServiceIds.filter(service => season.settings.services[service].enabled).length
     : 0;
 
   async function handleExportExcel() {
-    if (isExporting || filteredRequests.length === 0) return;
+    if (isExporting || totalFilteredItems === 0) return;
     setIsExporting(true);
     try {
-      const payload = buildSeasonalExcelPayload(filteredRequests, season);
+      let rowsToExport = filteredRequests;
+      if (hasBackendPagination && totalFilteredItems > filteredRequests.length) {
+        const fetched = await utils.mawasim.exportRequests.fetch({
+          seasonId: season?.id,
+          search: debouncedSearch || undefined,
+          status: statusFilter,
+          governorate: effectiveGovernorate !== "all" ? effectiveGovernorate : undefined,
+          city: effectiveCity !== "all" ? effectiveCity : undefined,
+          sortBy,
+        });
+        if (Array.isArray(fetched) && fetched.length > 0) {
+          rowsToExport = fetched;
+        }
+      }
+      const payload = buildSeasonalExcelPayload(rowsToExport, season);
       await exportStyledExcel({
         ...payload,
         includeIndex: true,
@@ -702,30 +720,69 @@ export default function MawasimStaff() {
                     </div>
                   );
                 })()}
-
-                {byLocation.size > 0 && (
-                  <div className="border-t border-border/50 bg-muted/15 px-5 py-4">
-                    <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-foreground">
-                      <MapPin className="size-3.5 text-primary" />
-                      توزيع المساجد حسب المدينة والحي
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from(byLocation, ([location, count]) => (
-                        <span
-                          key={location}
-                          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground shadow-2xs"
-                        >
-                          <span>{location}</span>
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-                            {count}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
+
+            {byLocation.length > 0 && (
+              <Card className="rounded-3xl border-border/60 shadow-xs p-5 sm:p-6">
+                <CardHeader className="p-0 mb-5 text-right">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                    <MapPin className="size-5 text-emerald-500 shrink-0" />
+                    <span>توزيع طلبات برنامج مواسم</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    توزيع الطلبات المسجلة في الموسم المحدد حسب المحافظة والمدينة
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 space-y-4">
+                  <div className="h-72" dir="ltr">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={byLocation} margin={{ top: 10, right: 16, left: 8, bottom: 24 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="name"
+                          stroke="#64748b"
+                          fontSize={12}
+                          tickLine={false}
+                          interval={0}
+                          height={44}
+                        />
+                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
+                        <Tooltip
+                          formatter={(value: any) => [`${value} طلب`, "عدد الطلبات"]}
+                          contentStyle={{
+                            borderRadius: "14px",
+                            backgroundColor: "#ffffff",
+                            borderColor: "#cbd5e1",
+                            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
+                            color: "#0f172a",
+                            padding: "10px 14px",
+                            textAlign: "right",
+                            direction: "rtl",
+                          }}
+                          itemStyle={{ color: "#0f172a", fontWeight: "bold", fontSize: "13px" }}
+                          labelStyle={{ color: "#475569", fontWeight: "bold", fontSize: "12px", marginBottom: "4px" }}
+                        />
+                        <Bar dataKey="value" name="عدد الطلبات" fill="#10b981" barSize={46} radius={[10, 10, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-border/50">
+                    {byLocation.map((item) => (
+                      <span
+                        key={item.name}
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-xs font-medium text-foreground"
+                      >
+                        <span>{item.name}</span>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
+                          {item.value}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Season Requests List */}
             {canViewRequests && (
@@ -742,11 +799,11 @@ export default function MawasimStaff() {
                     </p>
                   </div>
 
-                {data.requests.length > 0 && (
+                {(requestStats.total > 0 || hasActiveFilters) && (
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {([
-                        ["all", "الكل", data.requests.length],
+                        ["all", "الكل", requestStats.total],
                         ["submitted", seasonalStatusLabels.submitted, requestStats.submitted],
                         ["approved", seasonalStatusLabels.approved, requestStats.approved],
                         ["rejected", seasonalStatusLabels.rejected, requestStats.rejected],
@@ -779,7 +836,7 @@ export default function MawasimStaff() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={isExporting || filteredRequests.length === 0}
+                      disabled={isExporting || totalFilteredItems === 0}
                       onClick={handleExportExcel}
                       className="h-8 gap-1.5 rounded-xl border-[#1a5f4a]/30 bg-transparent px-3 text-xs font-bold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] cursor-pointer"
                     >
@@ -794,7 +851,7 @@ export default function MawasimStaff() {
                 )}
               </div>
 
-              {data.requests.length > 0 && (
+              {(requestStats.total > 0 || hasActiveFilters) && (
                 <div className="grid gap-2.5 rounded-2xl border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-12">
                   <div className="relative lg:col-span-4">
                     <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -893,10 +950,10 @@ export default function MawasimStaff() {
                       <Inbox className="size-6" />
                     </div>
                     <p className="text-sm font-semibold text-foreground">
-                      {data.requests.length === 0 ? "لا توجد طلبات في هذا الموسم بعد" : "لا توجد طلبات تطابق الفلتر المحدد"}
+                      {requestStats.total === 0 ? "لا توجد طلبات في هذا الموسم بعد" : "لا توجد طلبات تطابق الفلتر المحدد"}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {data.requests.length === 0
+                      {requestStats.total === 0
                         ? "يمكنك تسجيل طلب موسمي جديد من صفحة إدارة الطلبات عبر زر «طلب موسمي»."
                         : "اختر حالة أخرى أو اضغط على «الكل» لعرض جميع طلبات الموسم."}
                     </p>
@@ -988,6 +1045,17 @@ export default function MawasimStaff() {
                       </Card>
                     );
                   })}
+
+                  <EnhancedPagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    totalItems={totalFilteredItems}
+                    itemsPerPage={PAGE_SIZE}
+                    itemName="طلب"
+                    itemNamePlural="طلبات"
+                    className="rounded-2xl border border-border/60"
+                  />
                 </div>
               )}
               </section>

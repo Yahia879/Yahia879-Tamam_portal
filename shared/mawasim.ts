@@ -184,3 +184,98 @@ export function evaluateMawasimExceptionState<
     exceptionForCycle,
   };
 }
+
+export type SeasonalRequestSort =
+  | "newest"
+  | "governorate_asc"
+  | "governorate_desc"
+  | "city_asc"
+  | "city_desc";
+
+export interface SeasonalFilterableRequest {
+  id: number;
+  mosqueName: string;
+  governorate: string | null;
+  mosqueCity: string | null;
+  status: string;
+  snapshot: {
+    city?: string | null;
+    district?: string | null;
+  };
+}
+
+export function normalizeSeasonalReviewStatus(status: string): "submitted" | "approved" | "rejected" {
+  return status === "scheduled" || status === "completed" ? "approved" : (status as "submitted" | "approved" | "rejected");
+}
+
+export function getSeasonalGovernorate(request: Pick<SeasonalFilterableRequest, "governorate">): string {
+  return request.governorate?.trim() || "";
+}
+
+export function getSeasonalCity(request: Pick<SeasonalFilterableRequest, "snapshot" | "mosqueCity">): string {
+  return request.snapshot.city?.trim() || request.mosqueCity?.trim() || "";
+}
+
+function compareTextEmptyLast(a: string, b: string, dir: 1 | -1): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a.localeCompare(b, "ar") * dir;
+}
+
+export function filterAndSortSeasonalRequests<T extends SeasonalFilterableRequest>(
+  list: ReadonlyArray<T>,
+  options: {
+    statusFilter: "all" | "submitted" | "approved" | "rejected";
+    governorateFilter: string;
+    cityFilter: string;
+    searchQuery: string;
+    sortBy: SeasonalRequestSort;
+  },
+): T[] {
+  const term = options.searchQuery.trim().toLowerCase();
+  const filtered = list.filter(row => {
+    if (options.statusFilter !== "all" && normalizeSeasonalReviewStatus(row.status) !== options.statusFilter) {
+      return false;
+    }
+    const gov = getSeasonalGovernorate(row);
+    const city = getSeasonalCity(row);
+    if (options.governorateFilter !== "all" && gov !== options.governorateFilter) return false;
+    if (options.cityFilter !== "all" && city !== options.cityFilter) return false;
+    if (term) {
+      const hay = `${row.id} ${row.mosqueName} ${gov} ${city} ${row.snapshot.district ?? ""}`.toLowerCase();
+      if (!hay.includes(term)) return false;
+    }
+    return true;
+  });
+
+  if (options.sortBy === "newest") return filtered;
+  const dir: 1 | -1 = options.sortBy.endsWith("_desc") ? -1 : 1;
+  const primaryGov = options.sortBy.startsWith("governorate_");
+
+  return [...filtered].sort((a, b) => {
+    const first = primaryGov
+      ? compareTextEmptyLast(getSeasonalGovernorate(a), getSeasonalGovernorate(b), dir)
+      : compareTextEmptyLast(getSeasonalCity(a), getSeasonalCity(b), dir);
+    if (first !== 0) return first;
+    const second = primaryGov
+      ? compareTextEmptyLast(getSeasonalCity(a), getSeasonalCity(b), dir)
+      : compareTextEmptyLast(getSeasonalGovernorate(a), getSeasonalGovernorate(b), dir);
+    if (second !== 0) return second;
+    return b.id - a.id;
+  });
+}
+
+export function summarizeSeasonalByGovernorateCity(
+  rows: ReadonlyArray<Pick<SeasonalFilterableRequest, "governorate" | "mosqueCity" | "snapshot">>,
+) {
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const location = [getSeasonalGovernorate(row), getSeasonalCity(row)].filter(Boolean).join(" · ");
+    if (!location) continue;
+    map.set(location, (map.get(location) ?? 0) + 1);
+  }
+  return Array.from(map, ([name, value]) => ({ name, value })).sort(
+    (a, b) => b.value - a.value || a.name.localeCompare(b.name, "ar"),
+  );
+}

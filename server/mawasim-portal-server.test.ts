@@ -572,4 +572,26 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     expect(secondCreated).toEqual({ id: 700 });
     expect(state.updatedExceptions).toContainEqual({ consumedByRequestId: 700 });
   });
+
+  it("summarizes Mawasim requests by governorate and city and filters/paginates staff queries", async () => {
+    const { filterAndSortSeasonalRequests, summarizeSeasonalByGovernorateCity } = await import("../shared/mawasim");
+    const sampleRows = [
+      { id: 1, mosqueName: "جامع الفاروق", governorate: "منطقة عسير", mosqueCity: "أبها", status: "submitted", snapshot: { city: "أبها", district: "النصب" } },
+      { id: 2, mosqueName: "مسجد النور", governorate: "منطقة عسير", mosqueCity: "أبها", status: "approved", snapshot: { city: "أبها", district: "السلامة" } },
+      { id: 3, mosqueName: "مسجد الخير", governorate: "منطقة عسير", mosqueCity: "كمكم", status: "submitted", snapshot: { city: "كمكم", district: "منمن" } },
+    ];
+    expect(summarizeSeasonalByGovernorateCity(sampleRows)).toEqual([
+      { name: "منطقة عسير · أبها", value: 2 },
+      { name: "منطقة عسير · كمكم", value: 1 },
+    ]);
+    expect(
+      filterAndSortSeasonalRequests(sampleRows, {
+        statusFilter: "submitted",
+        governorateFilter: "منطقة عسير",
+        cityFilter: "أبها",
+        searchQuery: "النصب",
+        sortBy: "newest",
+      }).map(r => r.id),
+    ).toEqual([1]);
+  });
 });

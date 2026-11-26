@@ -20,10 +20,65 @@ import {
   Check,
   ChevronsUpDown,
   Loader2,
+  Mail,
   MapPin,
   MoonStar,
+  Phone,
+  User,
   Users,
 } from "lucide-react";
+
+const REQUESTER_TYPE_LABELS: Record<string, string> = {
+  imam: "إمام",
+  muezzin: "مؤذن",
+  board_member: "عضو مجلس إدارة",
+  committee_member: "عضو لجنة",
+  volunteer: "متطوع",
+  donor: "متبرع",
+  other: "أخرى",
+};
+
+export function LinkedRequesterSummary({
+  linkedRequester,
+}: {
+  linkedRequester: MawasimMosque["linkedRequester"];
+}) {
+  if (!linkedRequester) return null;
+  const typeLabel = linkedRequester.requesterType
+    ? REQUESTER_TYPE_LABELS[linkedRequester.requesterType] ?? linkedRequester.requesterType
+    : null;
+
+  return (
+    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-4 py-3 text-xs space-y-1.5 dark:border-emerald-900/50 dark:bg-emerald-950/25">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 font-bold text-emerald-900 dark:text-emerald-200">
+          <User className="size-4 text-emerald-700 dark:text-emerald-400" />
+          بيانات المستفيد المرتبط بالمسجد
+        </span>
+        {typeLabel && (
+          <Badge variant="outline" className="border-emerald-300 bg-background/80 text-[11px] font-semibold text-emerald-800 dark:border-emerald-800 dark:text-emerald-300">
+            {typeLabel}
+          </Badge>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-foreground">
+        <span className="font-semibold">{linkedRequester.name}</span>
+        {linkedRequester.phone && (
+          <span className="inline-flex items-center gap-1 text-muted-foreground" dir="ltr">
+            <Phone className="size-3.5 text-emerald-700/80 dark:text-emerald-400" />
+            {linkedRequester.phone}
+          </span>
+        )}
+        {linkedRequester.email && (
+          <span className="inline-flex items-center gap-1 text-muted-foreground" dir="ltr">
+            <Mail className="size-3.5 text-emerald-700/80 dark:text-emerald-400" />
+            {linkedRequester.email}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function SeasonalRequestCreate() {
   const [, navigate] = useLocation();
@@ -281,14 +336,16 @@ export default function SeasonalRequestCreate() {
                       ) : null}
                     </div>
 
-                    {selectedMosque.linkedRequester === null && (
+                    {selectedMosque.linkedRequester ? (
+                      <LinkedRequesterSummary linkedRequester={selectedMosque.linkedRequester} />
+                    ) : selectedMosque.linkedRequester === null ? (
                       <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span>
                           لا يوجد حساب طالب خدمة نشط مرتبط بهذا المسجد حاليًا؛ سيتم حفظ الطلب وربطه برقم المسجد مع الاحتفاظ ببيانات المُدخل للمراجعة.
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </CardContent>

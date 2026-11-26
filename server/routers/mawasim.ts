@@ -5,10 +5,12 @@ import { z } from "zod";
 import { mawasimExceptions, mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
 import {
-  carpetArea, evaluateMawasimExceptionState, isActiveSeasonalRequestStatus,
+  carpetArea, evaluateMawasimExceptionState, filterAndSortSeasonalRequests,
+  getSeasonalCity, getSeasonalGovernorate, isActiveSeasonalRequestStatus,
   MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
-  seasonalSettingsSchema, summarizeSeasonalCapacity, type SeasonalRequestLimits,
+  seasonalSettingsSchema, summarizeSeasonalByGovernorateCity, summarizeSeasonalCapacity,
+  type SeasonalRequestLimits,
 } from "../../shared/mawasim";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -18,6 +20,16 @@ import type { TrpcContext } from "../_core/context";
 
 const id = z.number().int().positive();
 const seasonInput = z.object({ seasonId: id });
+const staffQueryInput = z.object({
+  seasonId: id.optional(),
+  search: z.string().trim().max(120).optional(),
+  status: z.enum(["all", "submitted", "approved", "rejected"]).optional(),
+  governorate: z.string().trim().max(120).optional(),
+  city: z.string().trim().max(120).optional(),
+  sortBy: z.enum(["newest", "governorate_asc", "governorate_desc", "city_asc", "city_desc"]).optional(),
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+}).optional();
 const requestInput = z.object({ seasonId: id, requestId: id });
 const approvedMosque = eq(mosques.approvalStatus, "approved");
 const mosqueFields = {
@@ -354,11 +366,13 @@ export const mawasimRouter = router({
     };
   }),
 
-  staff: mawasimCreateOrViewProcedure.input(seasonInput.optional()).query(async ({ input, ctx }) => {
+  staff: mawasimCreateOrViewProcedure.input(staffQueryInput).query(async ({ input, ctx }) => {
     const db = await database();
     const seasons = await db.select().from(mawasimSeasons)
       .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
-    const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
+    const season = input?.seasonId ? seasons.find(item => item.id === input.seasonId) : seasons[0];
+    const page = input?.page ?? 1;
+    const limit = input?.limit ?? 10;
     if (!season) {
       return {
         seasons,
@@ -367,6 +381,9 @@ export const mawasimRouter = router({
         capacity: [],
         grants: [],
         stats: { total: 0, submitted: 0, approved: 0, rejected: 0 },
+        locationDistribution: [],
+        filterOptions: { governorates: [] as string[], cities: [] as string[] },
+        pagination: { page: 1, limit, total: 0, totalPages: 1 },
       };
     }
     const canViewReqs = await userCanViewRequests(ctx.user);
@@ -380,10 +397,13 @@ export const mawasimRouter = router({
         capacity,
         grants: [],
         stats: buildSeasonRequestStats(usageRows),
+        locationDistribution: [],
+        filterOptions: { governorates: [] as string[], cities: [] as string[] },
+        pagination: { page: 1, limit, total: 0, totalPages: 1 },
       };
     }
     const applicantUsers = alias(users, "applicantUser");
-    const requests = await db.select({
+    const allRequests = await db.select({
       ...requestFields,
       assignee: users.name,
       applicantName: applicantUsers.name,
@@ -398,14 +418,95 @@ export const mawasimRouter = router({
       .leftJoin(applicantUsers, eq(applicantUsers.id, mawasimRequests.applicantId))
       .leftJoin(mosques, eq(mosques.id, mawasimRequests.mosqueId))
       .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
-    const capacity = summarizeSeasonalCapacity(season.settings, requests);
+    const capacity = summarizeSeasonalCapacity(season.settings, allRequests);
     const grants = await db.select({
       id: mawasimGrants.id, reason: mawasimGrants.reason, active: mawasimGrants.active,
       mosque: mosques.name, applicant: users.name,
     }).from(mawasimGrants).innerJoin(mosques, eq(mosques.id, mawasimGrants.mosqueId))
       .innerJoin(users, eq(users.id, mawasimGrants.userId)).where(eq(mawasimGrants.seasonId, season.id))
       .orderBy(desc(mawasimGrants.id));
-    return { seasons, season, requests, capacity, grants, stats: buildSeasonRequestStats(requests) };
+
+    const governorateSet = new Set<string>();
+    for (const row of allRequests) {
+      const gov = getSeasonalGovernorate(row);
+      if (gov) governorateSet.add(gov);
+    }
+    const governorates = Array.from(governorateSet).sort((a, b) => a.localeCompare(b, "ar"));
+    const effectiveGovernorate =
+      input?.governorate && input.governorate !== "all" && governorateSet.has(input.governorate)
+        ? input.governorate
+        : "all";
+
+    const citySet = new Set<string>();
+    for (const row of allRequests) {
+      if (effectiveGovernorate !== "all" && getSeasonalGovernorate(row) !== effectiveGovernorate) continue;
+      const city = getSeasonalCity(row);
+      if (city) citySet.add(city);
+    }
+    const cities = Array.from(citySet).sort((a, b) => a.localeCompare(b, "ar"));
+    const effectiveCity =
+      input?.city && input.city !== "all" && citySet.has(input.city)
+        ? input.city
+        : "all";
+
+    const filtered = filterAndSortSeasonalRequests(allRequests, {
+      statusFilter: input?.status ?? "all",
+      governorateFilter: effectiveGovernorate,
+      cityFilter: effectiveCity,
+      searchQuery: input?.search ?? "",
+      sortBy: input?.sortBy ?? "newest",
+    });
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const requests = filtered.slice((safePage - 1) * limit, safePage * limit);
+
+    return {
+      seasons,
+      season,
+      requests,
+      capacity,
+      grants,
+      stats: buildSeasonRequestStats(allRequests),
+      locationDistribution: summarizeSeasonalByGovernorateCity(allRequests),
+      filterOptions: { governorates, cities },
+      pagination: { page: safePage, limit, total, totalPages },
+    };
+  }),
+
+  exportRequests: mawasimCreateOrViewProcedure.input(staffQueryInput).query(async ({ input, ctx }) => {
+    if (!(await userCanViewRequests(ctx.user))) denied();
+    const db = await database();
+    const seasons = await db.select().from(mawasimSeasons)
+      .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
+    const season = input?.seasonId ? seasons.find(item => item.id === input.seasonId) : seasons[0];
+    if (!season) return [];
+
+    const applicantUsers = alias(users, "applicantUserExport");
+    const allRequests = await db.select({
+      ...requestFields,
+      assignee: users.name,
+      applicantName: applicantUsers.name,
+      applicantPhone: applicantUsers.phone,
+      governorate: mosques.governorate,
+      mosqueCity: mosques.city,
+      imamName: mosques.imamName,
+      imamPhone: mosques.imamPhone,
+      hasPhotos: sql<boolean>`(${mawasimRequests.menPhoto} IS NOT NULL OR ${mawasimRequests.womenPhoto} IS NOT NULL)`,
+    }).from(mawasimRequests)
+      .leftJoin(users, eq(users.id, mawasimRequests.assignedTo))
+      .leftJoin(applicantUsers, eq(applicantUsers.id, mawasimRequests.applicantId))
+      .leftJoin(mosques, eq(mosques.id, mawasimRequests.mosqueId))
+      .where(eq(mawasimRequests.seasonId, season.id)).orderBy(desc(mawasimRequests.id));
+
+    return filterAndSortSeasonalRequests(allRequests, {
+      statusFilter: input?.status ?? "all",
+      governorateFilter: input?.governorate || "all",
+      cityFilter: input?.city || "all",
+      searchQuery: input?.search ?? "",
+      sortBy: input?.sortBy ?? "newest",
+    });
   }),
 
   searchMosques: mawasimCreateOrViewProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input }) => {

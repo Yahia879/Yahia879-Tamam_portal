@@ -171,6 +171,28 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       expect(reqWithoutSeasonalPermHtml).not.toContain("/requests/seasonal");
     });
 
+    it("renders LinkedRequesterSummary with beneficiary details on SeasonalRequestCreate when linkedRequester exists", async () => {
+      const { LinkedRequesterSummary } = await import("../client/src/pages/SeasonalRequestCreate");
+      const html = renderToStaticMarkup(
+        <LinkedRequesterSummary
+          linkedRequester={{
+            id: 42,
+            name: "الشيخ خالد",
+            phone: "0551234567",
+            email: "khalid@example.com",
+            requesterType: "imam",
+          }}
+        />,
+      );
+      expect(html).toContain("بيانات المستفيد المرتبط بالمسجد");
+      expect(html).toContain("الشيخ خالد");
+      expect(html).toContain("إمام");
+      expect(html).toContain("0551234567");
+      expect(html).toContain("khalid@example.com");
+
+      expect(renderToStaticMarkup(<LinkedRequesterSummary linkedRequester={null} />)).toBe("");
+    });
+
     it("view-only hides 'طلبات الموسم' section, while view_requests reveals it without approve actions, and approve_requests enables approval", () => {
       const base = sampleStaffData(true);
       const reqs: any[] = [
@@ -221,6 +243,10 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       state.permissions = ["mawasim.view", "mawasim.view_requests"];
       const html = renderToStaticMarkup(<MawasimStaff />);
       expect(html).toContain("طلبات الموسم");
+      expect(html).toContain("توزيع طلبات برنامج مواسم");
+      expect(html).toContain("توزيع الطلبات المسجلة في الموسم المحدد حسب المحافظة والمدينة");
+      expect(html).toContain("عسير · أبها");
+      expect(html).toContain("مكة المكرمة · جدة");
       expect(html).toContain("تصفية حسب المحافظة");
       expect(html).toContain("تصفية حسب المدينة");
       expect(html).toContain("ترتيب الطلبات");
