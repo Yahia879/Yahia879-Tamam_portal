@@ -111,17 +111,22 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     ];
   }
 
-  // الرئيسية
-  const mainItems: MenuItem[] = [];
+  // صفحة الرئيسية المستقلة أعلى الأقسام
   if (role !== "dashboard_viewer" && (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester")) {
-    mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
+    groups.push({
+      label: "",
+      items: [{ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" }],
+    });
   }
+
+  // لوحات المعلومات
+  const mainItems: MenuItem[] = [];
   if (role === "board_member") {
     mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {
     groups.push({
-      label: isEn ? "Home" : "الرئيسية",
+      label: isEn ? "Dashboards" : "لوحات المعلومات",
       items: mainItems,
     });
   }
@@ -294,15 +299,20 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // الرئيسية: تظهر لمسؤول المشتريات فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
-  const mainItems: MenuItem[] = [];
+  // صفحة الرئيسية المستقلة أعلى الأقسام: تظهر لمسؤول المشتريات فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
   const canSeeDashboard = isProcurementOfficer
     ? (has("dashboard") || has("dashboard.view") || has("*"))
     : (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester");
 
   if (role !== "dashboard_viewer" && canSeeDashboard) {
-    mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
+    groups.push({
+      label: "",
+      items: [{ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" }],
+    });
   }
+
+  // لوحات المعلومات
+  const mainItems: MenuItem[] = [];
   const hasAnyInfoDashboardTab =
     has("information_dashboard.digital_screen") ||
     has("information_dashboard.mosques") ||
@@ -321,7 +331,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   }
   if (mainItems.length > 0) {
     groups.push({
-      label: isEn ? "Home" : "الرئيسية",
+      label: isEn ? "Dashboards" : "لوحات المعلومات",
       items: mainItems,
     });
   }
@@ -963,7 +973,7 @@ function DashboardLayoutContent({
         '[data-sidebar-item-active="true"], [data-active="true"]'
       ) as HTMLElement | null;
 
-      if (activeEl && !activeEl.closest("[hidden]")) {
+      if (activeEl && !activeEl.closest('[hidden], [aria-hidden="true"]')) {
         activeEl.scrollIntoView({
           block: "nearest",
           inline: "nearest",
@@ -1131,17 +1141,18 @@ function DashboardLayoutContent({
           >
             {menuGroups.map((group, groupIdx) => {
               const isExpanded = expandedGroup === group.label;
+              const isCollapsible = Boolean(group.label) && !showIconLinks;
               const panelId = `${menuGroupId}-${groupIdx}`;
 
               return (
-                <div key={group.label}>
+                <div key={group.label || `standalone-${groupIdx}`}>
                   {groupIdx > 0 && (
                     <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
                   )}
-                  {group.label && !showIconLinks && (
+                  {isCollapsible && (
                     <button
                       type="button"
-                      className={`flex w-full cursor-pointer items-center justify-between gap-2 overflow-hidden whitespace-nowrap px-4 text-right text-sm font-semibold text-sidebar-foreground select-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring aria-expanded:[&>svg]:rotate-180 ${tabletNavigation && isMobile ? "h-11" : "h-9"}`}
+                      className={`flex w-full cursor-pointer items-center justify-between gap-2 overflow-hidden whitespace-nowrap px-4 text-right text-sm font-semibold text-sidebar-foreground select-none transition-colors duration-200 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring aria-expanded:[&>svg]:rotate-180 ${tabletNavigation && isMobile ? "h-11" : "h-9"}`}
                       title={group.label}
                       aria-expanded={isExpanded}
                       aria-controls={panelId}
@@ -1152,11 +1163,25 @@ function DashboardLayoutContent({
                       }}
                     >
                       <span className="truncate">{group.label}</span>
-                      <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform duration-200" />
+                      <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform duration-200 ease-out" />
                     </button>
                   )}
-                  <div id={panelId} hidden={Boolean(group.label) && !isExpanded && !showIconLinks}>
-                    <SidebarMenu className="px-2 py-0.5">
+                  <div
+                    id={panelId}
+                    aria-hidden={isCollapsible ? !isExpanded : undefined}
+                    inert={isCollapsible && !isExpanded ? true : undefined}
+                    className={
+                      isCollapsible
+                        ? `grid transition-[grid-template-rows,opacity] duration-250 ease-out motion-reduce:transition-none ${
+                            isExpanded
+                              ? "grid-rows-[1fr] opacity-100"
+                              : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                          }`
+                        : undefined
+                    }
+                  >
+                    <div className={isCollapsible ? "overflow-hidden min-h-0" : undefined}>
+                      <SidebarMenu className="px-2 py-0.5">
                       {group.items.map(item => {
                         const isActive = isItemActive(item.path, location, menuItems);
                         const isOrdersPath = item.path === "/disbursement-orders";
@@ -1247,7 +1272,8 @@ function DashboardLayoutContent({
                           </SidebarMenuItem>
                         );
                       })}
-                    </SidebarMenu>
+                      </SidebarMenu>
+                    </div>
                   </div>
                 </div>
               );

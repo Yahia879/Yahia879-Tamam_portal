@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { resolveExpandedSidebarGroup, isItemActive } from "@/components/DashboardLayout";
+import { resolveExpandedSidebarGroup, isItemActive, getMenuGroupsFromPermissions } from "@/components/DashboardLayout";
 import { hasRouteAccess } from "@/lib/routePermissions";
 
 const sampleGroups = [
   {
-    label: "الرئيسية",
+    label: "",
+    items: [{ path: "/dashboard" }],
+  },
+  {
+    label: "لوحات المعلومات",
     items: [
-      { path: "/dashboard" },
       { path: "/information-dashboard" },
+      { path: "/board-analytics" },
     ],
   },
   {
@@ -54,7 +58,17 @@ describe("Sidebar accordion group resolution", () => {
 
   it("falls back to stored group for non-sidebar routes like /profile, then to first group", () => {
     expect(resolveExpandedSidebarGroup(sampleGroups, "/profile", undefined, "المساجد والطلبات")).toBe("المساجد والطلبات");
-    expect(resolveExpandedSidebarGroup(sampleGroups, "/profile", undefined, null)).toBe("الرئيسية");
+    expect(resolveExpandedSidebarGroup(sampleGroups, "/profile", undefined, null)).toBe("لوحات المعلومات");
+    expect(resolveExpandedSidebarGroup(sampleGroups, "/dashboard", undefined, null)).toBe("لوحات المعلومات");
+  });
+
+  it("places standalone الرئيسية above لوحات المعلومات", () => {
+    const groups = getMenuGroupsFromPermissions(["information_dashboard.digital_screen", "board_chairman"], "super_admin");
+    expect(groups[0]?.label).toBe("");
+    expect(groups[0]?.items.map(item => item.path)).toEqual(["/dashboard"]);
+    expect(groups[1]?.label).toBe("لوحات المعلومات");
+    expect(groups[1]?.items.map(item => item.path)).toContain("/information-dashboard");
+    expect(groups[1]?.items.map(item => item.path)).toContain("/board-executive");
   });
 
   it("restricts Mawasim routes properly for staff vs service_requester", () => {

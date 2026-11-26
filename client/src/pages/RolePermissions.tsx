@@ -1718,7 +1718,7 @@ export default function RolePermissions() {
   // هيكل الصلاحيات الكامل لـ المدير العام (Categorized)
   const superAdminGroups = [
     {
-      title: "الرئيسية",
+      title: "لوحات المعلومات",
       modules: [
         {
           id: "information_dashboard",

@@ -5699,7 +5699,7 @@ export default function UserPermissions() {
 
 
 
-      title: "الرئيسية",
+      title: "لوحات المعلومات",
 
 
 

@@ -77,7 +77,7 @@ import DashboardLayout from "../components/DashboardLayout";
 // مأخوذ من superAdminGroups في RolePermissions.tsx لتوحيد الواجهات بالكامل
 const superAdminGroups = [
   {
-    title: "الرئيسية",
+    title: "لوحات المعلومات",
     modules: [
       {
         id: "information_dashboard",
