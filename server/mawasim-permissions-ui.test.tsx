@@ -162,6 +162,7 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       expect(reqWithSeasonalPermHtml).toContain("برنامج مواسم");
       const createWithSeasonalPermHtml = renderToStaticMarkup(<SeasonalRequestCreate />);
       expect(createWithSeasonalPermHtml).not.toContain("ليس لديك صلاحية");
+      expect(createWithSeasonalPermHtml).not.toContain("إدارة مواسم");
       expect(createWithSeasonalPermHtml).not.toContain("/mawasim");
 
       // Having only mawasim.view without requests.create_seasonal_request does NOT show the button on /requests

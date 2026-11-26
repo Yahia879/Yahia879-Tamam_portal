@@ -34,7 +34,6 @@ import {
   ChevronLeft,
   Sparkles,
   Star,
-  MoonStar,
 } from "lucide-react";
 import RequesterPendingOutboundModal from "@/components/sedana/RequesterPendingOutboundModal";
 
@@ -70,11 +69,6 @@ export default function BeneficiaryLayout({
     { limit: 10 },
     { enabled: !!user }
   );
-  // التحقق من وجود موسم مفتوح لطالبي الخدمة
-  const { data: mawasimPortal } = trpc.mawasim.portal.useQuery(
-    undefined,
-    { enabled: user?.role === "service_requester", staleTime: 30 * 1000 }
-  );
 
   const mainLogoSrc = orgSettings?.logoUrl || "/logo.svg";
   const orgName = orgSettings?.organizationName || "بوابة منارة";
@@ -99,7 +93,6 @@ export default function BeneficiaryLayout({
     path: string;
     isPrimary?: boolean;
     isSedana?: boolean;
-    isMawasim?: boolean;
   }
 
   const navItems: NavItem[] = [
@@ -127,17 +120,6 @@ export default function BeneficiaryLayout({
       icon: Star,
       path: "/requester/evaluations",
     },
-    ...(mawasimPortal?.hasOpenSeason
-      ? [
-          {
-            id: "mawasim",
-            label: "برنامج مواسم",
-            icon: MoonStar,
-            path: "/requester/mawasim",
-            isMawasim: true,
-          },
-        ]
-      : []),
     ...(isSedanaAllowed
       ? [
           {
@@ -232,25 +214,6 @@ export default function BeneficiaryLayout({
                         }`}
                       >
                         <Sparkles className="w-4 h-4 text-cyan-200" />
-                        <span>{item.label}</span>
-                      </Button>
-                    </Link>
-                  );
-                }
-
-
-                if (item.isMawasim) {
-                  return (
-                    <Link key={item.id} href={item.path}>
-                      <Button
-                        size="sm"
-                        className={`rounded-xl font-bold gap-1.5 px-3.5 h-9 transition-all cursor-pointer ${
-                          isActive
-                            ? "bg-emerald-700 text-white ring-2 ring-emerald-400/60 shadow-md"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-500/30 hover:shadow-md hover:scale-[1.02]"
-                        }`}
-                      >
-                        <MoonStar className="w-4 h-4 text-emerald-100" />
                         <span>{item.label}</span>
                       </Button>
                     </Link>

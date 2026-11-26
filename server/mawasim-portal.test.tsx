@@ -195,7 +195,7 @@ describe("Mawasim service requester portal UI & routing", () => {
     expect(hasRouteAccess("/requests/seasonal", "service_requester", ["*"], true)).toBe(false);
   });
 
-  it("shows برنامج مواسم entry point in BeneficiaryLayout and RequesterDashboard only when an open season exists", () => {
+  it("shows برنامج مواسم entry point in RequesterDashboard only when an open season exists and omits it from BeneficiaryLayout header", () => {
     state.data["mawasim.portal"] = buildPortalPayload(true);
     const navOpen = renderToStaticMarkup(
       <BeneficiaryLayout activeTab="dashboard">
@@ -203,8 +203,8 @@ describe("Mawasim service requester portal UI & routing", () => {
       </BeneficiaryLayout>,
     );
     const dashOpen = renderToStaticMarkup(<RequesterDashboard />);
-    expect(navOpen).toContain('href="/requester/mawasim"');
-    expect(navOpen).toContain("برنامج مواسم");
+    expect(navOpen).not.toContain('href="/requester/mawasim"');
+    expect(navOpen).not.toContain("برنامج مواسم");
     expect(dashOpen).toContain('href="/requester/mawasim"');
     expect(dashOpen).toContain("متاح للتسجيل");
 
@@ -217,6 +217,16 @@ describe("Mawasim service requester portal UI & routing", () => {
     const dashClosed = renderToStaticMarkup(<RequesterDashboard />);
     expect(navClosed).not.toContain('href="/requester/mawasim"');
     expect(dashClosed).not.toContain('href="/requester/mawasim"');
+  });
+
+  it("shows add-mosque guidance when requester has no eligible mosque on MawasimPortal", () => {
+    state.location = "/requester/mawasim";
+    const base = buildPortalPayload(true);
+    state.data["mawasim.portal"] = { ...base, eligible: [] };
+    const html = renderToStaticMarkup(<MawasimPortal />);
+    expect(html).toContain("حسابك غير مرتبط بمسجد معتمد للتقديم");
+    expect(html).toContain("يرجى إضافة مسجد");
+    expect(html).toContain('href="/requester/mosques/new"');
   });
 
   it("binds the requester's linked mosque automatically on MawasimPortal with editable pre-filled fields", () => {

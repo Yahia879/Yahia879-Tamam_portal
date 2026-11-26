@@ -111,15 +111,6 @@ export default function SeasonalRequestCreate() {
               </p>
             </div>
           </div>
-
-          {canAccessMawasim && (
-            <Link href="/mawasim">
-              <Button variant="outline" className="h-9 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
-                <CalendarDays className="size-4 text-primary" />
-                إدارة مواسم
-              </Button>
-            </Link>
-          )}
         </div>
 
         {/* Loading State */}

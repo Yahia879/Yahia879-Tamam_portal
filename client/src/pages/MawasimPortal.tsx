@@ -233,15 +233,22 @@ export default function MawasimPortal() {
                     <div className="space-y-1 text-sm">
                       <p className="font-bold text-foreground">حسابك غير مرتبط بمسجد معتمد للتقديم</p>
                       <p className="text-xs text-muted-foreground">
-                        التقديم متاح للإمام أو المؤذن النشط المرتبط بمسجد معتمد في المنصة، أو عند وجود استثناء مفعّل من الجمعية.
+                        يرجى إضافة مسجد واعتماده أولاً لتتمكن من إرسال الطلب فيه، حيث يتاح التقديم للإمام أو المؤذن النشط المرتبط بمسجد معتمد في المنصة، أو عند وجود استثناء مفعّل من الجمعية.
                       </p>
                     </div>
                   </div>
-                  <Link href="/my-mosques">
-                    <Button variant="outline" size="sm" className="rounded-xl font-bold cursor-pointer">
-                      عرض مساجدي
-                    </Button>
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Link href="/requester/mosques/new">
+                      <Button size="sm" className="rounded-xl font-bold cursor-pointer">
+                        إضافة مسجد
+                      </Button>
+                    </Link>
+                    <Link href="/my-mosques">
+                      <Button variant="outline" size="sm" className="rounded-xl font-bold cursor-pointer">
+                        عرض مساجدي
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             )}
