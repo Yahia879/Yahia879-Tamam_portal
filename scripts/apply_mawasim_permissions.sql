@@ -16,7 +16,8 @@ ON DUPLICATE KEY UPDATE
 
 -- 2. إدراج صلاحيات المواسم في جدول permissions
 INSERT INTO `permissions` (`id`, `module_id`, `action`, `name_ar`, `name_en`, `description`) VALUES
-('mawasim.view', 'mawasim', 'view', 'عرض مواسم', 'View Seasons', 'عرض صفحة مواسم وقائمة المواسم ومتابعة السعات'),
+('mawasim.view', 'mawasim', 'view', 'عرض كافة المواسم', 'View All Seasons', 'عرض صفحة مواسم وكافة المواسم ومتابعة السعات'),
+('mawasim.view_assigned', 'mawasim', 'view_assigned', 'عرض المواسم المسندة لك كمدير', 'View Assigned Seasons', 'عرض المواسم المسندة للمستخدم كمدير للموسم فقط'),
 ('mawasim.create', 'mawasim', 'create', 'إضافة موسم', 'Add Season', 'إضافة مواسم جديدة وفتح فترات التسجيل'),
 ('mawasim.manage', 'mawasim', 'manage', 'إعدادات الموسم', 'Season Settings', 'تعديل وضبط إعدادات وسعات خدمات المواسم'),
 ('mawasim.view_requests', 'mawasim', 'view_requests', 'عرض طلبات برنامج مواسم', 'View Mawasim Requests', 'عرض قسم طلبات الموسم وتفاصيلها وتصديرها'),
@@ -33,7 +34,7 @@ SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
 WHERE r.name_en IN ('System Admin', 'Super Admin')
-  AND p.id IN ('mawasim.view', 'mawasim.create', 'mawasim.manage', 'mawasim.view_requests', 'mawasim.approve_requests', 'requests.create_seasonal_request')
+  AND p.id IN ('mawasim.view', 'mawasim.view_assigned', 'mawasim.create', 'mawasim.manage', 'mawasim.view_requests', 'mawasim.approve_requests', 'requests.create_seasonal_request')
 ON DUPLICATE KEY UPDATE `permission_id` = VALUES(`permission_id`);
 
 SET FOREIGN_KEY_CHECKS = 1;

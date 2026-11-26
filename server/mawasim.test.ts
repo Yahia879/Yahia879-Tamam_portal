@@ -97,6 +97,8 @@ describe("Mawasim access and submission", () => {
     async role => {
       expect(getMenuGroupsFromPermissions(["*"], role).flatMap(group => group.items).some(item => item.path === "/mawasim")).toBe(false);
       expect(hasRouteAccess("/mawasim", role, ["*"], true)).toBe(false);
+      expect(hasRouteAccess("/mawasim/requests/10/12/print", role, ["*"], true)).toBe(false);
+      expect(hasRouteAccess("/mawasim/requests/10/12/print", role, ["mawasim.view_requests"], true)).toBe(true);
       expect(hasRouteAccess("/requests/seasonal", role, ["*"], true)).toBe(false);
       const api = caller(role);
       const results = await Promise.allSettled([

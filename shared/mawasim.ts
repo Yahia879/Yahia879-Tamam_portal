@@ -204,8 +204,24 @@ export interface SeasonalFilterableRequest {
   };
 }
 
-export function normalizeSeasonalReviewStatus(status: string): "submitted" | "approved" | "rejected" {
-  return status === "scheduled" || status === "completed" ? "approved" : (status as "submitted" | "approved" | "rejected");
+export function normalizeSeasonalReviewStatus(status: string): "submitted" | "scheduled" | "approved" | "rejected" {
+  return status === "completed" ? "approved" : (status as "submitted" | "scheduled" | "approved" | "rejected");
+}
+
+const SEASONAL_REQUESTER_TYPE_LABELS: Record<string, string> = {
+  imam: "إمام",
+  muezzin: "مؤذن",
+  donor: "متبرع",
+  board_member: "عضو مجلس إدارة",
+  committee_member: "عضو لجنة",
+  volunteer: "متطوع",
+  other: "أخرى",
+};
+
+export function formatSeasonalRequesterType(type: string | null | undefined): string | null {
+  const trimmed = type?.trim();
+  if (!trimmed) return null;
+  return SEASONAL_REQUESTER_TYPE_LABELS[trimmed] ?? trimmed;
 }
 
 export function getSeasonalGovernorate(request: Pick<SeasonalFilterableRequest, "governorate">): string {
@@ -226,7 +242,7 @@ function compareTextEmptyLast(a: string, b: string, dir: 1 | -1): number {
 export function filterAndSortSeasonalRequests<T extends SeasonalFilterableRequest>(
   list: ReadonlyArray<T>,
   options: {
-    statusFilter: "all" | "submitted" | "approved" | "rejected";
+    statusFilter: "all" | "submitted" | "scheduled" | "approved" | "rejected";
     governorateFilter: string;
     cityFilter: string;
     searchQuery: string;

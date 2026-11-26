@@ -1,6 +1,6 @@
 import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
-import { MAWASIM_PERMISSIONS } from "@shared/mawasimPermissions";
+import { hasMawasimSeasonViewPermission, isMawasimSubPermission, MAWASIM_PERMISSIONS } from "@shared/mawasimPermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, toggleCalendarPermission } from "@shared/calendarPermissions";
@@ -1065,12 +1065,16 @@ export default function RoleEdit() {
       return;
     }
     const requiredView = sectionPermissionPrerequisite(permId);
+    if (isMawasimSubPermission(permId) && !selectedPerms.includes(permId) && !hasMawasimSeasonViewPermission(selectedPerms)) {
+      toast.warning("يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً");
+      return;
+    }
     if (requiredView && !selectedPerms.includes(permId) && !selectedPerms.includes(requiredView)) {
       toast.warning(
         permId === "mawasim.approve_requests"
           ? "يجب تفعيل صلاحية 'عرض طلبات برنامج مواسم' أولاً"
           : permId.startsWith("mawasim.")
-            ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً"
+            ? "يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً"
             : permId.startsWith("beneficiary_evaluations.")
               ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
               : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً"
@@ -1099,10 +1103,10 @@ export default function RoleEdit() {
       return;
     }
 
-    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("mawasim.") && permId !== "mawasim.view") {
-      if (!selectedPerms.includes("mawasim.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض مواسم' أولاً");
+    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحيتا العرض معطلتين
+    if (isMawasimSubPermission(permId)) {
+      if (!hasMawasimSeasonViewPermission(selectedPerms)) {
+        toast.warning("يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً");
         return;
       }
     }
@@ -1440,8 +1444,8 @@ export default function RoleEdit() {
         let next = prev.filter(id => id !== permId);
         const dependents = sectionPermissionDependents(permId);
         next = next.filter(id => !dependents.includes(id));
-        if (permId === "mawasim.view") {
-          next = next.filter(id => !id.startsWith("mawasim."));
+        if ((permId === "mawasim.view" || permId === "mawasim.view_assigned") && !hasMawasimSeasonViewPermission(next)) {
+          next = next.filter(id => !isMawasimSubPermission(id));
         }
         if (permId === "mosques.view") {
           next = next.filter(id => !id.startsWith("mosques."));
@@ -2044,7 +2048,7 @@ export default function RoleEdit() {
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id === "board_leadership.bank_transfers" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("board_leadership.bank_transfers_") && !selectedPerms.includes("board_chairman")) ||
-                              (perm.id.startsWith("mawasim.") && perm.id !== "mawasim.view" && !selectedPerms.includes("mawasim.view")) ||
+                              (isMawasimSubPermission(perm.id) && !hasMawasimSeasonViewPermission(selectedPerms)) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !selectedPerms.includes("mosque_map.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||

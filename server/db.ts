@@ -535,6 +535,13 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!mosqueDimNames.has("womenLengthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN womenLengthCm INT NULL");
     if (!mosqueDimNames.has("womenWidthCm")) await promisePool.query("ALTER TABLE mosques ADD COLUMN womenWidthCm INT NULL");
 
+    // إضافة عمود مدير الموسم في جدول mawasim_seasons إن لم يكن موجوداً
+    const [seasonCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM mawasim_seasons");
+    const seasonColNames = new Set(Array.isArray(seasonCols) ? seasonCols.map((c: any) => c.Field) : []);
+    if (!seasonColNames.has("managerId")) {
+      await promisePool.query("ALTER TABLE mawasim_seasons ADD COLUMN managerId INT NULL");
+    }
+
     // إنشاء جدول استثناءات برنامج مواسم وتحديث فهرس الموسم/المسجد ليدعم الاستثناءات المعتمدة
     await promisePool.query(`
       CREATE TABLE IF NOT EXISTS mawasim_exceptions (

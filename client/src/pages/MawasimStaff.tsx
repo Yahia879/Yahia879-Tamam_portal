@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
@@ -6,6 +7,7 @@ import { displayQuantity, MawasimField } from "@/components/MawasimRequestForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +23,7 @@ import type { AppRouter } from "../../../server/routers";
 import {
   defaultSeasonalSettings,
   filterAndSortSeasonalRequests,
+  formatSeasonalRequesterType,
   getSeasonalCity,
   getSeasonalGovernorate,
   normalizeSeasonalReviewStatus,
@@ -47,6 +50,7 @@ import {
   Clock,
   Download,
   Droplets,
+  FileText,
   Image as ImageIcon,
   Inbox,
   Loader2,
@@ -72,8 +76,9 @@ const PAGE_SIZE = 10;
 
 type Dashboard = inferRouterOutputs<AppRouter>["mawasim"]["staff"];
 type Season = NonNullable<Dashboard["season"]>;
+type CompanyEmployee = Dashboard["employees"][number];
 type SeasonRequest = Dashboard["requests"][number];
-type RequestStatus = Exclude<SeasonRequest["status"], "scheduled" | "completed">;
+type RequestStatus = Exclude<SeasonRequest["status"], "completed">;
 type RequestSort = SeasonalRequestSort;
 
 const reviewStatus = normalizeSeasonalReviewStatus;
@@ -101,8 +106,12 @@ export function buildSeasonalExcelPayload(
     { header: "المدينة", align: "center", minWidth: 16 },
     { header: "الحي", align: "center", minWidth: 16 },
     { header: "العنوان", align: "right", minWidth: 26 },
-    { header: "اسم مقدم الطلب / الإمام", align: "right", minWidth: 22 },
-    { header: "رقم الجوال", align: "center", minWidth: 16 },
+    { header: "اسم طالب الخدمة", align: "right", minWidth: 24 },
+    { header: "صفة طالب الخدمة", align: "center", minWidth: 18 },
+    { header: "رقم جوال طالب الخدمة", align: "center", minWidth: 18 },
+    { header: "البريد الإلكتروني لطالب الخدمة", align: "center", minWidth: 26 },
+    { header: "رقم الهوية الوطنية لطالب الخدمة", align: "center", minWidth: 20 },
+    { header: "مدينة طالب الخدمة", align: "center", minWidth: 16 },
     { header: "الخدمات والكميات المطلوبة", align: "right", minWidth: 32 },
     { header: "الكميات المعتمدة", align: "right", minWidth: 28 },
     { header: "حالة الطلب", align: "center", minWidth: 16 },
@@ -111,7 +120,11 @@ export function buildSeasonalExcelPayload(
 
   const rows = requests.map(req => {
     const requesterName = req.applicantName?.trim() || req.contact?.name?.trim() || req.imamName?.trim() || "-";
+    const requesterTypeLabel = formatSeasonalRequesterType(req.applicantRequesterType) || "-";
     const requesterPhone = req.applicantPhone?.trim() || req.contact?.phone?.trim() || req.imamPhone?.trim() || "-";
+    const requesterEmail = req.applicantEmail?.trim() || req.contact?.email?.trim() || req.imamEmail?.trim() || "-";
+    const requesterNationalId = req.applicantNationalId?.trim() || "-";
+    const requesterCity = req.applicantCity?.trim() || "-";
     const dateValue = req.createdAt ? new Intl.DateTimeFormat("en-CA").format(new Date(req.createdAt)) : "-";
     const notes = [
       req.specialRequest ? `طلب خاص: ${req.specialRequest}` : "",
@@ -128,7 +141,11 @@ export function buildSeasonalExcelPayload(
       req.snapshot.district?.trim() || "-",
       req.snapshot.address?.trim() || "-",
       requesterName,
+      requesterTypeLabel,
       requesterPhone,
+      requesterEmail,
+      requesterNationalId,
+      requesterCity,
       formatExcelQuantities(req.requested),
       formatExcelQuantities(req.approved),
       seasonalStatusLabels[req.status] ?? req.status,
@@ -205,6 +222,10 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
     badge: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
     dot: "bg-amber-500",
   },
+  scheduled: {
+    badge: "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+    dot: "bg-indigo-500",
+  },
   approved: {
     badge: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
     dot: "bg-sky-500",
@@ -217,11 +238,12 @@ const STATUS_STYLES: Record<RequestStatus, { badge: string; dot: string }> = {
 
 export default function MawasimStaff() {
   const hasViewPerm = usePermission("mawasim.view");
+  const hasViewAssignedPerm = usePermission("mawasim.view_assigned");
   const hasCreatePerm = usePermission("mawasim.create");
   const hasManagePerm = usePermission("mawasim.manage");
   const hasViewRequestsPerm = usePermission("mawasim.view_requests");
   const hasApproveRequestsPerm = usePermission("mawasim.approve_requests");
-  const canView = hasViewPerm || hasCreatePerm || hasManagePerm || hasViewRequestsPerm || hasApproveRequestsPerm;
+  const canView = hasViewPerm || hasViewAssignedPerm || hasCreatePerm || hasManagePerm || hasViewRequestsPerm || hasApproveRequestsPerm;
   const canCreate = hasCreatePerm;
   const canManage = hasManagePerm;
   const canViewRequests = hasViewRequestsPerm || hasApproveRequestsPerm;
@@ -318,6 +340,7 @@ export default function MawasimStaff() {
     return {
       total: list.length,
       submitted: list.filter(row => row.status === "submitted").length,
+      scheduled: list.filter(row => row.status === "scheduled").length,
       approved: list.filter(row => reviewStatus(row.status) === "approved").length,
       rejected: list.filter(row => row.status === "rejected").length,
     };
@@ -463,6 +486,7 @@ export default function MawasimStaff() {
         {/* New Season Form */}
         {canCreate && edit === "new" && (
           <SeasonEditor
+            employees={data?.employees ?? []}
             onCancel={() => setEdit(undefined)}
             onSave={id => {
               setSeasonId(id);
@@ -479,11 +503,15 @@ export default function MawasimStaff() {
               <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <CalendarDays className="size-7" />
               </div>
-              <h2 className="text-base font-bold text-foreground">لا توجد مواسم محفوظة بعد</h2>
+              <h2 className="text-base font-bold text-foreground">
+                {!hasViewPerm && hasViewAssignedPerm ? "لا توجد مواسم مسندة لك كمدير بعد" : "لا توجد مواسم محفوظة بعد"}
+              </h2>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 {canCreate
                   ? "ابدأ بإنشاء موسم جديد وتحديد الخدمات والسعات المتاحة لتأهيل المساجد."
-                  : "لم يتم إنشاء أي موسم حتى الآن."}
+                  : !hasViewPerm && hasViewAssignedPerm
+                    ? "لم يتم إسناد أي موسم لك كمدير حتى الآن."
+                    : "لم يتم إنشاء أي موسم حتى الآن."}
               </p>
               {canCreate && (
                 <Button className="mt-5 gap-2 rounded-xl" onClick={() => setEdit("new")}>
@@ -558,6 +586,13 @@ export default function MawasimStaff() {
                       <Sparkles className="size-3.5 text-amber-500" />
                       {enabledServicesCount} خدمات مفعّلة
                     </Badge>
+
+                    {season.managerName && (
+                      <Badge variant="outline" className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium text-muted-foreground">
+                        <User className="size-3.5 text-primary" />
+                        مدير الموسم: {season.managerName}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -581,6 +616,7 @@ export default function MawasimStaff() {
               <SeasonEditor
                 key={season.id}
                 season={season}
+                employees={data?.employees ?? []}
                 onCancel={() => setEdit(undefined)}
                 onSave={() => {
                   setEdit(undefined);
@@ -805,6 +841,7 @@ export default function MawasimStaff() {
                       {([
                         ["all", "الكل", requestStats.total],
                         ["submitted", seasonalStatusLabels.submitted, requestStats.submitted],
+                        ["scheduled", seasonalStatusLabels.scheduled, requestStats.scheduled ?? 0],
                         ["approved", seasonalStatusLabels.approved, requestStats.approved],
                         ["rejected", seasonalStatusLabels.rejected, requestStats.rejected],
                       ] as const).map(([key, label, count]) => (
@@ -1020,23 +1057,39 @@ export default function MawasimStaff() {
                               </div>
                             </div>
 
-                            <Button
-                              variant={isOpen ? "secondary" : "outline"}
-                              size="sm"
-                              aria-expanded={isOpen}
-                              onClick={() => setExpanded(isOpen ? undefined : request.id)}
-                              className="shrink-0 gap-1.5 rounded-xl font-semibold cursor-pointer self-start sm:self-center"
-                            >
-                              <span>{isOpen ? "إخفاء التفاصيل" : "عرض التفاصيل"}</span>
-                              <ChevronDown className={cn("size-4 transition-transform duration-200", isOpen && "rotate-180")} />
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-center">
+                              {request.scheduledFor && (
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 rounded-xl border-[#1a5f4a]/35 font-semibold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 cursor-pointer"
+                                >
+                                  <Link href={`/mawasim/requests/${request.seasonId}/${request.id}/print`}>
+                                    <FileText className="size-4" />
+                                    <span>أمر العمل</span>
+                                  </Link>
+                                </Button>
+                              )}
+                              <Button
+                                variant={isOpen ? "secondary" : "outline"}
+                                size="sm"
+                                aria-expanded={isOpen}
+                                onClick={() => setExpanded(isOpen ? undefined : request.id)}
+                                className="gap-1.5 rounded-xl font-semibold cursor-pointer"
+                              >
+                                <span>{isOpen ? "إخفاء التفاصيل" : "عرض التفاصيل"}</span>
+                                <ChevronDown className={cn("size-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                              </Button>
+                            </div>
                           </div>
 
                           {isOpen && (
                             <RequestDetails
-                              key={request.id + request.status}
+                              key={request.id + request.status + (request.scheduledFor ?? "")}
                               request={request}
                               season={season}
+                              employees={data?.employees ?? []}
                               canApprove={canApproveRequests}
                               refresh={refresh}
                             />
@@ -1097,19 +1150,38 @@ function StatCard({
   );
 }
 
-function SeasonEditor({
+export function SeasonEditor({
   season,
+  employees = [],
   onSave,
   onCancel,
 }: {
   season?: Season;
+  employees?: CompanyEmployee[];
   onSave: (id: number) => void;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(season?.title ?? "");
   const [year, setYear] = useState(season?.hijriYear ?? 1448);
+  const [managerId, setManagerId] = useState<number | null>(season?.managerId ?? null);
   const [open, setOpen] = useState(season?.isOpen ?? false);
   const [settings, setSettings] = useState<SeasonalSettings>(season?.settings ?? defaultSeasonalSettings);
+
+  const managerOptions = useMemo(() => {
+    const list = [...employees];
+    if (season?.managerId && !list.some(emp => emp.id === season.managerId)) {
+      list.unshift({
+        id: season.managerId,
+        name: season.managerName?.trim() || `موظف #${season.managerId}`,
+        email: null,
+        role: "",
+        roleNameAr: null,
+        position: null,
+        department: null,
+      });
+    }
+    return list;
+  }, [employees, season?.managerId, season?.managerName]);
 
   const save = trpc.mawasim.saveSeason.useMutation({
     onSuccess: data => {
@@ -1165,7 +1237,7 @@ function SeasonEditor({
       <form
         onSubmit={event => {
           event.preventDefault();
-          save.mutate({ id: season?.id, title, hijriYear: year, isOpen: open, settings });
+          save.mutate({ id: season?.id, title, hijriYear: year, managerId, isOpen: open, settings });
         }}
       >
         <CardContent className="space-y-6 p-5 sm:p-6">
@@ -1178,7 +1250,7 @@ function SeasonEditor({
               <span>البيانات الأساسية وحالة التسجيل</span>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <MawasimField label="اسم الموسم">
                 <Input
                   required
@@ -1205,6 +1277,27 @@ function SeasonEditor({
                     هـ
                   </span>
                 </div>
+              </MawasimField>
+              <MawasimField label="تعيين مدير للموسم">
+                <Select
+                  value={managerId ? String(managerId) : ""}
+                  onValueChange={val => setManagerId(val === "none" || !val ? null : Number(val))}
+                >
+                  <SelectTrigger aria-label="تعيين مدير للموسم" className="h-10 w-full rounded-xl bg-background">
+                    <SelectValue placeholder="اختر مدير الموسم" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون مدير محدد</SelectItem>
+                    {managerOptions.map(emp => {
+                      const detail = emp.position?.trim() || emp.roleNameAr?.trim() || emp.email?.trim() || "";
+                      return (
+                        <SelectItem key={emp.id} value={String(emp.id)}>
+                          {detail ? `${emp.name} — ${detail}` : emp.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </MawasimField>
             </div>
 
@@ -1435,33 +1528,66 @@ function Quantities({
 export function RequestDetails({
   request,
   season,
+  employees = [],
   canApprove,
   refresh,
 }: {
   request: SeasonRequest;
   season: Season;
+  employees?: CompanyEmployee[];
   canApprove: boolean;
   refresh: () => void;
 }) {
   const [showPhotos, setShowPhotos] = useState(false);
   const hasPhotos = Boolean(request.hasPhotos);
   const { men, women } = request.snapshot;
+  const defaultAssigneeId = request.assignedTo ?? season.managerId ?? null;
+  const [scheduledFor, setScheduledFor] = useState(request.scheduledFor ?? "");
+  const [assignedTo, setAssignedTo] = useState<number | null>(defaultAssigneeId);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [approved, setApproved] = useState(request.requested);
   const [note, setNote] = useState("");
   const key = { seasonId: request.seasonId, requestId: request.id };
   const photos = trpc.mawasim.photos.useQuery(key, { enabled: hasPhotos && showPhotos });
-  const options = {
+
+  const assigneeOptions = useMemo(() => {
+    const list = [...employees];
+    if (defaultAssigneeId && !list.some(emp => emp.id === defaultAssigneeId)) {
+      const fallbackName =
+        (request.assignedTo === defaultAssigneeId ? request.assignee : null) ??
+        (season.managerId === defaultAssigneeId ? season.managerName : null) ??
+        `موظف #${defaultAssigneeId}`;
+      list.unshift({
+        id: defaultAssigneeId,
+        name: fallbackName,
+        email: null,
+        role: "",
+        roleNameAr: null,
+        position: null,
+        department: null,
+      });
+    }
+    return list;
+  }, [employees, defaultAssigneeId, request.assignedTo, request.assignee, season.managerId, season.managerName]);
+
+  const review = trpc.mawasim.review.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث حالة الطلب بنجاح.");
+      setShowScheduleModal(false);
       refresh();
     },
     onError: (error: { message: string }) => toast.error(error.message),
-  };
-  const review = trpc.mawasim.review.useMutation(options);
+  });
 
   const activeServices = seasonalServiceIds.filter(
     service => request.requested[service] || request.approved?.[service]
   );
+
+  const openScheduleApproveModal = () => {
+    setScheduledFor(request.scheduledFor ?? "");
+    setAssignedTo(request.assignedTo ?? season.managerId ?? null);
+    setShowScheduleModal(true);
+  };
 
   return (
     <div className="mt-4 space-y-4 border-t border-border/60 pt-4">
@@ -1538,9 +1664,23 @@ export function RequestDetails({
             </p>
           )}
           {request.scheduledFor && (
-            <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
-              موعد التنفيذ المحفوظ سابقًا: {request.scheduledFor} · المكلّف: {request.assignee}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-200/70 bg-indigo-50/50 px-2.5 py-2 text-xs text-indigo-800 dark:border-indigo-800/60 dark:bg-indigo-950/30 dark:text-indigo-200">
+              <span>
+                <strong>موعد التنفيذ المجدول:</strong> {request.scheduledFor}
+                {request.assignee ? ` · المكلّف: ${request.assignee}` : ""}
+              </span>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 rounded-lg border-[#1a5f4a]/35 bg-background px-2.5 text-[11px] font-bold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 cursor-pointer"
+              >
+                <Link href={`/mawasim/requests/${request.seasonId}/${request.id}/print`}>
+                  <FileText className="size-3.5" />
+                  <span>أمر العمل</span>
+                </Link>
+              </Button>
+            </div>
           )}
           {request.execution && (
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
@@ -1628,17 +1768,15 @@ export function RequestDetails({
       )}
 
       {/* Review Actions */}
-      {canApprove && !["completed", "rejected"].includes(request.status) && (
+      {canApprove && !["approved", "completed", "rejected"].includes(request.status) && (
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
           <h4 className="text-sm font-bold text-foreground">مراجعة الطلب والاعتماد وحجز السعة</h4>
-          {request.status === "submitted" && (
-            <Quantities
-              value={approved}
-              onChange={setApproved}
-              services={seasonalServiceIds.filter(service => (service !== "carpet" || men) &&
-                (request.requested[service] || request.specialRequest))}
-            />
-          )}
+          <Quantities
+            value={approved}
+            onChange={setApproved}
+            services={seasonalServiceIds.filter(service => (service !== "carpet" || men) &&
+              (request.requested[service] || request.specialRequest))}
+          />
           <MawasimField label="ملاحظة المراجعة أو سبب الاعتذار">
             <Textarea
               maxLength={2000}
@@ -1649,17 +1787,17 @@ export function RequestDetails({
             />
           </MawasimField>
           <div className="flex flex-wrap gap-2">
-            {request.status === "submitted" && (
-              <Button
-                disabled={review.isPending}
-                onClick={() => review.mutate({ ...key, approved, note })}
-                className="gap-1.5 rounded-xl cursor-pointer"
-              >
-                <CheckCircle2 className="size-4" />
-                اعتماد الكميات
-              </Button>
-            )}
             <Button
+              type="button"
+              disabled={review.isPending}
+              onClick={openScheduleApproveModal}
+              className="gap-1.5 rounded-xl cursor-pointer"
+            >
+              <CheckCircle2 className="size-4" />
+              اعتماد الكميات
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               disabled={!note.trim() || review.isPending}
               onClick={() => review.mutate({ ...key, approved: null, note })}
@@ -1671,6 +1809,72 @@ export function RequestDetails({
           </div>
         </section>
       )}
+
+      {/* Modal جدولة موعد التنفيذ عند الضغط على اعتماد الكميات */}
+      <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <Calendar className="size-4 text-primary" />
+              <span>1. جدولة موعد التنفيذ (مطلوبة قبل الاعتماد)</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              حدد تاريخ موعد التنفيذ والموظف المكلّف بالتنفيذ لاستكمال اعتماد طلب {request.mosqueName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <MawasimField label="تاريخ موعد التنفيذ">
+              <Input
+                type="date"
+                required
+                value={scheduledFor}
+                onChange={event => setScheduledFor(event.target.value)}
+                className="h-10 rounded-xl bg-background tabular-nums"
+              />
+            </MawasimField>
+
+            <MawasimField label="المكلّف بالتنفيذ (اختياري)">
+              <Select
+                value={assignedTo ? String(assignedTo) : ""}
+                onValueChange={val => setAssignedTo(val === "none" || !val ? null : Number(val))}
+              >
+                <SelectTrigger aria-label="المكلّف بالتنفيذ" className="h-10 w-full rounded-xl bg-background">
+                  <SelectValue placeholder="اختر الموظف المكلّف بالتنفيذ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون تكليف محدد</SelectItem>
+                  {assigneeOptions.map(emp => (
+                    <SelectItem key={emp.id} value={String(emp.id)}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </MawasimField>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-start">
+            <Button
+              type="button"
+              disabled={!scheduledFor || review.isPending}
+              onClick={() => review.mutate({ ...key, approved, note, scheduledFor, assignedTo })}
+              className="gap-1.5 rounded-xl cursor-pointer"
+            >
+              {review.isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+              <span>تأكيد الجدولة واعتماد الطلب</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowScheduleModal(false)}
+              className="rounded-xl cursor-pointer"
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

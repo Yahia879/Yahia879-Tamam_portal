@@ -1,5 +1,5 @@
 import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
-import { isMawasimPermission, MAWASIM_PERMISSIONS, MAWASIM_PERMISSION_IDS } from "../shared/mawasimPermissions";
+import { hasMawasimSeasonViewPermission, isMawasimPermission, MAWASIM_PERMISSIONS, MAWASIM_PERMISSION_IDS } from "../shared/mawasimPermissions";
 import { isProgressInvoicePermission, PROGRESS_INVOICE_PERMISSION_IDS } from "../shared/progressInvoicePermissions";
 import { isProgressReportPermission, PROGRESS_REPORT_PERMISSION_IDS } from "../shared/progressReportPermissions";
 import { isProjectPermission, PROJECT_PERMISSION_IDS } from "../shared/projectPermissions";
@@ -61,10 +61,11 @@ import { z } from "zod";
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
   mawasim: MAWASIM_PERMISSION_IDS,
   "mawasim.view": ["mawasim.view"],
-  "mawasim.create": ["mawasim.create", "mawasim.view"],
-  "mawasim.manage": ["mawasim.manage", "mawasim.view"],
-  "mawasim.view_requests": ["mawasim.view_requests", "mawasim.view"],
-  "mawasim.approve_requests": ["mawasim.approve_requests", "mawasim.view_requests", "mawasim.view"],
+  "mawasim.view_assigned": ["mawasim.view_assigned"],
+  "mawasim.create": ["mawasim.create"],
+  "mawasim.manage": ["mawasim.manage"],
+  "mawasim.view_requests": ["mawasim.view_requests"],
+  "mawasim.approve_requests": ["mawasim.approve_requests", "mawasim.view_requests"],
   board_analytics: [],
   ...Object.fromEntries(BOARD_ANALYTICS_PERMISSION_IDS.map(permission => [permission, [permission]])),
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
@@ -2337,7 +2338,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
     }
     for (const permission of MAWASIM_PERMISSIONS) {
       const [existing] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, permission.id)).limit(1);
-      if (!existing) await db.insert(permissions).values({ id: permission.id, moduleId: "mawasim", action: permission.action, nameAr: permission.nameAr, nameEn: permission.nameEn, description: permission.description });
+      if (!existing) {
+        await db.insert(permissions).values({ id: permission.id, moduleId: "mawasim", action: permission.action, nameAr: permission.nameAr, nameEn: permission.nameEn, description: permission.description });
+      } else {
+        await db.update(permissions).set({ nameAr: permission.nameAr, nameEn: permission.nameEn, description: permission.description }).where(eq(permissions.id, permission.id));
+      }
     }
 
     const [boardAnalyticsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "board_analytics")).limit(1);
@@ -4972,8 +4977,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  // إذا تم سحب عرض المواسم، تسحب جميع إجراءات وإعدادات المواسم تلقائياً
-  if (revokedPermissions.has("mawasim.view")) {
+  // إذا لم تتوفر أي صلاحية لعرض المواسم (عرض كافة المواسم أو عرض المواسم المسندة للمدير)، تسحب جميع إجراءات وإعدادات المواسم تلقائياً
+  if (!hasMawasimSeasonViewPermission(allPermissions)) {
     MAWASIM_PERMISSION_IDS.forEach(id => allPermissions.delete(id));
     allPermissions.delete("mawasim");
   } else {
@@ -4983,6 +4988,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       allPermissions.delete("mawasim");
     }
     if (
+      revokedPermissions.has("mawasim.view") ||
+      revokedPermissions.has("mawasim.view_assigned") ||
       revokedPermissions.has("mawasim.create") ||
       revokedPermissions.has("mawasim.manage") ||
       revokedPermissions.has("mawasim.approve_requests")

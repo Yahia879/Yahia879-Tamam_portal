@@ -92,6 +92,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/progress-reports\/?$/, title: "تقارير الإنجاز" },
   { pattern: /^\/progress-invoices\/?$/, title: "المستخلصات" },
   { pattern: /^\/progress-reports\/[^/]+\/print\/?$/, title: "طباعة تقرير الإنجاز" },
+  { pattern: /^\/mawasim\/requests\/[^/]+\/[^/]+\/print\/?$/, title: "أمر العمل - برنامج مواسم" },
 
   // الموردين والعقود
   { pattern: /^\/supplier\/register\/?$/, title: "تسجيل مورد جديد" },

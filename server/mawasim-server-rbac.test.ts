@@ -127,13 +127,21 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
     });
 
     it("honors explicit revocation even when wildcard and role grants are present", async () => {
-      state.selected = ["*", ...ids];
+      // Revoking all season view permissions removes every mawasim.* permission
+      state.selected = ["*", "mawasim.view", "mawasim.create", "mawasim.manage", "mawasim.view_requests", "mawasim.approve_requests"];
       state.direct = [{ permissionId: "mawasim.view", granted: false }];
       const perms = (await calculateUserPermissions(1)).filter(p => p.startsWith("mawasim"));
       expect(perms).toEqual([]);
       await expect(caller().staff()).rejects.toMatchObject({ code: "FORBIDDEN" });
 
+      // view_assigned + view_requests does not expand into mawasim.view (all seasons)
+      state.selected = ["mawasim.view_assigned", "mawasim.view_requests"];
+      state.direct = [];
+      const managerPerms = (await calculateUserPermissions(1)).filter(p => p.startsWith("mawasim"));
+      expect(managerPerms).toEqual(["mawasim.view_assigned", "mawasim.view_requests"]);
+
       // Revoking only mawasim.create keeps view/manage but removes create and blocks saveSeason create
+      state.selected = ["*", ...ids];
       state.direct = [{ permissionId: "mawasim.create", granted: false }];
       const withoutCreate = (await calculateUserPermissions(1)).filter(p => p.startsWith("mawasim"));
       expect(withoutCreate).not.toContain("mawasim.create");

@@ -19,6 +19,7 @@ import InformationDashboard from "./pages/InformationDashboard";
 import BoardDashboard from "./pages/BoardDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import MawasimStaff from "./pages/MawasimStaff";
+import MawasimWorkOrderPrint from "./pages/MawasimWorkOrderPrint";
 import MawasimPortal from "./pages/MawasimPortal";
 import SeasonalRequestCreate from "./pages/SeasonalRequestCreate";
 import RequesterEvaluations from "./pages/RequesterEvaluations";
@@ -287,6 +288,7 @@ function Router() {
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/mawasim">{() => <RequesterRoute component={MawasimPortal} />}</Route>
+      <Route path="/mawasim/requests/:seasonId/:requestId/print">{() => <ProtectedRoute><MawasimWorkOrderPrint /></ProtectedRoute>}</Route>
       <Route path="/mawasim">{() => <ProtectedRoute><MawasimStaff /></ProtectedRoute>}</Route>
       <Route path="/requester/evaluations">{() => <RequesterRoute component={RequesterEvaluations} />}</Route>
       <Route path="/my-requests">

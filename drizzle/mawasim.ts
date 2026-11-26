@@ -15,6 +15,7 @@ export const mawasimSeasons = mysqlTable("mawasim_seasons", {
   id: int("id").autoincrement().primaryKey(),
   hijriYear: int("hijriYear").notNull(),
   title: varchar("title", { length: 160 }).notNull(),
+  managerId: int("managerId").references(() => users.id, { onDelete: "set null" }),
   isOpen: boolean("isOpen").notNull().default(false),
   settings: seasonalJson<SeasonalSettings>("settings").notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),

@@ -1,6 +1,6 @@
 import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
-import { MAWASIM_PERMISSIONS } from "@shared/mawasimPermissions";
+import { hasMawasimSeasonViewPermission, isMawasimSubPermission, MAWASIM_PERMISSIONS, MAWASIM_SUB_PERMISSION_IDS } from "@shared/mawasimPermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionOverrides } from "@shared/calendarPermissions";
@@ -685,6 +685,7 @@ export default function UserPermissions() {
   const isChecked = (permissionId: string): boolean => {
     if (CALENDAR_PERMISSION_IDS.includes(permissionId) && permissionId !== "appointments.view_own" &&
         (overrides["appointments.view_own"] ?? rolePermissions?.includes("appointments.view_own"))) return false;
+    if (isMawasimSubPermission(permissionId) && !isChecked("mawasim.view") && !isChecked("mawasim.view_assigned")) return false;
     if (sectionPermissionPrerequisites(permissionId).some(required => !isChecked(required))) return false;
 
 
@@ -795,12 +796,16 @@ export default function UserPermissions() {
       return;
     }
     const requiredView = sectionPermissionPrerequisite(permId);
+    if (isMawasimSubPermission(permId) && !isChecked(permId) && !isChecked("mawasim.view") && !isChecked("mawasim.view_assigned")) {
+      toast.warning("يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً");
+      return;
+    }
     if (requiredView && !isChecked(permId) && !isChecked(requiredView)) {
       toast.warning(
         permId === "mawasim.approve_requests"
           ? "يجب تفعيل صلاحية 'عرض طلبات برنامج مواسم' أولاً"
           : permId.startsWith("mawasim.")
-            ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً"
+            ? "يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً"
             : permId.startsWith("beneficiary_evaluations.")
               ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
               : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً"
@@ -824,10 +829,10 @@ export default function UserPermissions() {
 
 
 
-    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("mawasim.") && permId !== "mawasim.view") {
-      if (!isChecked("mawasim.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض مواسم' أولاً");
+    // منع تفعيل أي صلاحية فرعية لمواسم إذا كانت صلاحيتا العرض معطلتين
+    if (isMawasimSubPermission(permId)) {
+      if (!isChecked("mawasim.view") && !isChecked("mawasim.view_assigned")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض كافة المواسم' أو 'عرض المواسم المسندة لك كمدير' أولاً");
         return;
       }
     }
@@ -2897,7 +2902,12 @@ export default function UserPermissions() {
 
 
         sectionPermissionDependents(permId).forEach(cascadeRevoke);
-        if (permId === "mawasim.view") cascadeRevoke("mawasim.");
+        if (permId === "mawasim.view" || permId === "mawasim.view_assigned") {
+          const otherView = permId === "mawasim.view" ? "mawasim.view_assigned" : "mawasim.view";
+          if (!isChecked(otherView)) {
+            MAWASIM_SUB_PERMISSION_IDS.forEach(cascadeRevoke);
+          }
+        }
         if (permId === "mosques.view") cascadeRevoke("mosques.");
 
 
@@ -4046,7 +4056,8 @@ export default function UserPermissions() {
 
 
       permissionId,
-      granted: granted && sectionPermissionPrerequisites(permissionId).every(isChecked),
+      granted: granted && sectionPermissionPrerequisites(permissionId).every(isChecked) &&
+        (!isMawasimSubPermission(permissionId) || isChecked("mawasim.view") || isChecked("mawasim.view_assigned")),
 
 
 
@@ -7918,7 +7929,7 @@ export default function UserPermissions() {
 
 
 
-                              (perm.id.startsWith("mawasim.") && perm.id !== "mawasim.view" && !isChecked("mawasim.view")) ||
+                              (isMawasimSubPermission(perm.id) && !isChecked("mawasim.view") && !isChecked("mawasim.view_assigned")) ||
 
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
 

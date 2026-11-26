@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { MAWASIM_PERMISSION_IDS } from "@shared/mawasim";
+import { formatSeasonalRequesterType, MAWASIM_PERMISSION_IDS } from "@shared/mawasim";
 import {
   AlertCircle,
   ArrowRight,
@@ -28,25 +28,13 @@ import {
   Users,
 } from "lucide-react";
 
-const REQUESTER_TYPE_LABELS: Record<string, string> = {
-  imam: "إمام",
-  muezzin: "مؤذن",
-  board_member: "عضو مجلس إدارة",
-  committee_member: "عضو لجنة",
-  volunteer: "متطوع",
-  donor: "متبرع",
-  other: "أخرى",
-};
-
 export function LinkedRequesterSummary({
   linkedRequester,
 }: {
   linkedRequester: MawasimMosque["linkedRequester"];
 }) {
   if (!linkedRequester) return null;
-  const typeLabel = linkedRequester.requesterType
-    ? REQUESTER_TYPE_LABELS[linkedRequester.requesterType] ?? linkedRequester.requesterType
-    : null;
+  const typeLabel = formatSeasonalRequesterType(linkedRequester.requesterType);
 
   return (
     <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-4 py-3 text-xs space-y-1.5 dark:border-emerald-900/50 dark:bg-emerald-950/25">

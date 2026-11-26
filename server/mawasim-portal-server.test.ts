@@ -16,7 +16,9 @@ const state = vi.hoisted(() => ({
   submitMosque: null as any,
   submitGrants: [] as any[],
   candidateUsers: [] as any[],
+  lockedRequestRow: null as any,
   allowAdmin: false,
+  grantedPermissions: null as string[] | null,
   insertedValues: [] as any[],
   insertedExceptions: [] as any[],
   updatedMosques: [] as any[],
@@ -77,7 +79,13 @@ function makeDb(inTx = false) {
             return {
               ...c,
               for: () =>
-                Promise.resolve(table === mawasimSeasons ? (state.seasons[0] ? [state.seasons[0]] : []) : []),
+                Promise.resolve(
+                  table === mawasimSeasons
+                    ? (state.seasons[0] ? [state.seasons[0]] : [])
+                    : table === mawasimRequests && state.lockedRequestRow
+                      ? [state.lockedRequestRow]
+                      : [],
+                ),
               then: (resolve: any, reject?: any) => {
                 if (table === mosques) {
                   return Promise.resolve(state.submitMosque ? [state.submitMosque] : []).then(resolve, reject);
@@ -126,7 +134,8 @@ vi.mock("./db", () => ({
 }));
 
 vi.mock("./permissions", () => ({
-  checkPermission: async () => state.allowAdmin,
+  checkPermission: async (_userId: number, perm: string) =>
+    state.grantedPermissions ? state.grantedPermissions.includes(perm) : state.allowAdmin,
 }));
 
 vi.mock("./routers/notifications", () => ({
@@ -593,5 +602,223 @@ describe("Mawasim requester portal & submit server enforcement", () => {
         sortBy: "newest",
       }).map(r => r.id),
     ).toEqual([1]);
+  });
+
+  it("returns company employees in mawasim.staff and saves/validates season managerId", async () => {
+    state.allowAdmin = true;
+    state.allRequests = [];
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "موسم رمضان 1448", managerId: 22, managerName: "سعيد الشهري", isOpen: false, settings: buildSettings() },
+    ];
+    state.candidateUsers = [
+      { id: 25, name: "أحمد المالكي", email: "ahmad@example.com", role: "project_manager", roleNameAr: "مدير مشروع", position: "مدير تنفيذ", department: "المشاريع" },
+      { id: 22, name: "سعيد الشهري", email: "saeed@example.com", role: "projects_office", roleNameAr: "مكتب المشاريع", position: null, department: null },
+      { id: 99, name: "مستفيد خارجي", email: "req@example.com", role: "service_requester", roleNameAr: null, position: null, department: null },
+    ];
+
+    const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+    const staffResult = await adminApi.staff();
+    expect(staffResult.employees.map(emp => emp.name)).toEqual(["أحمد المالكي", "سعيد الشهري"]);
+    expect(staffResult.season?.managerName).toBe("سعيد الشهري");
+
+    // Rejects selecting a service_requester (even if SQL where was bypassed in mock, role filter catches it)
+    state.candidateUsers = [
+      { id: 99, name: "مستفيد خارجي", email: "req@example.com", role: "service_requester" },
+    ];
+    await expect(
+      adminApi.saveSeason({
+        hijriYear: 1448,
+        title: "موسم جديد",
+        managerId: 99,
+        isOpen: false,
+        settings: buildSettings(),
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // Accepts a company employee as managerId
+    state.candidateUsers = [
+      { id: 25, name: "أحمد المالكي", email: "ahmad@example.com", role: "project_manager" },
+    ];
+    const created = await adminApi.saveSeason({
+      hijriYear: 1449,
+      title: "موسم 1449",
+      managerId: 25,
+      isOpen: false,
+      settings: buildSettings(),
+    });
+    expect(created).toEqual({ id: 700 });
+    expect(state.insertedValues.at(-1)).toMatchObject({
+      title: "موسم 1449",
+      managerId: 25,
+    });
+  });
+
+  it("restricts mawasim.view_assigned to seasons assigned to the user as manager", async () => {
+    state.allRequests = [];
+    state.candidateUsers = [];
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "موسم المسند لي", managerId: 25, managerName: "أحمد", isOpen: true, settings: buildSettings() },
+      { id: 11, hijriYear: 1449, title: "موسم مدير آخر", managerId: 30, managerName: "سعيد", isOpen: true, settings: buildSettings() },
+    ];
+
+    try {
+      const managerCaller = callerFor({ id: 25, role: "project_manager", requesterType: null });
+
+      // Only mawasim.view_assigned + mawasim.manage (no mawasim.view)
+      state.grantedPermissions = ["mawasim.view_assigned", "mawasim.manage"];
+      const assignedView = await managerCaller.staff();
+      expect(assignedView.seasons.map(s => s.id)).toEqual([10]);
+      expect(assignedView.season?.id).toBe(10);
+
+      // Explicitly querying another manager's season returns null without leaking data
+      const otherSeasonAttempt = await managerCaller.staff({ seasonId: 11 });
+      expect(otherSeasonAttempt.seasons.map(s => s.id)).toEqual([10]);
+      expect(otherSeasonAttempt.season).toBeNull();
+
+      // Editing another manager's season is forbidden even with mawasim.manage
+      state.seasons = [
+        { id: 11, hijriYear: 1449, title: "موسم مدير آخر", managerId: 30, managerName: "سعيد", isOpen: false, settings: buildSettings() },
+      ];
+      await expect(
+        managerCaller.saveSeason({ id: 11, hijriYear: 1449, title: "تعديل غير مصرح", isOpen: false, settings: buildSettings() }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      // mawasim.view shows all seasons
+      state.seasons = [
+        { id: 10, hijriYear: 1448, title: "موسم المسند لي", managerId: 25, managerName: "أحمد", isOpen: true, settings: buildSettings() },
+        { id: 11, hijriYear: 1449, title: "موسم مدير آخر", managerId: 30, managerName: "سعيد", isOpen: true, settings: buildSettings() },
+      ];
+      state.grantedPermissions = ["mawasim.view"];
+      const allView = await managerCaller.staff();
+      expect(allView.seasons.map(s => s.id)).toEqual([10, 11]);
+    } finally {
+      state.grantedPermissions = null;
+    }
+  });
+
+  it("enriches exportRequests with registered service requester full details and title when linked by mosque", async () => {
+    state.allowAdmin = true;
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: null, managerName: null, isOpen: true, settings: buildSettings() },
+    ];
+    state.allRequests = [
+      {
+        id: 77,
+        seasonId: 10,
+        mosqueId: 201,
+        mosqueName: "مسجد النور",
+        requested: { water: 10 },
+        approved: null,
+        execution: null,
+        status: "submitted",
+        snapshot: { city: "المدينة", district: "العوالي", address: "الشارع العام", worshippers: 50, men: null, women: null },
+        contact: { name: "جهة التواصل", phone: "0550000000" },
+        applicantName: null,
+        applicantPhone: null,
+        applicantEmail: null,
+        applicantNationalId: null,
+        applicantCity: null,
+        applicantRequesterType: null,
+        governorate: "منطقة المدينة",
+        mosqueCity: "المدينة",
+        imamName: "إمام المسجد",
+        imamPhone: "0551234567",
+        imamEmail: "imam@mosque.sa",
+        mosqueRegisteredBy: 42,
+        hasPhotos: false,
+      },
+    ];
+    state.candidateUsers = [
+      {
+        id: 42,
+        name: "محمد السالم",
+        email: "imam@mosque.sa",
+        phone: "0551234567",
+        nationalId: "1098765432",
+        city: "المدينة المنورة",
+        requesterType: "imam",
+      },
+    ];
+
+    const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+    const exported = await adminApi.exportRequests({ seasonId: 10 });
+    expect(exported).toHaveLength(1);
+    expect(exported[0]).toMatchObject({
+      applicantName: "محمد السالم",
+      applicantPhone: "0551234567",
+      applicantEmail: "imam@mosque.sa",
+      applicantNationalId: "1098765432",
+      applicantCity: "المدينة المنورة",
+      applicantRequesterType: "imam",
+    });
+  });
+
+  it("enforces execution scheduling before approval and transitions submitted -> scheduled -> approved", async () => {
+    state.allowAdmin = true;
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: 1, isOpen: true, settings: buildSettings() },
+    ];
+    state.usageRows = [];
+    state.candidateUsers = [
+      { id: 25, name: "أحمد المالكي", role: "project_manager" },
+    ];
+    state.lockedRequestRow = {
+      id: 90,
+      seasonId: 10,
+      mosqueId: 201,
+      status: "submitted",
+      scheduledFor: null,
+      assignedTo: null,
+      requested: { water: 10 },
+      approved: null,
+      specialRequest: null,
+      snapshot: { city: "المدينة", district: "العوالي", address: "الشارع العام", worshippers: 50, men: null, women: null },
+    };
+
+    try {
+      const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+
+      // Cannot approve before scheduling execution date
+      await expect(
+        adminApi.review({ seasonId: 10, requestId: 90, approved: { water: 10 }, note: "اعتماد مباشر" }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      // Scheduling sets scheduledFor, assignedTo, and moves status to "scheduled"
+      const scheduledRes = await adminApi.schedule({
+        seasonId: 10,
+        requestId: 90,
+        scheduledFor: "2026-04-20",
+        assignedTo: 25,
+      });
+      expect(scheduledRes).toEqual({ success: true });
+      expect(state.updatedMosques.at(-1)).toMatchObject({
+        table: mawasimRequests,
+        vals: { scheduledFor: "2026-04-20", assignedTo: 25, status: "scheduled" },
+      });
+
+      // After scheduling (or directly providing scheduledFor + assignedTo in modal), review approval succeeds
+      await expect(
+        adminApi.review({
+          seasonId: 10,
+          requestId: 90,
+          approved: { water: 10 },
+          note: "تم الاعتماد مع الجدولة",
+          scheduledFor: "2026-04-21",
+          assignedTo: 25,
+        }),
+      ).resolves.toBeUndefined();
+      expect(state.updatedMosques.at(-1)).toMatchObject({
+        table: mawasimRequests,
+        vals: {
+          status: "approved",
+          approved: { water: 10 },
+          reviewedBy: 1,
+          scheduledFor: "2026-04-21",
+          assignedTo: 25,
+        },
+      });
+    } finally {
+      state.lockedRequestRow = null;
+    }
   });
 });

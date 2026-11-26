@@ -2,7 +2,7 @@ import { custodyAccess, type CustodyUser } from "@shared/custodyPermissions";
 import { REQUEST_REPORT_VIEW_PERMISSIONS } from "@shared/requestReportPermissions";
 import { CALENDAR_ENTRY_PERMISSIONS, calendarAccess } from "@shared/calendarPermissions";
 import { REQUEST_LIST_ENTRY_PERMISSIONS, isRequestSectionPermission } from "@shared/requestPermissions";
-import { canManageMawasim, canViewMawasim } from "@shared/mawasim";
+import { canManageMawasim, canViewMawasim, canViewMawasimRequests } from "@shared/mawasim";
 import { isDashboardViewerUser } from "./dashboardViewer";
 import { informationDashboardTabs } from "@shared/informationDashboardPermissions";
 import { BOARD_ANALYTICS_PERMISSION_IDS, boardAnalyticsTabs } from "@shared/boardAnalyticsPermissions";
@@ -693,6 +693,9 @@ export function hasRouteAccess(
 ): boolean {
   if (pathname.replace(/\/$/, "") === "/requester/mawasim") return userRole === "service_requester";
   if (pathname.replace(/\/$/, "") === "/mawasim") return canViewMawasim(userRole, userPermissions);
+  if (/^\/mawasim\/requests\/\d+\/\d+\/print\/?$/.test(pathname)) {
+    return canViewMawasimRequests(userRole, userPermissions);
+  }
   if (pathname.replace(/\/$/, "") === "/requests/seasonal") {
     return userPermissions.includes("requests.create_seasonal_request") || canViewMawasim(userRole, userPermissions);
   }
