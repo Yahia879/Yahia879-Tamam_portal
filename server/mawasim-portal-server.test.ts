@@ -138,10 +138,12 @@ vi.mock("./permissions", () => ({
     state.grantedPermissions ? state.grantedPermissions.includes(perm) : state.allowAdmin,
 }));
 
-vi.mock("./routers/notifications", () => ({
+const notifMocks = vi.hoisted(() => ({
   createNotification: vi.fn(async () => undefined),
   sendEmailNotification: vi.fn(async () => undefined),
 }));
+
+vi.mock("./routers/notifications", () => notifMocks);
 
 function buildSettings() {
   const settings = defaultSeasonalSettings();
@@ -817,6 +819,93 @@ describe("Mawasim requester portal & submit server enforcement", () => {
           assignedTo: 25,
         },
       });
+    } finally {
+      state.lockedRequestRow = null;
+    }
+  });
+
+  it("dispatches Mawasim beneficiary and role arrival notifications on submit and review", async () => {
+    notifMocks.createNotification.mockClear();
+    state.allowAdmin = true;
+    state.allRequests = [];
+    state.requesterActiveRequests = [];
+    state.mawasimExceptions = [];
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: 25, isOpen: true, settings: buildSettings() },
+    ];
+    state.candidateUsers = [
+      { id: 25, name: "أحمد المالكي", role: "project_manager" },
+    ];
+
+    const reqApi = callerFor({ id: 42, role: "service_requester", requesterType: "imam" });
+    await reqApi.submit(baseSubmission);
+
+    expect(notifMocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 42,
+        triggerId: "beneficiary_mawasim_request_submitted",
+        relatedType: "mawasim_request",
+        relatedId: 700,
+      }),
+    );
+    expect(notifMocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 25,
+        triggerId: "mawasim_request_submitted",
+        relatedType: "mawasim_request",
+        relatedId: 700,
+      }),
+    );
+
+    notifMocks.createNotification.mockClear();
+    state.lockedRequestRow = {
+      id: 91,
+      seasonId: 10,
+      mosqueId: 201,
+      mosqueName: "مسجد النور",
+      applicantId: 42,
+      status: "submitted",
+      scheduledFor: null,
+      assignedTo: null,
+      requested: { water: 10 },
+      approved: null,
+      specialRequest: null,
+      snapshot: { city: "المدينة", district: "العوالي", address: "الشارع العام", worshippers: 50, men: null, women: null },
+    };
+
+    try {
+      const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+      await adminApi.review({
+        seasonId: 10,
+        requestId: 91,
+        approved: { water: 10 },
+        note: "اعتماد كامل الكمية",
+        scheduledFor: "2026-04-22",
+        assignedTo: 25,
+      });
+      expect(notifMocks.createNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          triggerId: "beneficiary_mawasim_request_approved",
+          relatedId: 91,
+        }),
+      );
+
+      notifMocks.createNotification.mockClear();
+      await adminApi.review({
+        seasonId: 10,
+        requestId: 91,
+        approved: null,
+        note: "اكتمال السعة المتاحة",
+      });
+      expect(notifMocks.createNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          triggerId: "beneficiary_mawasim_request_rejected",
+          relatedId: 91,
+          message: expect.stringContaining("اكتمال السعة المتاحة"),
+        }),
+      );
     } finally {
       state.lockedRequestRow = null;
     }

@@ -306,6 +306,12 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   beneficiary_sedana_delivery_confirmed: "شكراً لتعاونكم إمام {اسم_المسجد}، تم توثيق استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.",
   beneficiary_sedana_cycle_reminder: "السلام عليكم {اسم_المستفيد}، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لـ {اسم_المسجد}.",
   beneficiary_sedana_handover: "تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي للطلب رقم {رقم_الطلب} لـ {اسم_المسجد}.",
+
+  // مشغلات إشعارات برنامج مواسم (الأدوار والمستفيد)
+  mawasim_request_submitted: "وصل طلب جديد في برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} ({اسم_الموسم}) من {اسم_المستفيد} وهو بانتظار المراجعة.",
+  beneficiary_mawasim_request_submitted: "تم استلام طلبك في برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} ({اسم_الموسم}) وهو قيد المراجعة.",
+  beneficiary_mawasim_request_approved: "يسرنا إبلاغك باعتماد طلب برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} وموعد التنفيذ المجدول {موعد_التنفيذ}. الملاحظات: {السبب}",
+  beneficiary_mawasim_request_rejected: "نعتذر عن عدم إمكانية تنفيذ طلب برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} بسبب: {السبب}.",
 };
 
 const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
@@ -780,7 +786,9 @@ export async function createNotification(data: {
         data.type === "request_update" ||
         data.type === "mosque" ||
         Boolean(data.relatedType && data.relatedType.startsWith("sedana")) ||
+        Boolean(data.relatedType && data.relatedType.startsWith("mawasim")) ||
         (triggerId !== null && triggerId.startsWith("sedana_")) ||
+        (triggerId !== null && triggerId.startsWith("mawasim_")) ||
         triggerId === "exception_request_submitted" ||
         (triggerId !== null && triggerId.startsWith("support_ticket_"));
 

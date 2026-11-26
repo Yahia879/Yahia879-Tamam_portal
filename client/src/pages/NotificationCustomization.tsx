@@ -992,6 +992,48 @@ export default function NotificationCustomization() {
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
+    },
+
+    // === مشغلات برنامج مواسم للمستفيد ===
+    {
+      id: "beneficiary_mawasim_request_submitted",
+      category: "mawasim",
+      categoryNameAr: "برنامج مواسم",
+      nameAr: "إشعار عند إرسال طلب برنامج مواسم",
+      description: "إشعار تأكيد للمستفيد فور إرسال طلب جديد في برنامج مواسم",
+      defaultTemplate: "تم استلام طلبك في برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} ({اسم_الموسم}) وهو قيد المراجعة.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{اسم_الموسم}", nameAr: "اسم الموسم" }
+      ]
+    },
+    {
+      id: "beneficiary_mawasim_request_approved",
+      category: "mawasim",
+      categoryNameAr: "برنامج مواسم",
+      nameAr: "قبول واعتماد طلب برنامج مواسم",
+      description: "إشعار المستفيد عند قبول الإدارة لطلب برنامج مواسم وتحديد موعد التنفيذ مع الملاحظات/السبب",
+      defaultTemplate: "يسرنا إبلاغك باعتماد طلب برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} وموعد التنفيذ المجدول {موعد_التنفيذ}. الملاحظات: {السبب}",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{موعد_التنفيذ}", nameAr: "موعد التنفيذ" },
+        { placeholder: "{السبب}", nameAr: "السبب / الملاحظة" }
+      ]
+    },
+    {
+      id: "beneficiary_mawasim_request_rejected",
+      category: "mawasim",
+      categoryNameAr: "برنامج مواسم",
+      nameAr: "رفض طلب برنامج مواسم مع السبب",
+      description: "إشعار المستفيد عند رفض الإدارة أو الاعتذار عن طلب برنامج مواسم مع ذكر السبب",
+      defaultTemplate: "نعتذر عن عدم إمكانية تنفيذ طلب برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} بسبب: {السبب}.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{السبب}", nameAr: "سبب الرفض" }
+      ]
     }
   ];
 
@@ -1563,6 +1605,21 @@ export default function NotificationCustomization() {
       variables: [
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+
+    // === مشغلات برنامج مواسم ===
+    {
+      id: "mawasim_request_submitted",
+      category: "mawasim",
+      nameAr: "وصول طلب برنامج موسم",
+      description: "تنبيه المسؤولين عند تقديم طلب جديد في برنامج مواسم",
+      defaultTemplate: "وصل طلب جديد في برنامج مواسم رقم #{رقم_الطلب} لمسجد {اسم_المسجد} ({اسم_الموسم}) من {اسم_المستفيد} وهو بانتظار المراجعة.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{اسم_الموسم}", nameAr: "اسم الموسم" },
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم مقدم الطلب / المستفيد" }
       ]
     }
   ];
@@ -2546,6 +2603,66 @@ export default function NotificationCustomization() {
                           </TableRow>
                         );
                       })}
+
+                      {/* === قسم برنامج مواسم === */}
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                        <TableCell colSpan={canEditMessageFormats ? 3 : 2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                          قسم برنامج مواسم
+                        </TableCell>
+                      </TableRow>
+                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "mawasim").map(trig => {
+                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                        const emailState = getTriggerChannelState(trig.id, 'email');
+                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                        const smsState = getTriggerChannelState(trig.id, 'sms');
+
+                        return (
+                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              {renderTruncatedPreview(trig.id)}
+                            </TableCell>
+                            {canEditMessageFormats && (
+                              <TableCell className="text-center py-3 sm:py-4">
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            )}
+                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                              <ChannelToggles
+                                inApp={inAppState.enabled}
+                                whatsapp={whatsappState.enabled}
+                                sms={smsState.enabled}
+                                email={emailState.enabled}
+                                disabled={!canByDepartment}
+                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                inherited={{
+                                  inApp: inAppState.isInherited,
+                                  whatsapp: whatsappState.isInherited,
+                                  sms: smsState.isInherited,
+                                  email: emailState.isInherited,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -2556,6 +2673,7 @@ export default function NotificationCustomization() {
                     { title: "قسم الطلبات والمساجد", items: NOTIFICATION_TRIGGERS.filter(t => t.category === "request") },
                     { title: "قسم المالية والعقود", items: NOTIFICATION_TRIGGERS.filter(t => t.category === "financial" && !t.id.startsWith("custody_")) },
                     { title: "العهد المالية والاستثناءات", items: NOTIFICATION_TRIGGERS.filter(t => t.id.startsWith("custody_")) },
+                    { title: "قسم برنامج مواسم", items: NOTIFICATION_TRIGGERS.filter(t => t.category === "mawasim") },
                   ].map((section) => (
                     <div key={section.title}>
                       <div className="py-2.5 px-4 bg-slate-50/70 dark:bg-slate-900/40 font-bold text-teal-600 dark:text-teal-400 text-xs border-b border-border/40">
@@ -2802,6 +2920,10 @@ export default function NotificationCustomization() {
                   {
                     title: "قسم استبيانات الرضا والتقييم",
                     triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
+                  },
+                  {
+                    title: "قسم برنامج مواسم",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mawasim")
                   }
                 ].filter(s => s.triggers.length > 0);
 

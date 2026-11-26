@@ -800,7 +800,7 @@ export const mawasimRouter = router({
 
     const db = await database();
     try {
-      return await db.transaction(async tx => {
+      const txResult = await db.transaction(async tx => {
         const season = await lockedSeason(tx, input.seasonId);
         if (!season.isOpen) invalid("التسجيل لهذا الموسم مغلق.");
         const [mosque] = await tx.select({
@@ -955,8 +955,46 @@ export const mawasimRouter = router({
           await tx.update(mosques).set(mosqueUpdates).where(eq(mosques.id, mosque.id));
         }
 
-        return created;
+        const contactInfo = onBehalf ?? fallbackContact;
+        return {
+          created,
+          applicantId,
+          mosqueName: mosque.name,
+          seasonTitle: season.title,
+          applicantDisplayName: contactInfo.name?.trim() || ctx.user.name || "طالب الخدمة",
+        };
       });
+
+      try {
+        if (txResult.applicantId) {
+          await createNotification({
+            userId: txResult.applicantId,
+            type: "success",
+            title: "تم استلام طلب برنامج مواسم",
+            message: `تم استلام طلبك في برنامج مواسم رقم #${txResult.created.id} لمسجد ${txResult.mosqueName} (${txResult.seasonTitle}) وهو قيد المراجعة.`,
+            relatedType: "mawasim_request",
+            relatedId: txResult.created.id,
+            triggerId: "beneficiary_mawasim_request_submitted",
+          });
+        }
+        const staffTargets = await listCompanyEmployees(db);
+        for (const staff of staffTargets) {
+          if (!isRequester && staff.id === ctx.user.id) continue;
+          await createNotification({
+            userId: staff.id,
+            type: "request",
+            title: "وصول طلب برنامج موسم",
+            message: `وصل طلب جديد في برنامج مواسم رقم #${txResult.created.id} لمسجد ${txResult.mosqueName} (${txResult.seasonTitle}) من ${txResult.applicantDisplayName} وهو بانتظار المراجعة.`,
+            relatedType: "mawasim_request",
+            relatedId: txResult.created.id,
+            triggerId: "mawasim_request_submitted",
+          });
+        }
+      } catch (notifErr) {
+        console.error("Error sending Mawasim submit notifications:", notifErr);
+      }
+
+      return txResult.created;
     } catch (error) {
       if (isDuplicate(error)) throw new TRPCError({ code: "CONFLICT", message: "يوجد طلب لهذا المسجد في الموسم نفسه." });
       throw error;
@@ -1009,7 +1047,7 @@ export const mawasimRouter = router({
   })).mutation(async ({ input, ctx }) => {
     if (!(await userCanApproveRequests(ctx.user))) denied();
     const db = await database();
-    await db.transaction(async tx => {
+    const outcome = await db.transaction(async tx => {
       const { season, request } = await lockedRequest(tx, input);
       await assertSeasonAccess(ctx.user, season);
       if (input.approved === null) {
@@ -1018,7 +1056,15 @@ export const mawasimRouter = router({
         }
         await tx.update(mawasimRequests).set({ status: "rejected", approved: null, reviewNote: input.note, reviewedBy: ctx.user.id })
           .where(eq(mawasimRequests.id, request.id));
-        return;
+        return {
+          action: "rejected" as const,
+          requestId: request.id,
+          mosqueId: request.mosqueId,
+          mosqueName: request.mosqueName,
+          applicantId: request.applicantId ?? null,
+          reason: input.note.trim(),
+          scheduledFor: null,
+        };
       }
       if (!["submitted", "scheduled"].includes(request.status)) invalid("الطلب سبق أن روجع.");
       const effectiveScheduledFor = input.scheduledFor ?? request.scheduledFor;
@@ -1063,7 +1109,56 @@ export const mawasimRouter = router({
         scheduledFor: effectiveScheduledFor,
         assignedTo: input.assignedTo !== undefined ? input.assignedTo : request.assignedTo,
       }).where(eq(mawasimRequests.id, request.id));
+      return {
+        action: "approved" as const,
+        requestId: request.id,
+        mosqueId: request.mosqueId,
+        mosqueName: request.mosqueName,
+        applicantId: request.applicantId ?? null,
+        reason: input.note?.trim() || "لا توجد ملاحظات",
+        scheduledFor: effectiveScheduledFor,
+      };
     });
+
+    try {
+      let recipientUserId = outcome.applicantId;
+      if (!recipientUserId && outcome.mosqueId) {
+        const [mosqueRow] = await db.select({
+          id: mosques.id,
+          registeredBy: mosques.registeredBy,
+          imamEmail: mosques.imamEmail,
+          imamPhone: mosques.imamPhone,
+        }).from(mosques).where(eq(mosques.id, outcome.mosqueId)).limit(1);
+        if (mosqueRow) {
+          recipientUserId = (await resolveMosqueRequester(db, mosqueRow))?.id ?? null;
+        }
+      }
+      if (recipientUserId) {
+        if (outcome.action === "rejected") {
+          await createNotification({
+            userId: recipientUserId,
+            type: "warning",
+            title: "الاعتذار عن طلب برنامج مواسم",
+            message: `نعتذر عن عدم إمكانية تنفيذ طلب برنامج مواسم رقم #${outcome.requestId} لمسجد ${outcome.mosqueName} بسبب: ${outcome.reason}.`,
+            relatedType: "mawasim_request",
+            relatedId: outcome.requestId,
+            triggerId: "beneficiary_mawasim_request_rejected",
+          });
+        } else {
+          await createNotification({
+            userId: recipientUserId,
+            type: "success",
+            title: "اعتماد طلب برنامج مواسم",
+            message: `يسرنا إبلاغك باعتماد طلب برنامج مواسم رقم #${outcome.requestId} لمسجد ${outcome.mosqueName} وموعد التنفيذ المجدول ${outcome.scheduledFor}. الملاحظات: ${outcome.reason}`,
+            relatedType: "mawasim_request",
+            relatedId: outcome.requestId,
+            triggerId: "beneficiary_mawasim_request_approved",
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Error sending Mawasim review notifications:", notifErr);
+    }
   }),
 
   // تقديم طلب استثناء خاص ببرنامج مواسم (منفصل تماماً عن استثناءات الطلبات العادية)
