@@ -346,6 +346,7 @@ export default function SeasonalRequestCreate() {
                 season={activeSeason}
                 mosque={selectedMosque}
                 capacity={data.capacity}
+                allowExtraServices
                 onSubmitted={() => navigate(canAccessMawasim ? "/mawasim" : "/requests")}
               />
             )}

@@ -542,6 +542,13 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       await promisePool.query("ALTER TABLE mawasim_seasons ADD COLUMN managerId INT NULL");
     }
 
+    // إضافة عمود الخدمات الإضافية والمصارف في جدول mawasim_requests إن لم يكن موجوداً
+    const [mawasimReqCols] = await promisePool.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM mawasim_requests");
+    const mawasimReqColNames = new Set(Array.isArray(mawasimReqCols) ? mawasimReqCols.map((c: any) => c.Field) : []);
+    if (!mawasimReqColNames.has("extraServices")) {
+      await promisePool.query("ALTER TABLE mawasim_requests ADD COLUMN extraServices JSON NULL AFTER requested");
+    }
+
     // إنشاء جدول استثناءات برنامج مواسم وتحديث فهرس الموسم/المسجد ليدعم الاستثناءات المعتمدة
     await promisePool.query(`
       CREATE TABLE IF NOT EXISTS mawasim_exceptions (

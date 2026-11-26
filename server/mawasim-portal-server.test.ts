@@ -910,4 +910,159 @@ describe("Mawasim requester portal & submit server enforcement", () => {
       state.lockedRequestRow = null;
     }
   });
+
+  it("allows staff to attach extra services (audio/carpet/other) even when disabled and aggregates them as season expenses", async () => {
+    state.allowAdmin = true;
+    state.insertedValues = [];
+    state.allRequests = [
+      {
+        id: 1,
+        seasonId: 10,
+        mosqueName: "مسجد السلام",
+        status: "approved",
+        requested: { water: 5 },
+        extraServices: [
+          { id: "ex-1", category: "audio", title: "ضبط الصوتيات / صوتيات", quantity: 1, unit: "مسجد", costHalalas: 150_000 },
+        ],
+        snapshot: { city: "أبها", district: "المنسك", address: "طريق الملك فهد", worshippers: 100 },
+        governorate: "عسير",
+        mosqueCity: "أبها",
+        contact: { name: "خالد", phone: "0500000001" },
+        scheduledFor: "2026-04-10",
+        createdAt: new Date("2026-04-01T10:00:00Z"),
+      },
+      {
+        id: 2,
+        seasonId: 10,
+        mosqueName: "جامع الهدى",
+        status: "submitted",
+        requested: {},
+        extraServices: [
+          { id: "ex-2", category: "carpet", title: "غسيل أو تأمين الفرش", quantity: 200, unit: "م²", costHalalas: 250_000 },
+        ],
+        snapshot: { city: "أبها", district: "شمسان", address: "حي شمسان", worshippers: 150 },
+        governorate: "عسير",
+        mosqueCity: "أبها",
+        contact: { name: "سعيد", phone: "0500000002" },
+        scheduledFor: null,
+        createdAt: new Date("2026-04-02T10:00:00Z"),
+      },
+      {
+        id: 3,
+        seasonId: 10,
+        mosqueName: "مسجد مرفوض",
+        status: "rejected",
+        requested: { water: 5 },
+        extraServices: [
+          { id: "ex-3", category: "other", title: "خدمة مرفوضة", quantity: 1, unit: "خدمة", costHalalas: 99_900 },
+        ],
+        snapshot: { city: "أبها", district: "البديع", address: "البديع", worshippers: 80 },
+        governorate: "عسير",
+        mosqueCity: "أبها",
+        contact: { name: "نايف", phone: "0500000003" },
+        scheduledFor: null,
+        createdAt: new Date("2026-04-03T10:00:00Z"),
+      },
+    ];
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: 25, isOpen: true, settings: buildSettings() },
+    ];
+    state.candidateUsers = [{ id: 25, name: "أحمد المالكي", role: "project_manager" }];
+
+    // Requester cannot attach extraServices directly
+    const reqApi = callerFor({ id: 42, role: "service_requester", requesterType: "imam" });
+    await expect(
+      reqApi.submit({
+        ...baseSubmission,
+        extraServices: [
+          { id: "ex-forbidden", category: "audio", title: "صوتيات", quantity: 1, unit: "مسجد", costHalalas: 50_000 },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const adminApi = callerFor({ id: 1, role: "super_admin", requesterType: null });
+    // Staff cannot attach a service that is already enabled in the season or custom "other"
+    await expect(
+      adminApi.submit({
+        ...baseSubmission,
+        extraServices: [
+          { id: "ex-enabled", category: "carpet", title: "غسيل الفرش", quantity: 100, unit: "م²", costHalalas: 0 },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      adminApi.submit({
+        ...baseSubmission,
+        extraServices: [
+          { id: "ex-other", category: "other", title: "خدمة أخرى", quantity: 1, unit: "خدمة", costHalalas: 0 },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // Staff/admin can submit with ONLY an extra service (even when audio is not enabled in the season)
+    await adminApi.submit({
+      ...baseSubmission,
+      requested: {},
+      extraServices: [
+        {
+          id: "ex-audio-1",
+          category: "audio",
+          title: "توفير وضبط سماعات الصوتيات",
+          quantity: 1,
+          unit: "مسجد",
+          costHalalas: 180_000,
+          notes: "بناءً على احتياج المسجد",
+        },
+      ],
+    });
+    expect(state.insertedValues.at(-1)?.extraServices).toEqual([
+      expect.objectContaining({
+        id: "ex-audio-1",
+        category: "audio",
+        title: "توفير وضبط سماعات الصوتيات",
+        costHalalas: 180_000,
+      }),
+    ]);
+
+    // Staff dashboard aggregates active extra service expenses (excluding rejected)
+    const dashboard = await adminApi.staff({ seasonId: 10 });
+    expect(dashboard.extraExpenses.totalHalalas).toBe(400_000);
+    expect(dashboard.extraExpenses.approvedHalalas).toBe(150_000);
+    expect(dashboard.extraExpenses.pendingHalalas).toBe(250_000);
+    expect(dashboard.extraExpenses.items.map(i => i.requestId)).toEqual([1, 2]);
+
+    // Approving a request that has ONLY extraServices succeeds and updates extraServices cost if adjusted
+    state.lockedRequestRow = {
+      id: 95,
+      seasonId: 10,
+      mosqueId: 201,
+      mosqueName: "مسجد النور",
+      applicantId: 42,
+      status: "submitted",
+      scheduledFor: null,
+      assignedTo: null,
+      requested: {},
+      extraServices: [
+        { id: "ex-audio-1", category: "audio", title: "توفير وضبط سماعات الصوتيات", quantity: 1, unit: "مسجد", costHalalas: 180_000 },
+      ],
+      approved: null,
+      specialRequest: null,
+      snapshot: { city: "المدينة", district: "العوالي", address: "الشارع العام", worshippers: 50, men: null, women: null },
+    };
+    try {
+      await adminApi.review({
+        seasonId: 10,
+        requestId: 95,
+        approved: {},
+        extraServices: [
+          { id: "ex-audio-1", category: "audio", title: "توفير وضبط سماعات الصوتيات", quantity: 1, unit: "مسجد", costHalalas: 200_000 },
+        ],
+        note: "اعتماد الخدمة الإضافية للصوتيات",
+        scheduledFor: "2026-04-25",
+        assignedTo: 25,
+      });
+    } finally {
+      state.lockedRequestRow = null;
+    }
+  });
 });

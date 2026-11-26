@@ -12,14 +12,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
-  carpetArea, seasonalMosqueLimit, seasonalServiceIds, seasonalServices, type SeasonalMosqueSnapshot,
-  type SeasonalQuantities, type SeasonalService, type SeasonalRequestLimits,
+  carpetArea, seasonalMosqueLimit, seasonalServiceIds, seasonalServices,
+  type SeasonalExtraServiceItem, type SeasonalMosqueSnapshot, type SeasonalQuantities,
+  type SeasonalService, type SeasonalRequestLimits,
 } from "@shared/mawasim";
 import {
   AlertTriangle,
@@ -28,10 +30,13 @@ import {
   Droplets,
   Loader2,
   MapPin,
+  Plus,
   Ruler,
   Send,
   Sparkles,
+  Trash2,
   Volume2,
+  Wallet,
   Wind,
   Wrench,
 } from "lucide-react";
@@ -161,10 +166,27 @@ export function PrayerMeasurements({ label, value, fallbackArea, errors, onChang
 
 const emptyMeasurements = { lengthCm: 0, widthCm: 0 };
 
-export default function MawasimRequestForm({ season, mosque, capacity, onSubmitted }: {
+type ExtraServiceDraft = {
+  id: string;
+  category: SeasonalService;
+  quantity: number;
+  notes: string;
+};
+
+function createExtraServiceDraft(category: SeasonalService): ExtraServiceDraft {
+  return {
+    id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    category,
+    quantity: 1,
+    notes: "",
+  };
+}
+
+export default function MawasimRequestForm({ season, mosque, capacity, allowExtraServices = false, onSubmitted }: {
   season: { id: number; settings: SeasonalRequestLimits };
   mosque: MawasimMosque;
   capacity: { service: SeasonalService; available: number }[];
+  allowExtraServices?: boolean;
   onSubmitted: () => void;
 }) {
   const previous = mosque.previous;
@@ -183,6 +205,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
     women: previous?.women ?? savedWomen ?? (mosque.hasPrayerHall ? emptyMeasurements : null),
   });
   const [requested, setRequested] = useState<SeasonalQuantities>({});
+  const [extraServices, setExtraServices] = useState<ExtraServiceDraft[]>([]);
   const [specialRequest, setSpecialRequest] = useState("");
   const [pledge, setPledge] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -192,10 +215,12 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       mosqueId: number;
       snapshot: SeasonalMosqueSnapshot;
       requested: SeasonalQuantities;
+      extraServices?: SeasonalExtraServiceItem[];
       specialRequest: string;
       pledge: true;
     };
     selectedItems: { service: SeasonalService; label: string; unit: string; requested: number }[];
+    extraItems: SeasonalExtraServiceItem[];
     exceeded: { service: SeasonalService; label: string; unit: string; requested: number; ceiling: number }[];
   } | null>(null);
   const waterErrorId = useId();
@@ -221,8 +246,20 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
     const amount = serviceCurrentAmount(service);
     return amount > 0 && Number.isFinite(ceiling) && amount > ceiling;
   };
+  const enabledServices = seasonalServiceIds.filter(service => season.settings.services[service].enabled);
+  const disabledServices = seasonalServiceIds.filter(service => !season.settings.services[service].enabled);
+  const canAttachExtraServices = allowExtraServices && disabledServices.length > 0;
   const menErrors = carpetRequested ? measurementErrors(men) : undefined;
   const womenErrors = carpetRequested && snapshot.women ? measurementErrors(snapshot.women) : undefined;
+  const extraServicesErrors = canAttachExtraServices
+    ? extraServices.map(item => ({
+        quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? undefined : "أدخل كمية موجبة.",
+      }))
+    : [];
+  const hasAnyExtraServiceError = extraServicesErrors.some(err => Object.values(err).some(Boolean));
+  const hasSelectedService =
+    Object.values(requested).some(amount => amount > 0) ||
+    (canAttachExtraServices && extraServices.length > 0);
   const errors = {
     city: snapshot.city.trim() ? undefined : "أدخل اسم المدينة.",
     district: snapshot.district.trim() ? undefined : "أدخل اسم الحي.",
@@ -230,7 +267,11 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
     worshippers: snapshot.worshippers === 0 ? "أدخل عدد المصلين التقريبي."
       : !Number.isInteger(snapshot.worshippers) || snapshot.worshippers < 1 || snapshot.worshippers > 100_000
         ? "أدخل عددًا صحيحًا بين ١ و١٠٠٬٠٠٠." : undefined,
-    services: Object.values(requested).some(amount => amount > 0) ? undefined : "اختر خدمة واحدة على الأقل.",
+    services: hasSelectedService
+      ? undefined
+      : canAttachExtraServices
+        ? "اختر خدمة واحدة على الأقل أو أضف خدمة إضافية للطلب."
+        : "اختر خدمة واحدة على الأقل.",
     water: !Number.isInteger(water) || water < 0 ? "أدخل عددًا صحيحًا غير سالب من الكراتين." : undefined,
     carpet: carpetRequested && area === 0 && !menErrors?.lengthCm && !menErrors?.widthCm
       ? "مساحة غسيل الفرش يجب أن تكون ٠٫٠١ متر مربع على الأقل." : undefined,
@@ -243,7 +284,10 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
     event.preventDefault();
     if (submit.isPending) return;
     setShowErrors(true);
-    if ([...Object.values(errors), ...Object.values(menErrors ?? {}), ...Object.values(womenErrors ?? {})].some(Boolean)) {
+    if (
+      hasAnyExtraServiceError ||
+      [...Object.values(errors), ...Object.values(menErrors ?? {}), ...Object.values(womenErrors ?? {})].some(Boolean)
+    ) {
       const form = event.currentTarget;
       requestAnimationFrame(() => form.querySelector<HTMLElement>("[aria-invalid=true], [data-service-error]")?.focus());
       return;
@@ -256,6 +300,20 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
         unit: seasonalServices[service].unit,
         requested: serviceCurrentAmount(service),
       }));
+    const normalizedExtraServices: SeasonalExtraServiceItem[] = canAttachExtraServices
+      ? extraServices.map(item => {
+          const meta = seasonalServices[item.category];
+          return {
+            id: item.id,
+            category: item.category,
+            title: meta.label,
+            quantity: Number(item.quantity),
+            unit: meta.unit,
+            costHalalas: 0,
+            ...(item.notes.trim() ? { notes: item.notes.trim() } : {}),
+          };
+        })
+      : [];
     const exceeded = enabledServices
       .filter(isExceedingCeiling)
       .map(service => ({
@@ -273,10 +331,12 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
         mosqueId: mosque.id,
         snapshot: carpetRequested ? snapshot : { ...snapshot, men: null, women: null },
         requested: { ...requested, carpet: carpetRequested ? area : 0 },
+        ...(normalizedExtraServices.length > 0 ? { extraServices: normalizedExtraServices } : {}),
         specialRequest,
         pledge: true,
       },
       selectedItems,
+      extraItems: normalizedExtraServices,
       exceeded,
     });
   }
@@ -295,8 +355,6 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
       /* Mutation onError displays the server error. */
     }
   }
-
-  const enabledServices = seasonalServiceIds.filter(service => season.settings.services[service].enabled);
 
   return (
     <form noValidate onSubmit={handleSubmit} className="space-y-6">
@@ -461,6 +519,122 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             <p data-service-error tabIndex={-1}><FieldError message={errors.services} /></p>
           )}
 
+          {canAttachExtraServices && (
+            <div className="space-y-3 rounded-2xl border border-dashed border-primary/35 bg-primary/[0.03] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Wallet className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">إضافة خدمة أخرى للطلب (مصرف على الموسم)</h3>
+                    <p className="text-xs text-muted-foreground">
+                      لإرفاق خدمة غير مفعّلة في الموسم (مثل الصوتيات أو الفرش أو احتياج إضافي للمسجد) وتُسجّل كمصرف على الموسم
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const defaultCat = disabledServices[0];
+                    if (defaultCat) {
+                      setExtraServices(current => [...current, createExtraServiceDraft(defaultCat)]);
+                    }
+                  }}
+                  className="gap-1.5 rounded-xl border-primary/40 bg-background text-primary hover:bg-primary/5 cursor-pointer"
+                >
+                  <Plus className="size-4" />
+                  <span>إضافة خدمة أخرى</span>
+                </Button>
+              </div>
+
+              {extraServices.length > 0 && (
+                <div className="space-y-3">
+                  {extraServices.map((item, idx) => {
+                    const itemErrors = extraServicesErrors[idx];
+                    const selectedMeta = seasonalServices[item.category];
+                    return (
+                      <div key={item.id} className="space-y-3 rounded-xl border border-border/70 bg-background p-3.5 shadow-2xs">
+                        <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                          <span className="text-xs font-bold text-primary">خدمة إضافية #{idx + 1}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExtraServices(current => current.filter(row => row.id !== item.id))}
+                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5" />
+                            <span>إزالة</span>
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <MawasimField label="نوع الخدمة">
+                            <Select
+                              value={item.category}
+                              onValueChange={val => {
+                                const nextCategory = val as SeasonalService;
+                                setExtraServices(current =>
+                                  current.map(row => (row.id === item.id ? { ...row, category: nextCategory } : row)),
+                                );
+                              }}
+                            >
+                              <SelectTrigger className="h-9 w-full rounded-lg bg-background">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {disabledServices.map(cat => (
+                                  <SelectItem key={cat} value={cat}>
+                                    {seasonalServices[cat].label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </MawasimField>
+
+                          <RequestInput
+                            label={`الكمية (${selectedMeta.unit})`}
+                            error={showErrors ? itemErrors?.quantity : undefined}
+                            required
+                            type="number"
+                            min="0.01"
+                            step="any"
+                            className="h-9 rounded-lg bg-background tabular-nums"
+                            value={item.quantity || ""}
+                            onChange={event => {
+                              const value = Number(event.target.value);
+                              setExtraServices(current =>
+                                current.map(row => (row.id === item.id ? { ...row, quantity: value } : row)),
+                              );
+                            }}
+                          />
+                        </div>
+
+                        <MawasimField label="ملاحظات البند (اختياري)">
+                          <Input
+                            value={item.notes}
+                            maxLength={500}
+                            placeholder="تفاصيل إضافية حول هذه الخدمة أو المبرر..."
+                            className="h-9 rounded-lg bg-background"
+                            onChange={event => {
+                              const value = event.target.value;
+                              setExtraServices(current =>
+                                current.map(row => (row.id === item.id ? { ...row, notes: value } : row)),
+                              );
+                            }}
+                          />
+                        </MawasimField>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <MawasimField label="طلب خاص أو ملاحظات إضافية (اختياري)">
             <Textarea
               value={specialRequest}
@@ -591,7 +765,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
             </AlertDescription>
           </Alert>
 
-          {pendingConfirm && pendingConfirm.selectedItems.length > 0 && (
+          {pendingConfirm && (pendingConfirm.selectedItems.length > 0 || pendingConfirm.extraItems.length > 0) && (
             <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3.5 text-right text-xs">
               <p className="font-bold text-foreground">ملخص الخدمات المطلوبة:</p>
               <div className="space-y-1.5">
@@ -600,6 +774,14 @@ export default function MawasimRequestForm({ season, mosque, capacity, onSubmitt
                     <span className="font-medium text-foreground">{item.label}:</span>
                     <span className="font-bold text-primary tabular-nums">
                       {displayQuantity(item.service, item.requested)} {item.unit}
+                    </span>
+                  </div>
+                ))}
+                {pendingConfirm.extraItems.map(item => (
+                  <div key={item.id} className="flex flex-wrap items-center justify-start gap-2 text-right text-muted-foreground">
+                    <span className="font-medium text-foreground">خدمة إضافية ({item.title}):</span>
+                    <span className="font-bold text-primary tabular-nums">
+                      {item.quantity} {item.unit}
                     </span>
                   </div>
                 ))}

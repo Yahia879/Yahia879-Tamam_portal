@@ -49,6 +49,7 @@ let MawasimStaff: React.ComponentType;
 let RequestDetails: React.ComponentType<any>;
 let SeasonEditor: React.ComponentType<any>;
 let MawasimScheduleReportDocument: React.ComponentType<any>;
+let MawasimRequestForm: React.ComponentType<any>;
 let filterAndSortSeasonRequests: any;
 let buildSeasonalExcelPayload: any;
 let Requests: React.ComponentType;
@@ -61,6 +62,7 @@ beforeAll(async () => {
   RequestDetails = staffMod.RequestDetails;
   SeasonEditor = staffMod.SeasonEditor;
   MawasimScheduleReportDocument = (await import("../client/src/components/MawasimScheduleReport")).MawasimScheduleReportDocument;
+  MawasimRequestForm = (await import("../client/src/components/MawasimRequestForm")).default;
   filterAndSortSeasonRequests = staffMod.filterAndSortSeasonRequests;
   buildSeasonalExcelPayload = staffMod.buildSeasonalExcelPayload;
   Requests = (await import("../client/src/pages/Requests")).default;
@@ -344,6 +346,7 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
         "مدينة طالب الخدمة",
         "الخدمات والكميات المطلوبة",
         "الكميات المعتمدة",
+        "الخدمات الإضافية",
         "حالة الطلب",
         "الملاحظات",
       ]);
@@ -411,6 +414,125 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       state.data["mawasim.staff"] = sampleStaffData(false);
       const assignedEmptyHtml = renderToStaticMarkup(<MawasimStaff />);
       expect(assignedEmptyHtml).toContain("لا توجد مواسم مسندة لك كمدير بعد");
+    });
+
+    it("renders extra services option only when allowExtraServices is enabled and renders season expenses on /mawasim", () => {
+      const settings = defaultSeasonalSettings();
+      const mosque = { id: 5, name: "جامع البر", city: "أبها", district: "المنسك", address: "الشارع العام", capacity: 300 };
+
+      const portalFormHtml = renderToStaticMarkup(
+        <MawasimRequestForm season={{ id: 10, settings }} mosque={mosque} capacity={[]} onSubmitted={vi.fn()} />,
+      );
+      expect(portalFormHtml).not.toContain("إضافة خدمة أخرى للطلب (مصرف على الموسم)");
+
+      const staffFormHtml = renderToStaticMarkup(
+        <MawasimRequestForm
+          season={{ id: 10, settings }}
+          mosque={mosque}
+          capacity={[]}
+          allowExtraServices
+          onSubmitted={vi.fn()}
+        />,
+      );
+      expect(staffFormHtml).toContain("إضافة خدمة أخرى للطلب (مصرف على الموسم)");
+      expect(staffFormHtml).toContain("إضافة خدمة أخرى");
+      expect(staffFormHtml).not.toContain("اسم / وصف الخدمة");
+      expect(staffFormHtml).not.toContain("المصرف على الموسم (ريال)");
+
+      const allEnabledSettings = defaultSeasonalSettings();
+      for (const s of Object.keys(allEnabledSettings.services) as Array<keyof typeof allEnabledSettings.services>) {
+        allEnabledSettings.services[s] = { ...allEnabledSettings.services[s], enabled: true, capacity: 100 };
+      }
+      const allEnabledFormHtml = renderToStaticMarkup(
+        <MawasimRequestForm
+          season={{ id: 10, settings: allEnabledSettings }}
+          mosque={mosque}
+          capacity={[]}
+          allowExtraServices
+          onSubmitted={vi.fn()}
+        />,
+      );
+      expect(allEnabledFormHtml).not.toContain("إضافة خدمة أخرى للطلب (مصرف على الموسم)");
+
+      const base = sampleStaffData(true);
+      state.permissions = ["mawasim.view", "mawasim.view_requests"];
+      state.data["mawasim.staff"] = {
+        ...base,
+        extraExpenses: {
+          totalHalalas: 250_000,
+          approvedHalalas: 150_000,
+          pendingHalalas: 100_000,
+          items: [
+            {
+              id: "ex-1",
+              category: "audio",
+              title: "توفير صوتيات",
+              quantity: 1,
+              unit: "مسجد",
+              costHalalas: 150_000,
+              notes: "مطلوب لصلاة التراويح",
+              requestId: 11,
+              mosqueName: "جامع الفاروق",
+              requestStatus: "approved",
+            },
+          ],
+        },
+        requests: [
+          {
+            id: 11,
+            seasonId: 10,
+            mosqueName: "جامع الفاروق",
+            status: "approved",
+            createdAt: "2026-04-01T10:00:00Z",
+            scheduledFor: "2026-04-15",
+            assignedTo: 5,
+            assignee: "خالد العمري",
+            governorate: "عسير",
+            mosqueCity: "أبها",
+            snapshot: { city: "أبها", district: "المنسك", address: "الشارع العام", worshippers: 250 },
+            contact: { name: "عبدالله القحطاني", phone: "0500000011" },
+            requested: { water: 20 },
+            approved: { water: 20 },
+            extraServices: [
+              {
+                id: "ex-1",
+                category: "audio",
+                title: "توفير صوتيات",
+                quantity: 1,
+                unit: "مسجد",
+                costHalalas: 150_000,
+              },
+            ],
+          },
+        ],
+      };
+      const staffHtml = renderToStaticMarkup(<MawasimStaff />);
+      expect(staffHtml).toContain("مصارف الموسم الإضافية");
+      expect(staffHtml).toContain("توفير صوتيات");
+      expect(staffHtml).not.toContain("إجمالي المصارف:");
+      expect(staffHtml).not.toContain("ر.س");
+
+      const detailsWithExtraHtml = renderToStaticMarkup(
+        <RequestDetails
+          request={(state.data["mawasim.staff"] as any).requests[0]}
+          season={base.season}
+          canApprove={false}
+          refresh={vi.fn()}
+        />,
+      );
+      expect(detailsWithExtraHtml).toContain("خدمات إضافية مرفقة (مصرف على الموسم)");
+      expect(detailsWithExtraHtml).not.toContain("إجمالي المصرف:");
+      expect(detailsWithExtraHtml).not.toContain("ر.س");
+
+      const workOrderHtml = renderToStaticMarkup(
+        <MawasimScheduleReportDocument
+          request={(state.data["mawasim.staff"] as any).requests[0]}
+          season={base.season}
+          orgSettings={null}
+        />,
+      );
+      expect(workOrderHtml).toContain("خدمات إضافية مرفقة (مصرف للموسم)");
+      expect(workOrderHtml).toContain("توفير صوتيات");
     });
   },
 );

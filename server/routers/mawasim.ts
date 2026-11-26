@@ -7,10 +7,10 @@ import { employees, mosques, roles, userRoleAssignments, users } from "../../dri
 import {
   carpetArea, evaluateMawasimExceptionState, filterAndSortSeasonalRequests,
   getSeasonalCity, getSeasonalGovernorate, isActiveSeasonalRequestStatus,
-  MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalMosqueLimit,
+  MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalExtraServicesSchema, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
   seasonalSettingsSchema, summarizeSeasonalByGovernorateCity, summarizeSeasonalCapacity,
-  type SeasonalRequestLimits,
+  summarizeSeasonalExtraExpenses, type SeasonalRequestLimits,
 } from "../../shared/mawasim";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -536,6 +536,7 @@ export const mawasimRouter = router({
     const season = input?.seasonId ? seasons.find(item => item.id === input.seasonId) : seasons[0];
     const page = input?.page ?? 1;
     const limit = input?.limit ?? 10;
+    const emptyExtraExpenses = summarizeSeasonalExtraExpenses([]);
     if (!season) {
       return {
         seasons,
@@ -543,6 +544,7 @@ export const mawasimRouter = router({
         employees: companyEmployees,
         requests: [],
         capacity: [],
+        extraExpenses: emptyExtraExpenses,
         grants: [],
         stats: { total: 0, submitted: 0, scheduled: 0, approved: 0, rejected: 0 },
         locationDistribution: [],
@@ -560,6 +562,7 @@ export const mawasimRouter = router({
         employees: companyEmployees,
         requests: [],
         capacity,
+        extraExpenses: emptyExtraExpenses,
         grants: [],
         stats: buildSeasonRequestStats(usageRows),
         locationDistribution: [],
@@ -618,6 +621,7 @@ export const mawasimRouter = router({
       employees: companyEmployees,
       requests,
       capacity,
+      extraExpenses: summarizeSeasonalExtraExpenses(allRequests),
       grants,
       stats: buildSeasonRequestStats(allRequests),
       locationDistribution: summarizeSeasonalByGovernorateCity(allRequests),
@@ -775,7 +779,7 @@ export const mawasimRouter = router({
 
   submit: protectedProcedure.input(seasonInput.extend({
     mosqueId: id, snapshot: seasonalMosqueSnapshotSchema, menPhoto: photo.optional(), womenPhoto: photo.optional(),
-    requested: seasonalQuantitiesSchema, specialRequest: z.string().trim().max(2000).optional(),
+    requested: seasonalQuantitiesSchema, extraServices: seasonalExtraServicesSchema.optional(), specialRequest: z.string().trim().max(2000).optional(),
     pledge: z.literal(true),
     onBehalf: z.object({
       name: z.string().trim().min(2).max(150), phone: z.string().trim().regex(/^\+?[0-9]{8,15}$/),
@@ -785,10 +789,11 @@ export const mawasimRouter = router({
     if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
     const isRequester = ctx.user.role === "service_requester";
     if (isRequester) {
-      if (input.onBehalf) denied();
+      if (input.onBehalf || input.extraServices?.length) denied();
     } else if (!(await userCanCreateOrView(ctx.user))) {
       denied();
     }
+    const extraServices = !isRequester && input.extraServices?.length ? input.extraServices : null;
     const { onBehalf, snapshot, menPhoto, womenPhoto } = input;
     const carpet = input.requested.carpet ?? 0;
     if (carpet > 0) {
@@ -888,7 +893,17 @@ export const mawasimRouter = router({
             invalid("الخدمة " + seasonalServices[row.service].label + " غير مفعّلة في هذا الموسم.");
           }
         }
-        if (!selected) invalid("اختر خدمة واحدة على الأقل.");
+        if (extraServices?.length) {
+          for (const extra of extraServices) {
+            if (extra.category === "other") {
+              invalid("اختر خدمة من الخدمات غير المفعّلة في هذا الموسم.");
+            }
+            if (season.settings.services[extra.category].enabled) {
+              invalid("الخدمة " + seasonalServices[extra.category].label + " مفعّلة بالفعل ضمن خدمات الموسم.");
+            }
+          }
+        }
+        if (!selected && !extraServices?.length) invalid("اختر خدمة واحدة على الأقل أو أضف خدمة إضافية للطلب.");
         const fallbackContact = resolvedRequester
           ? {
             name: resolvedRequester.name,
@@ -906,7 +921,7 @@ export const mawasimRouter = router({
           seasonId: season.id, mosqueId: mosque.id, applicantId, submittedBy: ctx.user.id, mosqueName: mosque.name,
           snapshot: carpet > 0 ? snapshot : { ...snapshot, men: null, women: null },
           menPhoto: carpet > 0 ? (menPhoto ?? null) : null, womenPhoto: carpet > 0 ? (womenPhoto ?? null) : null,
-          requested: input.requested, specialRequest: input.specialRequest,
+          requested: input.requested, extraServices, specialRequest: input.specialRequest,
           contact: onBehalf ?? fallbackContact,
         }).$returningId();
 
@@ -1041,6 +1056,7 @@ export const mawasimRouter = router({
 
   review: mawasimProcedure.input(requestInput.extend({
     approved: seasonalQuantitiesSchema.nullable(),
+    extraServices: seasonalExtraServicesSchema.optional(),
     note: z.string().trim().max(2000),
     scheduledFor: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "أدخل تاريخ تنفيذ صالحاً.").optional(),
     assignedTo: id.nullable().optional(),
@@ -1089,7 +1105,10 @@ export const mawasimRouter = router({
         }
       }
       if (input.approved.carpet && !request.snapshot.men) invalid("اعتماد غسيل الفرش يتطلب تسجيل قياسات المصلى في الطلب.");
-      if (!Object.values(input.approved).some(amount => amount > 0)) invalid("حدد كمية معتمدة لخدمة واحدة على الأقل.");
+      const hasApprovedStandard = Object.values(input.approved).some(amount => amount > 0);
+      const effectiveExtraServices = input.extraServices !== undefined ? input.extraServices : (request.extraServices ?? null);
+      const hasExtraServices = Boolean(effectiveExtraServices && effectiveExtraServices.length > 0);
+      if (!hasApprovedStandard && !hasExtraServices) invalid("حدد كمية معتمدة لخدمة واحدة على الأقل.");
       for (const row of summarizeSeasonalCapacity(season.settings, await usage(tx, season.id))) {
         const amount = input.approved[row.service] ?? 0;
         if (amount === 0) continue;
@@ -1104,6 +1123,9 @@ export const mawasimRouter = router({
       await tx.update(mawasimRequests).set({
         status: "approved",
         approved: input.approved,
+        ...(input.extraServices !== undefined
+          ? { extraServices: input.extraServices.length > 0 ? input.extraServices : null }
+          : {}),
         reviewNote: input.note,
         reviewedBy: ctx.user.id,
         scheduledFor: effectiveScheduledFor,

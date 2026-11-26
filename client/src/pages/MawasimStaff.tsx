@@ -33,6 +33,7 @@ import {
   seasonalServices,
   seasonalStatusLabels,
   summarizeSeasonalByGovernorateCity,
+  type SeasonalExtraServiceItem,
   type SeasonalQuantities,
   type SeasonalRequestSort,
   type SeasonalService,
@@ -66,6 +67,7 @@ import {
   User,
   Users,
   Volume2,
+  Wallet,
   Wind,
   Wrench,
   X,
@@ -94,6 +96,13 @@ function formatExcelQuantities(quantities: SeasonalQuantities | null | undefined
   return parts.length > 0 ? parts.join(" | ") : "-";
 }
 
+function formatExcelExtraServices(extraServices: SeasonalExtraServiceItem[] | null | undefined): string {
+  if (!extraServices || extraServices.length === 0) return "-";
+  return extraServices
+    .map(item => `${item.title} (${item.quantity} ${item.unit})${item.notes ? ` - ${item.notes}` : ""}`)
+    .join(" | ");
+}
+
 export function buildSeasonalExcelPayload(
   requests: SeasonRequest[],
   season?: Pick<Season, "title" | "hijriYear"> | null,
@@ -114,6 +123,7 @@ export function buildSeasonalExcelPayload(
     { header: "مدينة طالب الخدمة", align: "center", minWidth: 16 },
     { header: "الخدمات والكميات المطلوبة", align: "right", minWidth: 32 },
     { header: "الكميات المعتمدة", align: "right", minWidth: 28 },
+    { header: "الخدمات الإضافية", align: "right", minWidth: 32 },
     { header: "حالة الطلب", align: "center", minWidth: 16 },
     { header: "الملاحظات", align: "right", minWidth: 30 },
   ];
@@ -148,6 +158,7 @@ export function buildSeasonalExcelPayload(
       requesterCity,
       formatExcelQuantities(req.requested),
       formatExcelQuantities(req.approved),
+      formatExcelExtraServices(req.extraServices),
       seasonalStatusLabels[req.status] ?? req.status,
       notes,
     ];
@@ -759,6 +770,87 @@ export default function MawasimStaff() {
               </CardContent>
             </Card>
 
+            {/* Season Extra Services Expenses Card */}
+            {canViewRequests && (() => {
+              const extraExpenses = data.extraExpenses ?? { totalHalalas: 0, approvedHalalas: 0, pendingHalalas: 0, items: [] };
+              return (
+                <Card className="overflow-hidden border-border/60 shadow-xs">
+                  <CardHeader className="border-b border-border/50 bg-muted/25 px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                          <Wallet className="size-4" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base font-bold">مصارف الموسم الإضافية</CardTitle>
+                          <CardDescription className="text-xs">
+                            الخدمات الإضافية المرفقة مع الطلبات (مثل الصوتيات أو الفرش أو الاحتياجات الخاصة) ومسجّلة كمصرف على الموسم
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {extraExpenses.items.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 px-4 text-center text-sm text-muted-foreground">
+                        <Wallet className="mb-2 size-6 text-muted-foreground/50" />
+                        لا توجد خدمات إضافية مسجلة كمصرف على هذا الموسم حتى الآن.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[44rem] text-start text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/30 text-xs font-semibold text-muted-foreground">
+                              <th scope="col" className="px-5 py-3 text-start">الخدمة الإضافية</th>
+                              <th scope="col" className="px-3 py-3 text-start">الطلب والمسجد</th>
+                              <th scope="col" className="px-3 py-3 text-start">الكمية</th>
+                              <th scope="col" className="px-3 py-3 text-start">حالة الطلب</th>
+                              <th scope="col" className="px-5 py-3 text-start">ملاحظات</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/50">
+                            {extraExpenses.items.map(entry => {
+                              const st = reviewStatus(entry.requestStatus);
+                              return (
+                                <tr key={`${entry.requestId}-${entry.id}`} className="transition-colors hover:bg-muted/25">
+                                  <th scope="row" className="px-5 py-3 text-start font-semibold text-foreground">
+                                    {entry.title}
+                                  </th>
+                                  <td className="px-3 py-3 text-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSearchQuery(String(entry.requestId));
+                                        setExpanded(entry.requestId);
+                                      }}
+                                      className="font-semibold text-primary hover:underline cursor-pointer text-start"
+                                    >
+                                      #{entry.requestId} · {entry.mosqueName}
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-3 text-xs tabular-nums text-muted-foreground">
+                                    {entry.quantity} {entry.unit}
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <Badge variant="outline" className={cn("rounded-full text-[11px]", STATUS_STYLES[st].badge)}>
+                                      {seasonalStatusLabels[st]}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-5 py-3 text-xs text-muted-foreground">
+                                    {entry.notes || "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {byLocation.length > 0 && (
               <Card className="rounded-3xl border-border/60 shadow-xs p-5 sm:p-6">
                 <CardHeader className="p-0 mb-5 text-right">
@@ -1041,7 +1133,7 @@ export default function MawasimStaff() {
                                     {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
                                   </span>
                                 </div>
-                                {requestedServices.length > 0 && (
+                                {(requestedServices.length > 0 || (request.extraServices && request.extraServices.length > 0)) && (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
                                     {requestedServices.map(service => (
                                       <Badge
@@ -1050,6 +1142,15 @@ export default function MawasimStaff() {
                                         className={cn("rounded-md text-[11px] font-medium", SERVICE_VISUALS[service].badgeBg)}
                                       >
                                         {seasonalServices[service].label} ({displayQuantity(service, request.requested[service] ?? 0)} {seasonalServices[service].unit})
+                                      </Badge>
+                                    ))}
+                                    {request.extraServices?.map(extra => (
+                                      <Badge
+                                        key={extra.id}
+                                        variant="outline"
+                                        className="rounded-md border-amber-200 bg-amber-50/80 text-[11px] font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                      >
+                                        + {extra.title} ({extra.quantity} {extra.unit})
                                       </Badge>
                                     ))}
                                   </div>
@@ -1767,6 +1868,31 @@ export function RequestDetails({
         </div>
       )}
 
+      {/* Extra Services & Season Expense Summary */}
+      {request.extraServices && request.extraServices.length > 0 && (
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3.5 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Wallet className="size-3.5 text-amber-600 dark:text-amber-400" />
+              <span>خدمات إضافية مرفقة (مصرف على الموسم)</span>
+            </h4>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {request.extraServices.map(item => (
+              <div key={item.id} className="rounded-lg border border-amber-200/70 bg-background p-2.5 text-xs dark:border-amber-900/50">
+                <p className="font-bold text-foreground">{item.title}</p>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                  <span>
+                    الكمية: <strong className="text-foreground tabular-nums">{item.quantity} {item.unit}</strong>
+                  </span>
+                </div>
+                {item.notes && <p className="mt-1 text-[11px] text-muted-foreground">{item.notes}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Review Actions */}
       {canApprove && !["approved", "completed", "rejected"].includes(request.status) && (
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
@@ -1858,7 +1984,13 @@ export function RequestDetails({
             <Button
               type="button"
               disabled={!scheduledFor || review.isPending}
-              onClick={() => review.mutate({ ...key, approved, note, scheduledFor, assignedTo })}
+              onClick={() => review.mutate({
+                ...key,
+                approved,
+                note,
+                scheduledFor,
+                assignedTo,
+              })}
               className="gap-1.5 rounded-xl cursor-pointer"
             >
               {review.isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}

@@ -295,3 +295,107 @@ export function summarizeSeasonalByGovernorateCity(
     (a, b) => b.value - a.value || a.name.localeCompare(b.name, "ar"),
   );
 }
+
+export const seasonalExtraServiceCategoryIds = [
+  "audio",
+  "carpet",
+  "water",
+  "maintenance",
+  "fragrance",
+  "other",
+] as const;
+
+export type SeasonalExtraServiceCategory = (typeof seasonalExtraServiceCategoryIds)[number];
+
+export const seasonalExtraServiceCategoryLabels: Record<SeasonalExtraServiceCategory, string> = {
+  audio: "ضبط الصوتيات / صوتيات",
+  carpet: "غسيل أو تأمين الفرش",
+  water: "سقيا الماء",
+  maintenance: "صيانة دورات المياه والكهرباء",
+  fragrance: "تعطير المسجد",
+  other: "خدمة أخرى",
+};
+
+export const seasonalExtraServiceItemSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  category: z.enum(seasonalExtraServiceCategoryIds),
+  title: z.string().trim().min(2, "أدخل وصف أو اسم الخدمة الإضافية.").max(160),
+  quantity: z.number().positive("أدخل كمية موجبة.").max(100_000),
+  unit: z.string().trim().min(1, "أدخل وحدة القياس.").max(40),
+  costHalalas: z.number().int().min(0, "المصرف لا يمكن أن يكون سالباً.").max(100_000_000),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const seasonalExtraServicesSchema = z.array(seasonalExtraServiceItemSchema).max(20);
+
+export type SeasonalExtraServiceItem = z.infer<typeof seasonalExtraServiceItemSchema>;
+
+export interface SeasonalExtraExpenseEntry extends SeasonalExtraServiceItem {
+  requestId: number;
+  mosqueName: string;
+  requestStatus: string;
+  scheduledFor?: string | null;
+  createdAt?: Date | string | null;
+}
+
+export interface SeasonalExtraExpensesSummary {
+  totalHalalas: number;
+  approvedHalalas: number;
+  pendingHalalas: number;
+  items: SeasonalExtraExpenseEntry[];
+}
+
+export function formatHalalasToSar(halalas: number): string {
+  return (halalas / 100).toLocaleString("ar-SA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+export function summarizeSeasonalExtraExpenses(
+  rows: ReadonlyArray<{
+    id: number;
+    mosqueName: string;
+    status: string;
+    scheduledFor?: string | null;
+    createdAt?: Date | string | null;
+    extraServices?: ReadonlyArray<SeasonalExtraServiceItem> | null;
+  }>,
+): SeasonalExtraExpensesSummary {
+  let totalHalalas = 0;
+  let approvedHalalas = 0;
+  let pendingHalalas = 0;
+  const items: SeasonalExtraExpenseEntry[] = [];
+
+  for (const row of rows) {
+    if (row.status === "rejected") continue;
+    const extras = row.extraServices;
+    if (!Array.isArray(extras) || extras.length === 0) continue;
+    const isApproved = row.status === "approved" || row.status === "completed";
+    for (const item of extras) {
+      const cost = Math.max(0, Math.round(Number(item.costHalalas) || 0));
+      totalHalalas += cost;
+      if (isApproved) {
+        approvedHalalas += cost;
+      } else {
+        pendingHalalas += cost;
+      }
+      items.push({
+        ...item,
+        costHalalas: cost,
+        requestId: row.id,
+        mosqueName: row.mosqueName,
+        requestStatus: row.status,
+        scheduledFor: row.scheduledFor ?? null,
+        createdAt: row.createdAt ?? null,
+      });
+    }
+  }
+
+  return {
+    totalHalalas,
+    approvedHalalas,
+    pendingHalalas,
+    items,
+  };
+}

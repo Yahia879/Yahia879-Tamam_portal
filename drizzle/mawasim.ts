@@ -1,5 +1,5 @@
 import { boolean, customType, date, index, int, longtext, mysqlEnum, mysqlTable, text, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
-import { seasonalRequestStatuses, type SeasonalExecution, type SeasonalMosqueSnapshot, type SeasonalQuantities, type SeasonalSettings } from "../shared/mawasim";
+import { seasonalRequestStatuses, type SeasonalExecution, type SeasonalExtraServiceItem, type SeasonalMosqueSnapshot, type SeasonalQuantities, type SeasonalSettings } from "../shared/mawasim";
 import { mosques, users } from "./schema";
 
 // MariaDB exposes JSON columns as text, while MySQL can return decoded values.
@@ -33,6 +33,7 @@ export const mawasimRequests = mysqlTable("mawasim_requests", {
   menPhoto: longtext("menPhoto"),
   womenPhoto: longtext("womenPhoto"),
   requested: seasonalJson<SeasonalQuantities>("requested").notNull(),
+  extraServices: seasonalJson<SeasonalExtraServiceItem[]>("extraServices"),
   specialRequest: text("specialRequest"),
   status: mysqlEnum("status", seasonalRequestStatuses).notNull().default("submitted"),
   approved: seasonalJson<SeasonalQuantities>("approved"),

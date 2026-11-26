@@ -41,6 +41,7 @@ export async function ensureMawasimSchema(db: Pick<Pool, "query">) {
       menPhoto LONGTEXT NULL,
       womenPhoto LONGTEXT NULL,
       requested JSON NOT NULL,
+      extraServices JSON NULL,
       specialRequest TEXT NULL,
       status ENUM('submitted','approved','scheduled','completed','rejected') NOT NULL DEFAULT 'submitted',
       approved JSON NULL,
@@ -67,6 +68,12 @@ export async function ensureMawasimSchema(db: Pick<Pool, "query">) {
   );
   if (menPhotoColumns[0]?.Null === "NO") {
     await db.query("ALTER TABLE mawasim_requests MODIFY COLUMN menPhoto LONGTEXT NULL");
+  }
+  const [extraServiceCols] = await db.query<RowDataPacket[]>(
+    "SHOW COLUMNS FROM mawasim_requests LIKE 'extraServices'",
+  );
+  if (extraServiceCols.length === 0) {
+    await db.query("ALTER TABLE mawasim_requests ADD COLUMN extraServices JSON NULL AFTER requested");
   }
 
   await db.query(`

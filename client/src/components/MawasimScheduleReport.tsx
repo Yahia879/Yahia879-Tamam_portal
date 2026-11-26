@@ -6,6 +6,7 @@ import {
   seasonalMosqueLimit,
   seasonalServiceIds,
   seasonalServices,
+  type SeasonalExtraServiceItem,
   type SeasonalQuantities,
   type SeasonalSettings,
 } from "@shared/mawasim";
@@ -46,6 +47,7 @@ export interface MawasimPrintableRequest {
     women?: { lengthCm: number; widthCm: number } | null;
   };
   requested: SeasonalQuantities;
+  extraServices?: SeasonalExtraServiceItem[] | null;
   approved?: SeasonalQuantities | null;
 }
 
@@ -352,6 +354,31 @@ export function MawasimScheduleReportDocument({
               </tbody>
             </table>
           </div>
+
+          {request.extraServices && request.extraServices.length > 0 && (
+            <div className="overflow-x-auto w-full mb-3">
+              <table className="w-full border text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-amber-50/90 border-b">
+                    <th className="p-2 sm:p-2.5 text-right font-bold text-[#5d4037]">خدمات إضافية مرفقة (مصرف للموسم)</th>
+                    <th className="p-2 sm:p-2.5 text-center font-bold text-[#5d4037]">الكمية</th>
+                    <th className="p-2 sm:p-2.5 text-right font-bold text-[#5d4037]">ملاحظات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {request.extraServices.map(item => (
+                    <tr key={item.id} className="border-b">
+                      <td className="p-2 sm:p-2.5 font-semibold text-gray-900">{item.title}</td>
+                      <td className="p-2 sm:p-2.5 text-center font-bold text-[#1a5f4a] tabular-nums">
+                        {item.quantity} {item.unit}
+                      </td>
+                      <td className="p-2 sm:p-2.5 text-right text-gray-600">{item.notes || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {(request.specialRequest || request.contact?.reason || request.reviewNote) && (
             <div className="rounded-lg border border-gray-200 bg-gray-50/70 p-3 text-xs space-y-1.5">
