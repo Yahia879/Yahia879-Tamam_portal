@@ -45,6 +45,7 @@ vi.mock("@/lib/trpc", () => {
 });
 
 let MawasimStaff: React.ComponentType;
+let RequestDetails: React.ComponentType<any>;
 let filterAndSortSeasonRequests: any;
 let buildSeasonalExcelPayload: any;
 let Requests: React.ComponentType;
@@ -54,6 +55,7 @@ beforeAll(async () => {
   vi.stubGlobal("React", React);
   const staffMod = await import("../client/src/pages/MawasimStaff");
   MawasimStaff = staffMod.default;
+  RequestDetails = staffMod.RequestDetails;
   filterAndSortSeasonRequests = staffMod.filterAndSortSeasonRequests;
   buildSeasonalExcelPayload = staffMod.buildSeasonalExcelPayload;
   Requests = (await import("../client/src/pages/Requests")).default;
@@ -152,10 +154,23 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
         const createReqHtml = renderToStaticMarkup(<SeasonalRequestCreate />);
         expect(createReqHtml).toContain("ليس لديك صلاحية");
       }
+
+      // Granting requests.create_seasonal_request shows the "برنامج مواسم" button in /requests for any role (not just super_admin)
+      state.permissions = ["requests.view", "requests.create_seasonal_request"];
+      const reqWithSeasonalPermHtml = renderToStaticMarkup(<Requests />);
+      expect(reqWithSeasonalPermHtml).toContain("/requests/seasonal");
+      expect(reqWithSeasonalPermHtml).toContain("برنامج مواسم");
+      const createWithSeasonalPermHtml = renderToStaticMarkup(<SeasonalRequestCreate />);
+      expect(createWithSeasonalPermHtml).not.toContain("ليس لديك صلاحية");
+      expect(createWithSeasonalPermHtml).not.toContain("/mawasim");
+
+      // Having only mawasim.view without requests.create_seasonal_request does NOT show the button on /requests
+      state.permissions = ["requests.view", "mawasim.view"];
+      const reqWithoutSeasonalPermHtml = renderToStaticMarkup(<Requests />);
+      expect(reqWithoutSeasonalPermHtml).not.toContain("/requests/seasonal");
     });
 
-    it("renders governorate and city filters, sort selector, and location metadata in season requests", () => {
-      state.permissions = ["mawasim.view"];
+    it("view-only hides 'طلبات الموسم' section, while view_requests reveals it without approve actions, and approve_requests enables approval", () => {
       const base = sampleStaffData(true);
       const reqs: any[] = [
         {
@@ -190,13 +205,47 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
         },
       ];
       state.data["mawasim.staff"] = { ...base, requests: reqs };
+
+      // 1. mawasim.view only: seasons & capacity visible, طلبات الموسم section hidden
+      state.permissions = ["mawasim.view"];
+      const viewOnlyHtml = renderToStaticMarkup(<MawasimStaff />);
+      expect(viewOnlyHtml).toContain("برنامج مواسم");
+      expect(viewOnlyHtml).toContain("السعة والمتابعة");
+      expect(viewOnlyHtml).not.toContain("طلبات الموسم");
+      expect(viewOnlyHtml).not.toContain("مراجعة الطلبات الموسمية واعتماد الكميات وحجز السعة");
+      expect(viewOnlyHtml).not.toContain("جامع الفاروق");
+      expect(viewOnlyHtml).not.toContain("تصفية حسب المحافظة");
+
+      // 2. mawasim.view + mawasim.view_requests: طلبات الموسم section & filters visible, approval actions hidden
+      state.permissions = ["mawasim.view", "mawasim.view_requests"];
       const html = renderToStaticMarkup(<MawasimStaff />);
+      expect(html).toContain("طلبات الموسم");
       expect(html).toContain("تصفية حسب المحافظة");
       expect(html).toContain("تصفية حسب المدينة");
       expect(html).toContain("ترتيب الطلبات");
       expect(html).toContain("تصدير إلى Excel");
       expect(html).toContain("عسير · أبها · المنسك");
       expect(html).toContain("مكة المكرمة · جدة · الروضة");
+
+      const detailsReadOnly = renderToStaticMarkup(
+        <RequestDetails request={reqs[0]} season={base.season} canApprove={false} refresh={vi.fn()} />,
+      );
+      expect(detailsReadOnly).toContain("ملخص الخدمات والكميات");
+      expect(detailsReadOnly).not.toContain("مراجعة الطلب والاعتماد وحجز السعة");
+      expect(detailsReadOnly).not.toContain("اعتماد الكميات");
+      expect(detailsReadOnly).not.toContain("الاعتذار عن الطلب");
+
+      // 3. mawasim.approve_requests enables approval UI
+      state.permissions = ["mawasim.view", "mawasim.view_requests", "mawasim.approve_requests"];
+      const withApproveHtml = renderToStaticMarkup(<MawasimStaff />);
+      expect(withApproveHtml).toContain("مراجعة الطلبات الموسمية واعتماد الكميات وحجز السعة");
+
+      const detailsApprove = renderToStaticMarkup(
+        <RequestDetails request={reqs[0]} season={base.season} canApprove={true} refresh={vi.fn()} />,
+      );
+      expect(detailsApprove).toContain("مراجعة الطلب والاعتماد وحجز السعة");
+      expect(detailsApprove).toContain("اعتماد الكميات");
+      expect(detailsApprove).toContain("الاعتذار عن الطلب");
 
       const excelPayload = buildSeasonalExcelPayload(reqs, base.season);
       expect(excelPayload.columns.map((c: any) => c.header)).toEqual([

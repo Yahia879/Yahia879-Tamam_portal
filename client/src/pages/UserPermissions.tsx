@@ -796,7 +796,15 @@ export default function UserPermissions() {
     }
     const requiredView = sectionPermissionPrerequisite(permId);
     if (requiredView && !isChecked(permId) && !isChecked(requiredView)) {
-      toast.warning(permId.startsWith("mawasim.") ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً" : permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      toast.warning(
+        permId === "mawasim.approve_requests"
+          ? "يجب تفعيل صلاحية 'عرض طلبات برنامج مواسم' أولاً"
+          : permId.startsWith("mawasim.")
+            ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً"
+            : permId.startsWith("beneficiary_evaluations.")
+              ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
+              : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً"
+      );
       return;
     }
     if (!isChecked(permId) && confirmLinkedPermissions([permId], isChecked, permissions => {
@@ -4243,6 +4251,7 @@ export default function UserPermissions() {
 
 
         create_quick_request: "إنشاء طلب سريع",
+        create_seasonal_request: "إنشاء طلب لبرنامج مواسم",
 
 
 
@@ -5798,7 +5807,7 @@ export default function UserPermissions() {
 
 
 
-          perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
+          perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request", "create_seasonal_request"]
 
 
 

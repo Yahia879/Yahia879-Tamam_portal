@@ -258,9 +258,13 @@ export default function MawasimStaff() {
   const hasViewPerm = usePermission("mawasim.view");
   const hasCreatePerm = usePermission("mawasim.create");
   const hasManagePerm = usePermission("mawasim.manage");
-  const canView = hasViewPerm || hasCreatePerm || hasManagePerm;
+  const hasViewRequestsPerm = usePermission("mawasim.view_requests");
+  const hasApproveRequestsPerm = usePermission("mawasim.approve_requests");
+  const canView = hasViewPerm || hasCreatePerm || hasManagePerm || hasViewRequestsPerm || hasApproveRequestsPerm;
   const canCreate = hasCreatePerm;
   const canManage = hasManagePerm;
+  const canViewRequests = hasViewRequestsPerm || hasApproveRequestsPerm;
+  const canApproveRequests = hasApproveRequestsPerm;
   const [seasonId, setSeasonId] = useState<number>();
   const [edit, setEdit] = useState<"new" | "saved">();
   const [expanded, setExpanded] = useState<number>();
@@ -319,6 +323,7 @@ export default function MawasimStaff() {
   }, [data?.requests]);
 
   const requestStats = useMemo(() => {
+    if (data?.stats) return data.stats;
     const list = data?.requests ?? [];
     return {
       total: list.length,
@@ -326,7 +331,7 @@ export default function MawasimStaff() {
       approved: list.filter(row => reviewStatus(row.status) === "approved").length,
       rejected: list.filter(row => row.status === "rejected").length,
     };
-  }, [data?.requests]);
+  }, [data?.requests, data?.stats]);
 
   const filteredRequests = useMemo(
     () => filterAndSortSeasonRequests(data?.requests ?? [], {
@@ -723,16 +728,19 @@ export default function MawasimStaff() {
             </Card>
 
             {/* Season Requests List */}
-            <section className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">
-                    طلبات الموسم
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    مراجعة الطلبات الموسمية واعتماد الكميات وحجز السعة
-                  </p>
-                </div>
+            {canViewRequests && (
+              <section className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground">
+                      طلبات الموسم
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {canApproveRequests
+                        ? "مراجعة الطلبات الموسمية واعتماد الكميات وحجز السعة"
+                        : "عرض الطلبات الموسمية ومتابعة حالاتها"}
+                    </p>
+                  </div>
 
                 {data.requests.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2">
@@ -972,6 +980,7 @@ export default function MawasimStaff() {
                               key={request.id + request.status}
                               request={request}
                               season={season}
+                              canApprove={canApproveRequests}
                               refresh={refresh}
                             />
                           )}
@@ -981,7 +990,8 @@ export default function MawasimStaff() {
                   })}
                 </div>
               )}
-            </section>
+              </section>
+            )}
           </>
         )}
       </div>
@@ -1354,13 +1364,15 @@ function Quantities({
   );
 }
 
-function RequestDetails({
+export function RequestDetails({
   request,
   season,
+  canApprove,
   refresh,
 }: {
   request: SeasonRequest;
   season: Season;
+  canApprove: boolean;
   refresh: () => void;
 }) {
   const [showPhotos, setShowPhotos] = useState(false);
@@ -1548,7 +1560,7 @@ function RequestDetails({
       )}
 
       {/* Review Actions */}
-      {!["completed", "rejected"].includes(request.status) && (
+      {canApprove && !["completed", "rejected"].includes(request.status) && (
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
           <h4 className="text-sm font-bold text-foreground">مراجعة الطلب والاعتماد وحجز السعة</h4>
           {request.status === "submitted" && (

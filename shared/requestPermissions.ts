@@ -2,6 +2,7 @@ export const REQUEST_SECTION_PERMISSION_IDS = [
   "requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details",
   "requests.add_review_note", "requests.transfer_to_beneficiary", "requests.manage_as_field_team",
   "requests.manage_as_quick_response", "requests.upload_final_report", "requests.create_quick_request",
+  "requests.create_seasonal_request",
   "sedana_requests.view", "sedana_requests.desk_review", "sedana_requests.manage",
 ];
 export const REQUEST_MANAGEMENT_REQUIREMENTS = ["requests.view", "requests.view_details"];

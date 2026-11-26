@@ -28,7 +28,7 @@ vi.mock("./db", () => ({
             r => query.params.length === 0 || query.params.includes(r.id),
           );
         case "permissions":
-          return ids.map(pid => ({ id: pid }));
+          return [...ids, "requests.view", "requests.create_seasonal_request"].map(pid => ({ id: pid }));
         case "role_permissions":
           return state.legacy.map(permissionId => ({ roleId: state.role, permissionId }));
         case "user_permissions":
@@ -100,6 +100,30 @@ describe.each(["super_admin", "system_admin", "projects_office", "custom_role_te
       // Create only: cannot modify existing season settings
       state.selected = ["mawasim.view", "mawasim.create"];
       await expect(caller().saveSeason({ ...baseInput, id: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("enforces mawasim.view_requests and mawasim.approve_requests on staff, photos, and review", async () => {
+      // View-only: staff returns empty requests, photos and review are denied
+      state.selected = ["mawasim.view"];
+      const viewOnlyStaff = await caller().staff();
+      expect(viewOnlyStaff.requests).toEqual([]);
+      await expect(caller().photos({ seasonId: 1, requestId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(caller().review({ seasonId: 1, requestId: 1, approved: { water: 1 }, note: "" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      // View requests without approve: review must still be denied
+      state.selected = ["mawasim.view", "mawasim.view_requests"];
+      await expect(caller().review({ seasonId: 1, requestId: 1, approved: { water: 1 }, note: "" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      // requests.create_seasonal_request allows staff (with empty requests) and searchMosques, but blocks review/photos/saveSeason
+      state.selected = ["requests.view", "requests.create_seasonal_request"];
+      const seasonalOnlyStaff = await caller().staff();
+      expect(seasonalOnlyStaff.requests).toEqual([]);
+      await expect(caller().searchMosques()).resolves.toEqual([]);
+      await expect(caller().photos({ seasonId: 1, requestId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(caller().review({ seasonId: 1, requestId: 1, approved: { water: 1 }, note: "" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        caller().saveSeason({ hijriYear: 1448, title: "موسم", isOpen: false, settings: defaultSeasonalSettings() }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
 
     it("honors explicit revocation even when wildcard and role grants are present", async () => {

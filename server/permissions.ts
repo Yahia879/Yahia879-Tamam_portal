@@ -63,6 +63,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "mawasim.view": ["mawasim.view"],
   "mawasim.create": ["mawasim.create", "mawasim.view"],
   "mawasim.manage": ["mawasim.manage", "mawasim.view"],
+  "mawasim.view_requests": ["mawasim.view_requests", "mawasim.view"],
+  "mawasim.approve_requests": ["mawasim.approve_requests", "mawasim.view_requests", "mawasim.view"],
   board_analytics: [],
   ...Object.fromEntries(BOARD_ANALYTICS_PERMISSION_IDS.map(permission => [permission, [permission]])),
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
@@ -113,7 +115,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   mosques_map: ["mosque_map.view", "mosque_map.view_details"],
 
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report", "requests.add_review_note"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.create_seasonal_request", "requests.upload_final_report", "requests.add_review_note"],
 
   "requests.view": ["requests.view"],
 
@@ -1011,6 +1013,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
 
   "requests.create_quick_request": ["requests.create_quick_request"],
+
+  "requests.create_seasonal_request": ["requests.create_seasonal_request"],
 
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 
@@ -3557,6 +3561,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
 
+      { id: "requests.create_seasonal_request", moduleId: "requests", action: "create_seasonal_request", nameAr: "إنشاء طلب لبرنامج مواسم", nameEn: "Create Seasonal Request" },
+
       { id: "orders_and_letters.disbursement_orders", moduleId: "orders_and_letters", action: "disbursement_orders", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
 
       { id: "orders_and_letters.csr_letters", moduleId: "orders_and_letters", action: "csr_letters", nameAr: "عرض الخطاب المجتمعي", nameEn: "View Community Letters" },
@@ -4968,12 +4974,21 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // إذا تم سحب عرض المواسم، تسحب جميع إجراءات وإعدادات المواسم تلقائياً
   if (revokedPermissions.has("mawasim.view")) {
-    allPermissions.delete("mawasim.view");
-    allPermissions.delete("mawasim.create");
-    allPermissions.delete("mawasim.manage");
+    MAWASIM_PERMISSION_IDS.forEach(id => allPermissions.delete(id));
     allPermissions.delete("mawasim");
-  } else if (revokedPermissions.has("mawasim.create") || revokedPermissions.has("mawasim.manage")) {
-    allPermissions.delete("mawasim");
+  } else {
+    if (revokedPermissions.has("mawasim.view_requests")) {
+      allPermissions.delete("mawasim.view_requests");
+      allPermissions.delete("mawasim.approve_requests");
+      allPermissions.delete("mawasim");
+    }
+    if (
+      revokedPermissions.has("mawasim.create") ||
+      revokedPermissions.has("mawasim.manage") ||
+      revokedPermissions.has("mawasim.approve_requests")
+    ) {
+      allPermissions.delete("mawasim");
+    }
   }
 
   // إذا تم سحب عرض قائمة المفوضين، تسحب جميع إجراءات المفوضين تلقائياً

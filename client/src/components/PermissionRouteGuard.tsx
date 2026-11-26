@@ -22,7 +22,7 @@ interface PermissionRouteGuardProps {
 export default function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
-  const needsLivePermissions = (location === "/projects" || location.startsWith("/projects/") || location.startsWith("/project/") || location === "/mosques" || location.startsWith("/mosques/") || location === "/requests" || location.startsWith("/requests/") || /^\/disbursement-orders\/\d+\/print$/.test(location) || /^\/disbursements\/orders\/\d+\/print$/.test(location) || ["/progress-reports", "/progress-invoices", "/board-executive", "/board-analytics", "/information-dashboard", "/pending-reports", "/beneficiary-satisfaction", "/field-visits/calendar"].includes(location.replace(/\/$/, ""))) &&
+  const needsLivePermissions = (location === "/mawasim" || location.startsWith("/mawasim/") || location === "/projects" || location.startsWith("/projects/") || location.startsWith("/project/") || location === "/mosques" || location.startsWith("/mosques/") || location === "/requests" || location.startsWith("/requests/") || /^\/disbursement-orders\/\d+\/print$/.test(location) || /^\/disbursements\/orders\/\d+\/print$/.test(location) || ["/progress-reports", "/progress-invoices", "/board-executive", "/board-analytics", "/information-dashboard", "/pending-reports", "/beneficiary-satisfaction", "/field-visits/calendar"].includes(location.replace(/\/$/, ""))) &&
     user?.role !== "service_requester";
   const { data: livePermissions, isLoading: livePermissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },

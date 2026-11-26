@@ -5,7 +5,7 @@ import { z } from "zod";
 import { mawasimGrants, mawasimRequests, mawasimSeasons } from "../../drizzle/mawasim";
 import { mosques, users } from "../../drizzle/schema";
 import {
-  carpetArea, mayApplyForSeason, seasonalMosqueLimit,
+  carpetArea, MAWASIM_PERMISSION_IDS, mayApplyForSeason, seasonalMosqueLimit,
   seasonalMosqueSnapshotSchema, seasonalQuantitiesSchema, seasonalServiceIds, seasonalServices,
   seasonalSettingsSchema, summarizeSeasonalCapacity, type SeasonalRequestLimits,
 } from "../../shared/mawasim";
@@ -54,13 +54,40 @@ async function userCanManage(user: NonNullable<TrpcContext["user"]>): Promise<bo
   return checkPermission(user.id, "mawasim.manage").catch(() => false);
 }
 
-async function userCanView(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
-  const [view, create, manage] = await Promise.all([
-    checkPermission(user.id, "mawasim.view").catch(() => false),
-    checkPermission(user.id, "mawasim.create").catch(() => false),
-    checkPermission(user.id, "mawasim.manage").catch(() => false),
+async function userCanViewRequests(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  const [viewReqs, approveReqs] = await Promise.all([
+    checkPermission(user.id, "mawasim.view_requests").catch(() => false),
+    checkPermission(user.id, "mawasim.approve_requests").catch(() => false),
   ]);
-  return view || create || manage;
+  return viewReqs || approveReqs;
+}
+
+async function userCanApproveRequests(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  return checkPermission(user.id, "mawasim.approve_requests").catch(() => false);
+}
+
+async function userCanCreateSeasonalRequest(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  return checkPermission(user.id, "requests.create_seasonal_request").catch(() => false);
+}
+
+async function userCanView(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  const results = await Promise.all(
+    MAWASIM_PERMISSION_IDS.map(permission => checkPermission(user.id, permission).catch(() => false)),
+  );
+  return results.some(Boolean);
+}
+
+async function userCanCreateOrView(user: NonNullable<TrpcContext["user"]>): Promise<boolean> {
+  return (await userCanView(user)) || (await userCanCreateSeasonalRequest(user));
+}
+
+function buildSeasonRequestStats(rows: Array<{ status: string }>) {
+  return {
+    total: rows.length,
+    submitted: rows.filter(row => row.status === "submitted").length,
+    approved: rows.filter(row => row.status === "approved" || row.status === "scheduled" || row.status === "completed").length,
+    rejected: rows.filter(row => row.status === "rejected").length,
+  };
 }
 
 function linkedMosquesCondition(user: NonNullable<TrpcContext["user"]>) {
@@ -191,6 +218,12 @@ const mawasimProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   return next();
 });
 
+const mawasimCreateOrViewProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.status !== "active" || ctx.user.deletedAt) denied();
+  if (!(await userCanCreateOrView(ctx.user))) denied();
+  return next();
+});
+
 async function lockedSeason(tx: Tx, seasonId: number) {
   // Every change to a season's reservations or limits takes this row lock first.
   const [season] = await tx.select().from(mawasimSeasons).where(eq(mawasimSeasons.id, seasonId)).for("update");
@@ -299,12 +332,34 @@ export const mawasimRouter = router({
     };
   }),
 
-  staff: mawasimProcedure.input(seasonInput.optional()).query(async ({ input }) => {
+  staff: mawasimCreateOrViewProcedure.input(seasonInput.optional()).query(async ({ input, ctx }) => {
     const db = await database();
     const seasons = await db.select().from(mawasimSeasons)
       .orderBy(desc(mawasimSeasons.hijriYear), desc(mawasimSeasons.id));
     const season = input ? seasons.find(item => item.id === input.seasonId) : seasons[0];
-    if (!season) return { seasons, season: null, requests: [], capacity: [], grants: [] };
+    if (!season) {
+      return {
+        seasons,
+        season: null,
+        requests: [],
+        capacity: [],
+        grants: [],
+        stats: { total: 0, submitted: 0, approved: 0, rejected: 0 },
+      };
+    }
+    const canViewReqs = await userCanViewRequests(ctx.user);
+    if (!canViewReqs) {
+      const usageRows = await usage(db, season.id);
+      const capacity = summarizeSeasonalCapacity(season.settings, usageRows);
+      return {
+        seasons,
+        season,
+        requests: [],
+        capacity,
+        grants: [],
+        stats: buildSeasonRequestStats(usageRows),
+      };
+    }
     const applicantUsers = alias(users, "applicantUser");
     const requests = await db.select({
       ...requestFields,
@@ -328,10 +383,10 @@ export const mawasimRouter = router({
     }).from(mawasimGrants).innerJoin(mosques, eq(mosques.id, mawasimGrants.mosqueId))
       .innerJoin(users, eq(users.id, mawasimGrants.userId)).where(eq(mawasimGrants.seasonId, season.id))
       .orderBy(desc(mawasimGrants.id));
-    return { seasons, season, requests, capacity, grants };
+    return { seasons, season, requests, capacity, grants, stats: buildSeasonRequestStats(requests) };
   }),
 
-  searchMosques: mawasimProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input }) => {
+  searchMosques: mawasimCreateOrViewProcedure.input(z.object({ search: z.string().trim().max(80).optional() }).optional()).query(async ({ input }) => {
     const db = await database();
     const term = input?.search?.trim() ?? "";
     const rows = await db.select({
@@ -355,7 +410,8 @@ export const mawasimRouter = router({
     }));
   }),
 
-  photos: mawasimProcedure.input(requestInput).query(async ({ input }) => {
+  photos: mawasimProcedure.input(requestInput).query(async ({ input, ctx }) => {
+    if (!(await userCanViewRequests(ctx.user))) denied();
     const db = await database();
     const [request] = await db.select({ menPhoto, womenPhoto }).from(mawasimRequests).where(and(
       eq(mawasimRequests.id, input.requestId), eq(mawasimRequests.seasonId, input.seasonId),
@@ -391,6 +447,7 @@ export const mawasimRouter = router({
   grant: mawasimProcedure.input(seasonInput.extend({
     mosqueId: id, email: z.email().max(320), reason: z.string().trim().min(3).max(500),
   })).mutation(async ({ input, ctx }) => {
+    if (!(await userCanManage(ctx.user))) denied();
     const db = await database();
     await db.transaction(async tx => {
       await lockedSeason(tx, input.seasonId);
@@ -405,7 +462,8 @@ export const mawasimRouter = router({
     });
   }),
 
-  revokeGrant: mawasimProcedure.input(seasonInput.extend({ grantId: id })).mutation(async ({ input }) => {
+  revokeGrant: mawasimProcedure.input(seasonInput.extend({ grantId: id })).mutation(async ({ input, ctx }) => {
+    if (!(await userCanManage(ctx.user))) denied();
     const db = await database();
     await db.transaction(async tx => {
       await lockedSeason(tx, input.seasonId);
@@ -428,7 +486,7 @@ export const mawasimRouter = router({
     const isRequester = ctx.user.role === "service_requester";
     if (isRequester) {
       if (input.onBehalf) denied();
-    } else if (!(await userCanView(ctx.user))) {
+    } else if (!(await userCanCreateOrView(ctx.user))) {
       denied();
     }
     const { onBehalf, snapshot, menPhoto, womenPhoto } = input;
@@ -538,6 +596,7 @@ export const mawasimRouter = router({
   review: mawasimProcedure.input(requestInput.extend({
     approved: seasonalQuantitiesSchema.nullable(), note: z.string().trim().max(2000),
   })).mutation(async ({ input, ctx }) => {
+    if (!(await userCanApproveRequests(ctx.user))) denied();
     const db = await database();
     await db.transaction(async tx => {
       const { season, request } = await lockedRequest(tx, input);

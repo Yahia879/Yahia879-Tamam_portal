@@ -692,7 +692,10 @@ export function hasRouteAccess(
   user?: CustodyUser,
 ): boolean {
   if (pathname.replace(/\/$/, "") === "/requester/mawasim") return userRole === "service_requester";
-  if (["/mawasim", "/requests/seasonal"].includes(pathname.replace(/\/$/, ""))) return canViewMawasim(userRole, userPermissions);
+  if (pathname.replace(/\/$/, "") === "/mawasim") return canViewMawasim(userRole, userPermissions);
+  if (pathname.replace(/\/$/, "") === "/requests/seasonal") {
+    return userPermissions.includes("requests.create_seasonal_request") || canViewMawasim(userRole, userPermissions);
+  }
   if (pathname.replace(/\/$/, "") === "/board-executive") {
     return userPermissions.includes("board_chairman");
   }

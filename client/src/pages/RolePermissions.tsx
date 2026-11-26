@@ -164,7 +164,15 @@ export default function RolePermissions() {
     }
     const requiredView = sectionPermissionPrerequisite(permId);
     if (requiredView && !selectedPerms.includes(permId) && !selectedPerms.includes(requiredView)) {
-      toast.warning(permId.startsWith("mawasim.") ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً" : permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      toast.warning(
+        permId === "mawasim.approve_requests"
+          ? "يجب تفعيل صلاحية 'عرض طلبات برنامج مواسم' أولاً"
+          : permId.startsWith("mawasim.")
+            ? "يجب تفعيل صلاحية 'عرض مواسم' أولاً"
+            : permId.startsWith("beneficiary_evaluations.")
+              ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
+              : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً"
+      );
       return;
     }
     if (!selectedPerms.includes(permId) && confirmLinkedPermissions([permId], id => selectedPerms.includes(id), permissions => {
@@ -1518,7 +1526,7 @@ export default function RolePermissions() {
         { id: "mawasim", nameAr: "مواسم", icon: Clock, perms: MAWASIM_PERMISSIONS.map(p => p.action) },
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request", "create_seasonal_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: CALENDAR_PERMISSIONS.map(p => p.action) },
@@ -1754,7 +1762,7 @@ export default function RolePermissions() {
         { id: "mawasim", nameAr: "مواسم", icon: Clock, perms: MAWASIM_PERMISSIONS.map(p => p.action) },
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request", "create_seasonal_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: REQUEST_REPORT_PERMISSIONS.map(p => p.action) },
@@ -2234,6 +2242,7 @@ export default function RolePermissions() {
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
         create_quick_request: "إنشاء طلب سريع",
+        create_seasonal_request: "إنشاء طلب لبرنامج مواسم",
       },
       escalation: {
         delayed_requests: "الطلبات المتأخرة",

@@ -27,7 +27,8 @@ import {
 
 export default function SeasonalRequestCreate() {
   const [, navigate] = useLocation();
-  const canCreate = useAnyPermission(MAWASIM_PERMISSION_IDS);
+  const canAccessMawasim = useAnyPermission(MAWASIM_PERMISSION_IDS);
+  const canCreate = useAnyPermission(["requests.create_seasonal_request", ...MAWASIM_PERMISSION_IDS]);
 
   const [seasonId, setSeasonId] = useState<number>();
   const [mosqueOpen, setMosqueOpen] = useState(false);
@@ -111,12 +112,14 @@ export default function SeasonalRequestCreate() {
             </div>
           </div>
 
-          <Link href="/mawasim">
-            <Button variant="outline" className="h-9 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
-              <CalendarDays className="size-4 text-primary" />
-              إدارة مواسم
-            </Button>
-          </Link>
+          {canAccessMawasim && (
+            <Link href="/mawasim">
+              <Button variant="outline" className="h-9 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
+                <CalendarDays className="size-4 text-primary" />
+                إدارة مواسم
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Loading State */}
@@ -150,12 +153,14 @@ export default function SeasonalRequestCreate() {
               <p className="mt-1 max-w-md text-xs text-muted-foreground sm:text-sm">
                 يجب إنشاء موسم وتفعيل خيار «فتح التسجيل» من صفحة إدارة مواسم قبل التقديم عبر برنامج مواسم.
               </p>
-              <Link href="/mawasim" className="mt-4">
-                <Button className="gap-2 rounded-xl cursor-pointer">
-                  <MoonStar className="size-4" />
-                  الانتقال إلى إعدادات مواسم
-                </Button>
-              </Link>
+              {canAccessMawasim && (
+                <Link href="/mawasim" className="mt-4">
+                  <Button className="gap-2 rounded-xl cursor-pointer">
+                    <MoonStar className="size-4" />
+                    الانتقال إلى إعدادات مواسم
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         )}
@@ -305,7 +310,7 @@ export default function SeasonalRequestCreate() {
                 season={activeSeason}
                 mosque={selectedMosque}
                 capacity={data.capacity}
-                onSubmitted={() => navigate("/mawasim")}
+                onSubmitted={() => navigate(canAccessMawasim ? "/mawasim" : "/requests")}
               />
             )}
           </>
