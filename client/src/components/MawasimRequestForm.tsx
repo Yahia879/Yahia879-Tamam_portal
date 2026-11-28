@@ -365,9 +365,9 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
     <form noValidate onSubmit={handleSubmit} className="space-y-6">
       {/* Section 1: Mosque Details */}
       <Card className="border-border/60 shadow-xs">
-        <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
+        <CardHeader className="border-b border-border/50 bg-muted/20 px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Building2 className="size-5" />
               </div>
@@ -490,7 +490,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
                         </span>
                         <input
                           type="checkbox"
-                          className="size-4 rounded accent-primary"
+                          className="size-4 shrink-0 rounded accent-primary"
                           checked={selected}
                           disabled={disabled}
                           aria-invalid={service === "carpet" && showErrors && errors.carpet ? true : undefined}
@@ -548,7 +548,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
                       setExtraServices(current => [...current, createExtraServiceDraft(defaultCat)]);
                     }
                   }}
-                  className="gap-1.5 rounded-xl border-primary/40 bg-background text-primary hover:bg-primary/5 cursor-pointer"
+                  className="w-full sm:w-auto justify-center gap-1.5 rounded-xl border-primary/40 bg-background text-primary hover:bg-primary/5 cursor-pointer"
                 >
                   <Plus className="size-4" />
                   <span>إضافة خدمة أخرى</span>
@@ -576,7 +576,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
                           </Button>
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                           <MawasimField label="نوع الخدمة">
                             <Select
                               value={item.category}
@@ -676,7 +676,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
               onChange={value => setSnapshotValue("men", value)}
             />
 
-            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">يوجد مصلى نساء</p>
                 <p className="text-xs text-muted-foreground">فعّل هذا الخيار لإدخال أبعاد مصلى النساء</p>
@@ -730,7 +730,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
             <Button
               type="submit"
               disabled={submit.isPending}
-              className="h-11 gap-2 rounded-xl px-6 font-bold shadow-sm cursor-pointer"
+              className="h-11 w-full sm:w-auto justify-center gap-2 rounded-xl px-6 font-bold shadow-sm cursor-pointer"
             >
               {submit.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               <span>{submit.isPending ? "جارٍ الإرسال…" : "إرسال طلب برنامج مواسم"}</span>
@@ -747,7 +747,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
           }
         }}
       >
-        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl border-2 border-border bg-card p-6 text-right shadow-2xl">
+        <DialogContent dir="rtl" className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-2 border-border bg-card p-4 sm:p-6 text-right shadow-2xl">
           <DialogHeader className="items-start space-y-2 ps-8 text-right sm:text-right">
             <DialogTitle className="flex w-full items-center justify-start gap-2.5 text-right text-base sm:text-lg font-extrabold text-foreground">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
@@ -811,7 +811,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
             </div>
           )}
 
-          <DialogFooter className="flex-row flex-wrap items-center justify-start sm:justify-start gap-2 pt-2">
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-start sm:justify-start gap-2 pt-2 [&>button]:w-full sm:[&>button]:w-auto">
             <Button
               type="button"
               disabled={submit.isPending}
