@@ -603,16 +603,17 @@ export default function ContractForm() {
     staleTime: 10 * 60 * 1000, // 10 دقائق
   });
 
-  // جلب بنود القالب المختار
-  const { data: templateClauses, isLoading: clausesLoading } = trpc.contracts.getTemplateClauses.useQuery(
-    { templateId: contractData.templateId! },
-    { enabled: !!contractData.templateId }
+  // جلب بيانات العقد الحالي (في وضع التعديل)
+  const { data: existingContract, isLoading: isLoadingContract } = trpc.contracts.getById.useQuery(
+    { id: editContractId! },
+    { enabled: !!editContractId }
   );
 
-  // جلب إعدادات الجمعية
-  const { data: orgSettings } = trpc.contracts.getOrganizationSettings.useQuery(undefined, {
-    staleTime: 10 * 60 * 1000, // 10 دقائق
-  });
+  // جلب بنود القالب المختار (في التعديل لا نحتاجها إلا عند تغيير القالب أو غياب البنود المحفوظة)
+  const { data: templateClauses, isLoading: clausesLoading } = trpc.contracts.getTemplateClauses.useQuery(
+    { templateId: contractData.templateId! },
+    { enabled: !!contractData.templateId && (!isEditMode || selectedTemplateChanged || (editDataLoaded && clauseValues.length === 0)) }
+  );
 
   // جلب قائمة المفوضين
   const { data: signatoriesData } = trpc.organization.getSignatories.useQuery(undefined, {
@@ -620,11 +621,13 @@ export default function ContractForm() {
   });
 
   // جلب جميع الموردين النشطين
-  const { data: suppliersList = [] } = trpc.contracts.getSuppliers.useQuery();
+  const { data: suppliersList = [], isFetched: suppliersFetched } = trpc.contracts.getSuppliers.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
 
   // جلب المشروع إذا تم تمرير معرفه أو في وضع التعديل للحصول على بيانات المشروع
   const { data: projectDetails } = trpc.projects.getById.useQuery(
-    { id: (projectId || contractData.projectId)! },
+    { id: (projectId || contractData.projectId)!, lightweight: true },
     { enabled: !!projectId || (isEditMode && !!contractData.projectId) }
   );
 
@@ -755,22 +758,11 @@ export default function ContractForm() {
   // تحديد معرف المشروع المرتبط للحصول على التفاصيل المالية للأجور الإدارية
   const targetProjectId = contractData.projectId || projectDetails?.id || requestDetails?.project?.id;
 
-  // جلب التفاصيل المالية للمشروع (الأجور الإدارية / قيمة الجمعية)
+  // جلب التفاصيل المالية للمشروع (في التعديل تتوفر ضمن contracts.getById ولا نطلبها إلا عند غيابها)
   const { data: projectFinancials } = trpc.projects.getFinancialData.useQuery(
     { projectId: targetProjectId! },
-    { enabled: !!targetProjectId }
+    { enabled: !!targetProjectId && (!isEditMode || (editDataLoaded && !(existingContract?.contract as any)?.financialDetail)) }
   );
-
-  // جلب تفاصيل جدول الكميات للطلب
-  const { data: boqResult } = trpc.projects.getBOQ.useQuery(
-    { requestId: effectiveRequestId! },
-    { enabled: !!effectiveRequestId && effectiveRequestId > 0 }
-  );
-  const { data: allocationBoq } = trpc.projects.getBOQ.useQuery(
-    { requestId: effectiveRequestId || undefined, projectId: targetProjectId || undefined, includeAllocationLock: true },
-    { enabled: paymentSystem === "installments" && Boolean(effectiveRequestId || targetProjectId), refetchOnWindowFocus: "always" }
-  );
-  const boqAllocationsLocked = allocationBoq?.allocationsLocked === true;
 
   // تحديد ما إذا كان العقد يخص برنامج سدانة حصراً
   const isSedanaProgram = useMemo(() => {
@@ -787,6 +779,17 @@ export default function ContractForm() {
     }
     return false;
   }, [requestDetails, projectDetails]);
+
+  // جلب تفاصيل جدول الكميات للطلب (تُستخدم فقط لبرنامج سدانة)
+  const { data: boqResult } = trpc.projects.getBOQ.useQuery(
+    { requestId: effectiveRequestId! },
+    { enabled: Boolean(effectiveRequestId && effectiveRequestId > 0 && isSedanaProgram) }
+  );
+  const { data: allocationBoq } = trpc.projects.getBOQ.useQuery(
+    { requestId: effectiveRequestId || undefined, projectId: targetProjectId || undefined, includeAllocationLock: true },
+    { enabled: paymentSystem === "installments" && Boolean(effectiveRequestId || targetProjectId), refetchOnWindowFocus: "always" }
+  );
+  const boqAllocationsLocked = allocationBoq?.allocationsLocked === true;
 
   // استخراج البنود والأصناف المتاحة للتعاقد في برنامج سدانة
   const availableContractItems = useMemo(() => {
@@ -997,11 +1000,16 @@ export default function ContractForm() {
     }
   }, [projectFinancials, isEditMode, contractData.totalValue]);
 
-  // جلب تفاصيل المورد المختار
-  const { data: selectedSupplier } = trpc.suppliers.getById.useQuery(
-    { id: contractData.supplierId! },
-    { enabled: !!contractData.supplierId }
+  // استخدام بيانات المورد من القائمة النشطة مباشرة مع بديل عند عدم العثور عليه (مثل المورد غير النشط)
+  const supplierFromList = useMemo(
+    () => (contractData.supplierId ? suppliersList.find((s: any) => s.id === contractData.supplierId) : undefined),
+    [suppliersList, contractData.supplierId]
   );
+  const { data: fetchedSupplier } = trpc.suppliers.getById.useQuery(
+    { id: contractData.supplierId! },
+    { enabled: !!contractData.supplierId && suppliersFetched && !supplierFromList }
+  );
+  const selectedSupplier = supplierFromList || fetchedSupplier;
 
   // تحديد ما إذا كان هناك عرض سعر معتمد (لتثبيت المورد)
   const approvedSupplierQuotation = allApprovedQuotations.find((q: any) => 
@@ -1055,12 +1063,6 @@ export default function ContractForm() {
       }
     }
   }, [contractByRequest, editContractId, createdDraftId, contractData.supplierId]);
-
-  // جلب بيانات العقد الحالي (في وضع التعديل)
-  const { data: existingContract, isLoading: isLoadingContract } = trpc.contracts.getById.useQuery(
-    { id: editContractId! },
-    { enabled: !!editContractId }
-  );
 
   const savedBoqByPayment = useMemo(() => new Map<string, BoqAllocation[]>(
     (existingContract?.payments ?? []).filter(p => !p.isManualPayment)
@@ -1180,6 +1182,10 @@ export default function ContractForm() {
         supportType,
         supportedAmount,
       });
+
+      if (c.requestId && !effectiveRequestId) {
+        setEffectiveRequestId(c.requestId);
+      }
 
       // تحميل جدول الدفعات من العقد الحالي (الأولوية دائماً لجدول الدفعات الفعلي contractPayments من قاعدة البيانات)
       let parsedSchedule: PaymentScheduleItem[] = [];

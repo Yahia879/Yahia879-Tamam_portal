@@ -54,6 +54,59 @@ import {
 
 type ContractWriteDb = Pick<NonNullable<Awaited<ReturnType<typeof getDb>>>, "select" | "insert" | "update" | "delete">;
 
+type ContractReadDb = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+
+async function resolveContractSignatoryUser(
+  db: ContractReadDb,
+  signatory: { userId?: number | null; email?: string | null } | null
+) {
+  const selectFields = {
+    id: users.id,
+    signatureUrl: users.signatureUrl,
+    showSignatureInDocuments: users.showSignatureInDocuments,
+    name: users.name,
+    signatureName: users.signatureName,
+    signatureDepartment: users.signatureDepartment,
+  };
+
+  if (signatory?.userId || signatory?.email) {
+    const conditions = [];
+    if (signatory.userId) conditions.push(eq(users.id, signatory.userId));
+    if (signatory.email) conditions.push(eq(users.email, signatory.email));
+
+    const matchedUsers = await db
+      .select(selectFields)
+      .from(users)
+      .where(conditions.length > 1 ? or(...conditions) : conditions[0])
+      .limit(2);
+
+    const byId = signatory.userId
+      ? matchedUsers.find(u => u.id === signatory.userId)
+      : undefined;
+    if (byId) return byId;
+
+    const byEmail = matchedUsers[0];
+    if (byEmail) return byEmail;
+  }
+
+  const [gmUser] = await db
+    .select(selectFields)
+    .from(users)
+    .where(
+      and(
+        isNull(users.deletedAt),
+        eq(users.status, "active" as any),
+        inArray(users.role, [
+          "general_manager" as any,
+          "executive_director" as any,
+        ])
+      )
+    )
+    .limit(1);
+
+  return gmUser || null;
+}
+
 function newScheduledPayment(contractId: number, payment: any, phaseOrder: number, allocations?: BoqAllocation[]) {
   const date = payment.dueDate ? String(payment.dueDate) : "";
   return {
@@ -466,27 +519,152 @@ export const contractsRouter = router({
       }
 
       const { contract, signatory, projectName } = contractData;
-
-      // إذا لم تكن قيمة العقد محددة مسبقاً، نأخذها كقيمة افتراضية من عرض السعر المعتمد
+      const effectiveReqId =
+        contract.requestId || contractData.projectRequestId;
       const currentContractAmt = contract.contractAmount
         ? parseFloat(contract.contractAmount)
         : 0;
-      if (
+      const needQuotationAmount =
         currentContractAmt <= 0 &&
-        contract.requestId &&
-        contract.supplierId
-      ) {
-        const [appQ] = await db
-          .select()
-          .from(quotations)
-          .where(
-            and(
-              eq(quotations.requestId, contract.requestId),
-              eq(quotations.supplierId, contract.supplierId),
-              inArray(quotations.status, ["accepted", "approved"])
-            )
-          )
-          .limit(1);
+        Boolean(contract.requestId) &&
+        Boolean(contract.supplierId);
+
+      // تنفيذ جميع الاستعلامات المستقلة بالتوازي لتسريع فتح تفاصيل وتعديل العقد
+      const [
+        appQ,
+        targetUser,
+        coRows,
+        rawContractPayments,
+        rawManualPayments,
+        contractDisbursementsResult,
+        orgSettingsRows,
+        clauseValues,
+        financialDetailRows,
+        linkedReqRows,
+      ] = await Promise.all([
+        needQuotationAmount
+          ? db
+              .select()
+              .from(quotations)
+              .where(
+                and(
+                  eq(quotations.requestId, contract.requestId!),
+                  eq(quotations.supplierId, contract.supplierId!),
+                  inArray(quotations.status, ["accepted", "approved"])
+                )
+              )
+              .limit(1)
+              .then(rows => rows[0] || null)
+          : Promise.resolve(null),
+        resolveContractSignatoryUser(db, signatory),
+        !input.lightweight && contract.projectId
+          ? (async () => {
+              try {
+                return await db
+                  .select({
+                    id: projectChangeOrders.id,
+                    paymentId: projectChangeOrders.paymentId,
+                    contractPaymentId: projectChangeOrders.contractPaymentId,
+                  })
+                  .from(projectChangeOrders)
+                  .where(eq(projectChangeOrders.projectId, contract.projectId!));
+              } catch {
+                return [];
+              }
+            })()
+          : Promise.resolve([]),
+        !input.lightweight
+          ? db
+              .select()
+              .from(contractPayments)
+              .where(eq(contractPayments.contractId, input.id))
+              .orderBy(contractPayments.phaseOrder)
+          : Promise.resolve([]),
+        !input.lightweight
+          ? db
+              .select()
+              .from(payments)
+              .where(
+                contract.projectId
+                  ? or(
+                      eq(payments.contractId, input.id),
+                      eq(payments.projectId, contract.projectId)
+                    )
+                  : eq(payments.contractId, input.id)
+              )
+              .orderBy(payments.createdAt)
+          : Promise.resolve([]),
+        !input.lightweight
+          ? (async () => {
+              try {
+                return {
+                  ok: true as const,
+                  rows: await db
+                    .select()
+                    .from(disbursementRequests)
+                    .where(
+                      contract.projectId
+                        ? or(
+                            eq(disbursementRequests.contractId, input.id),
+                            eq(disbursementRequests.projectId, contract.projectId)
+                          )
+                        : eq(disbursementRequests.contractId, input.id)
+                    ),
+                };
+              } catch (disbErr) {
+                console.error(
+                  "Error computing paid payments in contracts.getById:",
+                  disbErr
+                );
+                return { ok: false as const, rows: [] as any[] };
+              }
+            })()
+          : Promise.resolve({ ok: true as const, rows: [] as any[] }),
+        input.lightweight
+          ? Promise.resolve([null] as any[])
+          : db.select().from(organizationSettings).limit(1),
+        input.lightweight
+          ? Promise.resolve([])
+          : db
+              .select({
+                id: contractClauseValues.id,
+                clauseId: contractClauseValues.clauseId,
+                title: contractClauseValues.title,
+                customContent: contractClauseValues.customContent,
+                orderIndex: contractClauseValues.orderIndex,
+                isIncluded: contractClauseValues.isIncluded,
+                originalTitle: contractClauses.title,
+                originalTitleAr: contractClauses.titleAr,
+                originalContent: contractClauses.content,
+              })
+              .from(contractClauseValues)
+              .leftJoin(
+                contractClauses,
+                eq(contractClauseValues.clauseId, contractClauses.id)
+              )
+              .where(eq(contractClauseValues.contractId, input.id))
+              .orderBy(asc(contractClauseValues.orderIndex)),
+        contract.projectId
+          ? db
+              .select()
+              .from(projectFinancialDetails)
+              .where(eq(projectFinancialDetails.projectId, contract.projectId))
+          : Promise.resolve([]),
+        effectiveReqId
+          ? db
+              .select({
+                id: mosqueRequests.id,
+                currentStage: mosqueRequests.currentStage,
+                status: mosqueRequests.status,
+                closureStatus: mosqueRequests.closureStatus,
+              })
+              .from(mosqueRequests)
+              .where(eq(mosqueRequests.id, effectiveReqId))
+          : Promise.resolve([]),
+      ]);
+
+      // إذا لم تكن قيمة العقد محددة مسبقاً، نأخذها كقيمة افتراضية من عرض السعر المعتمد
+      if (needQuotationAmount) {
         const approvedVal =
           appQ?.approvedAmount ||
           appQ?.negotiatedAmount ||
@@ -501,73 +679,6 @@ export const contractsRouter = router({
         }
       } else if (currentContractAmt > 0 && !contract.contractAmountText) {
         contract.contractAmountText = numberToArabicText(currentContractAmt);
-      }
-
-      // البحث عن المستخدم المرتبط بالمفوض أو المدير التنفيذي للتحقق من حالة إظهار التوقيع في المستندات
-      let targetUser: {
-        id: number;
-        signatureUrl: string | null;
-        showSignatureInDocuments: boolean | null;
-        name: string;
-        signatureName: string | null;
-        signatureDepartment: string | null;
-      } | null = null;
-
-      if (signatory?.userId) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            signatureUrl: users.signatureUrl,
-            showSignatureInDocuments: users.showSignatureInDocuments,
-            name: users.name,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-          })
-          .from(users)
-          .where(eq(users.id, signatory.userId))
-          .limit(1);
-        targetUser = u || null;
-      }
-
-      if (!targetUser && signatory?.email) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            signatureUrl: users.signatureUrl,
-            showSignatureInDocuments: users.showSignatureInDocuments,
-            name: users.name,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-          })
-          .from(users)
-          .where(eq(users.email, signatory.email))
-          .limit(1);
-        targetUser = u || null;
-      }
-
-      if (!targetUser) {
-        const [gmUser] = await db
-          .select({
-            id: users.id,
-            signatureUrl: users.signatureUrl,
-            showSignatureInDocuments: users.showSignatureInDocuments,
-            name: users.name,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-          })
-          .from(users)
-          .where(
-            and(
-              isNull(users.deletedAt),
-              eq(users.status, "active" as any),
-              inArray(users.role, [
-                "general_manager" as any,
-                "executive_director" as any,
-              ])
-            )
-          )
-          .limit(1);
-        targetUser = gmUser || null;
       }
 
       // التحقق مما إذا كان المستخدم/المفوض قد ألغى إظهار التوقيع الرسمي في المستندات
@@ -598,59 +709,26 @@ export const contractsRouter = router({
         signatory.signatureUrl = firstPartySignatureUrl;
       }
 
-      // جلب أوامر التغيير المرتبطة بالمشروع لاستبعاد دفعات أوامر التغيير من العقد وتعديله ومعاينته
-      let coPaymentIds = new Set<number>();
-      let coContractPaymentIds = new Set<number>();
-      if (!input.lightweight && contract.projectId) {
-        try {
-          const coRows = await db
-            .select({
-              id: projectChangeOrders.id,
-              paymentId: projectChangeOrders.paymentId,
-              contractPaymentId: projectChangeOrders.contractPaymentId,
-            })
-            .from(projectChangeOrders)
-            .where(eq(projectChangeOrders.projectId, contract.projectId));
-          coPaymentIds = new Set(
-            coRows
-              .map(r => r.paymentId)
-              .filter((pid): pid is number => typeof pid === "number" && pid > 0)
-          );
-          coContractPaymentIds = new Set(
-            coRows
-              .map(r => r.contractPaymentId)
-              .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
-          );
-        } catch {}
-      }
+      // استبعاد دفعات أوامر التغيير من العقد وتعديله ومعاينته
+      const coPaymentIds = new Set<number>(
+        coRows
+          .map(r => r.paymentId)
+          .filter((pid): pid is number => typeof pid === "number" && pid > 0)
+      );
+      const coContractPaymentIds = new Set<number>(
+        coRows
+          .map(r => r.contractPaymentId)
+          .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
+      );
 
-      // جلب الدفعات:
+      // تجميع الدفعات:
       // 1. الدفعات المجدولة في العقد من contractPayments (دون دفعات أوامر التغيير)
       let paymentsList: any[] = input.lightweight
         ? []
-        : (
-            await db
-              .select()
-              .from(contractPayments)
-              .where(eq(contractPayments.contractId, input.id))
-              .orderBy(contractPayments.phaseOrder)
-          ).filter(cp => !coContractPaymentIds.has(cp.id));
+        : rawContractPayments.filter(cp => !coContractPaymentIds.has(cp.id));
 
       // 2. الدفعات المضافة / اليدوية المرتبطة بنفس العقد أو المشروع (دون دفعات أوامر التغيير)
       if (!input.lightweight) {
-        const rawManualPayments = await db
-          .select()
-          .from(payments)
-          .where(
-            contract.projectId
-              ? or(
-                  eq(payments.contractId, input.id),
-                  eq(payments.projectId, contract.projectId)
-                )
-              : eq(payments.contractId, input.id)
-          )
-          .orderBy(payments.createdAt);
-
         const manualPayments = rawManualPayments.filter(
           (p: any) =>
             (p.changeOrderId === null || p.changeOrderId === undefined) &&
@@ -768,132 +846,123 @@ export const contractsRouter = router({
         }
       }
 
-      // جلب طلبات وأوامر الصرف المرتبطة بالعقد للتحقق من الدفعات المسددة
+      // مطابقة طلبات وأوامر الصرف المرتبطة بالعقد للتحقق من الدفعات المسددة
       if (!input.lightweight && paymentsList.length > 0) {
-        try {
-          const contractDisbursements = await db
-            .select()
-            .from(disbursementRequests)
-            .where(
-              contract.projectId
-                ? or(
-                    eq(disbursementRequests.contractId, input.id),
-                    eq(disbursementRequests.projectId, contract.projectId)
-                  )
-                : eq(disbursementRequests.contractId, input.id)
-            );
-
-          const contractDisbIds = contractDisbursements.map(d => d.id);
-          const contractOrders =
-            contractDisbIds.length > 0
-              ? await db
-                  .select()
-                  .from(disbursementOrders)
-                  .where(
-                    inArray(
-                      disbursementOrders.disbursementRequestId,
-                      contractDisbIds
+        if (contractDisbursementsResult.ok) {
+          try {
+            const contractDisbursements = contractDisbursementsResult.rows;
+            const contractDisbIds = contractDisbursements.map(d => d.id);
+            const contractOrders =
+              contractDisbIds.length > 0
+                ? await db
+                    .select()
+                    .from(disbursementOrders)
+                    .where(
+                      inArray(
+                        disbursementOrders.disbursementRequestId,
+                        contractDisbIds
+                      )
                     )
-                  )
-              : [];
+                : [];
 
-          paymentsList = paymentsList.map((p, idx) => {
-            const disbs = contractDisbursements.filter(
-              d =>
-                d.contractPaymentId === p.id ||
-                (p.id && String(d.paymentId) === String(p.id))
-            );
-            const pDisbIds = disbs.map(d => d.id);
-            const executed = contractOrders.filter(
-              o =>
-                pDisbIds.includes(o.disbursementRequestId) &&
-                o.status === "executed"
-            );
-            const paidOrdersSum = executed.reduce(
-              (sum, o) => sum + parseFloat(String(o.amount || 0)),
-              0
-            );
+            paymentsList = paymentsList.map((p, idx) => {
+              const disbs = contractDisbursements.filter(
+                d =>
+                  d.contractPaymentId === p.id ||
+                  (p.id && String(d.paymentId) === String(p.id))
+              );
+              const pDisbIds = disbs.map(d => d.id);
+              const executed = contractOrders.filter(
+                o =>
+                  pDisbIds.includes(o.disbursementRequestId) &&
+                  o.status === "executed"
+              );
+              const paidOrdersSum = executed.reduce(
+                (sum, o) => sum + parseFloat(String(o.amount || 0)),
+                0
+              );
 
-            const agreedAmt = parseFloat(String(p.amount || 0));
-            let actualPaid =
-              p.status === "paid" && paidOrdersSum === 0
-                ? agreedAmt
-                : paidOrdersSum > 0
-                  ? paidOrdersSum
-                  : disbs.some(d => d.status === "paid")
-                    ? disbs
-                        .filter(d => d.status === "paid")
-                        .reduce(
-                          (s, d) => s + parseFloat(String(d.amount || 0)),
-                          0
-                        )
-                    : 0;
+              const agreedAmt = parseFloat(String(p.amount || 0));
+              let actualPaid =
+                p.status === "paid" && paidOrdersSum === 0
+                  ? agreedAmt
+                  : paidOrdersSum > 0
+                    ? paidOrdersSum
+                    : disbs.some(d => d.status === "paid")
+                      ? disbs
+                          .filter(d => d.status === "paid")
+                          .reduce(
+                            (s, d) => s + parseFloat(String(d.amount || 0)),
+                            0
+                          )
+                      : 0;
 
-            const isFullyPaid =
-              p.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
-            const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
-            const isPaid = isFullyPaid || isPartiallyPaid;
+              const isFullyPaid =
+                p.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
+              const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
+              const isPaid = isFullyPaid || isPartiallyPaid;
 
-            const matchedDisb = disbs[0];
-            const rawDueDate =
-              p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
-            let formattedDueDate: string | null = null;
-            if (rawDueDate) {
-              try {
-                const d = new Date(rawDueDate);
-                if (!isNaN(d.getTime())) {
-                  formattedDueDate = new Intl.DateTimeFormat("en-CA", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                  }).format(d);
-                } else {
-                  const s = String(rawDueDate);
-                  formattedDueDate = s.includes("T")
-                    ? s.split("T")[0]
-                    : s.split(" ")[0];
+              const matchedDisb = disbs[0];
+              const rawDueDate =
+                p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
+              let formattedDueDate: string | null = null;
+              if (rawDueDate) {
+                try {
+                  const d = new Date(rawDueDate);
+                  if (!isNaN(d.getTime())) {
+                    formattedDueDate = new Intl.DateTimeFormat("en-CA", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    }).format(d);
+                  } else {
+                    const s = String(rawDueDate);
+                    formattedDueDate = s.includes("T")
+                      ? s.split("T")[0]
+                      : s.split(" ")[0];
+                  }
+                } catch (e) {
+                  formattedDueDate = String(rawDueDate);
                 }
-              } catch (e) {
-                formattedDueDate = String(rawDueDate);
               }
-            }
-            const resolvedNotes =
-              p.notes ||
-              p.description ||
-              matchedDisb?.description ||
-              matchedDisb?.title ||
-              "";
+              const resolvedNotes =
+                p.notes ||
+                p.description ||
+                matchedDisb?.description ||
+                matchedDisb?.title ||
+                "";
 
-            const boqAllocations = readBoqAllocations(p.boqAllocations);
-            return {
-              ...p,
-              dueDate: formattedDueDate,
-              notes: resolvedNotes,
-              description: resolvedNotes,
-              amount: String(agreedAmt),
-              agreedAmount: agreedAmt,
-              paidAmount: actualPaid,
-              status: isFullyPaid
-                ? "paid"
-                : isPartiallyPaid
-                  ? "partially_paid"
-                  : p.status || "pending",
-              isPaid: isPaid,
-              isPartiallyPaid: isPartiallyPaid,
-              boqAllocations: boqAllocations.length ? boqAllocations : undefined,
-              boqPaidAllocations: boqAllocations.length ? paidBoqAllocations(p, disbs
-                .filter(d => d.contractPaymentId === p.id)
-                .map(d => ({
-                  ...d,
-                  orders: contractOrders.filter(order => order.disbursementRequestId === d.id),
-                }))) : [],
-            };
-          });
-        } catch (disbErr) {
-          console.error(
-            "Error computing paid payments in contracts.getById:",
-            disbErr
-          );
+              const boqAllocations = readBoqAllocations(p.boqAllocations);
+              return {
+                ...p,
+                dueDate: formattedDueDate,
+                notes: resolvedNotes,
+                description: resolvedNotes,
+                amount: String(agreedAmt),
+                agreedAmount: agreedAmt,
+                paidAmount: actualPaid,
+                status: isFullyPaid
+                  ? "paid"
+                  : isPartiallyPaid
+                    ? "partially_paid"
+                    : p.status || "pending",
+                isPaid: isPaid,
+                isPartiallyPaid: isPartiallyPaid,
+                boqAllocations: boqAllocations.length ? boqAllocations : undefined,
+                boqPaidAllocations: boqAllocations.length ? paidBoqAllocations(p, disbs
+                  .filter(d => d.contractPaymentId === p.id)
+                  .map(d => ({
+                    ...d,
+                    orders: contractOrders.filter(order => order.disbursementRequestId === d.id),
+                  }))) : [],
+              };
+            });
+          } catch (disbErr) {
+            console.error(
+              "Error computing paid payments in contracts.getById:",
+              disbErr
+            );
+          }
         }
 
         // ترتيب الدفعات حسب التاريخ تصاعدياً
@@ -915,42 +984,8 @@ export const contractsRouter = router({
         });
       }
 
-      // جلب إعدادات الجمعية
-      const [orgSettings] = input.lightweight
-        ? [null]
-        : await db.select().from(organizationSettings).limit(1);
-
-      // جلب بنود العقد الفعلية
-      const clauseValues = input.lightweight
-        ? []
-        : await db
-            .select({
-              id: contractClauseValues.id,
-              clauseId: contractClauseValues.clauseId,
-              title: contractClauseValues.title,
-              customContent: contractClauseValues.customContent,
-              orderIndex: contractClauseValues.orderIndex,
-              isIncluded: contractClauseValues.isIncluded,
-              originalTitle: contractClauses.title,
-              originalTitleAr: contractClauses.titleAr,
-              originalContent: contractClauses.content,
-            })
-            .from(contractClauseValues)
-            .leftJoin(
-              contractClauses,
-              eq(contractClauseValues.clauseId, contractClauses.id)
-            )
-            .where(eq(contractClauseValues.contractId, input.id))
-            .orderBy(asc(contractClauseValues.orderIndex));
-
-      let financialDetail: any = null;
-      if (contract.projectId) {
-        const [fd] = await db
-          .select()
-          .from(projectFinancialDetails)
-          .where(eq(projectFinancialDetails.projectId, contract.projectId));
-        financialDetail = fd || null;
-      }
+      const [orgSettings] = orgSettingsRows;
+      const financialDetail: any = financialDetailRows[0] || null;
 
       const cAmt = parseFloat(contract.contractAmount || "0");
       const cPct = parseFloat(contract.managementPercentage || "0");
@@ -971,25 +1006,13 @@ export const contractsRouter = router({
         }
       }
 
-      const effectiveReqId =
-        contract.requestId || contractData.projectRequestId;
       let isRequestClosed = false;
-      if (effectiveReqId) {
-        const [linkedReq] = await db
-          .select({
-            id: mosqueRequests.id,
-            currentStage: mosqueRequests.currentStage,
-            status: mosqueRequests.status,
-            closureStatus: mosqueRequests.closureStatus,
-          })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, effectiveReqId));
-        if (linkedReq) {
-          isRequestClosed =
-            linkedReq.currentStage === "closed" ||
-            linkedReq.status === "completed" ||
-            linkedReq.closureStatus === "confirmed";
-        }
+      const linkedReq = linkedReqRows[0];
+      if (linkedReq) {
+        isRequestClosed =
+          linkedReq.currentStage === "closed" ||
+          linkedReq.status === "completed" ||
+          linkedReq.closureStatus === "confirmed";
       }
 
       return {
