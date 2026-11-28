@@ -131,7 +131,7 @@ export default function MawasimPortal() {
       backUrl="/requester"
       backLabel="العودة للوحة التحكم"
     >
-      <div dir="rtl" className="mx-auto max-w-5xl space-y-6">
+      <div dir="rtl" className="mx-auto min-w-0 max-w-5xl max-w-full overflow-x-hidden space-y-6">
         {portal.isLoading && (
           <Card className="border-border/60 shadow-xs">
             <CardContent className="flex items-center justify-center gap-3 py-12 text-muted-foreground" role="status">
@@ -170,7 +170,7 @@ export default function MawasimPortal() {
             <Card className="border-border/60 shadow-xs">
               <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
                       <MoonStar className="size-5" />
                     </div>
@@ -198,9 +198,9 @@ export default function MawasimPortal() {
                 </div>
               </CardHeader>
 
-              <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
+              <CardContent className="grid gap-4 p-4 sm:p-5 sm:grid-cols-2">
                 {/* Season Picker */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="block text-sm font-medium text-foreground">الموسم</label>
                   {data.seasons.length > 1 ? (
                     <Select
@@ -210,7 +210,7 @@ export default function MawasimPortal() {
                         setMosqueId(undefined);
                       }}
                     >
-                      <SelectTrigger className="h-10 w-full rounded-xl bg-background font-semibold">
+                      <SelectTrigger className="h-10 w-full min-w-0 rounded-xl bg-background font-semibold [&>span]:truncate">
                         <SelectValue placeholder="اختر الموسم" />
                       </SelectTrigger>
                       <SelectContent>
@@ -222,21 +222,21 @@ export default function MawasimPortal() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <div className="flex h-10 items-center rounded-xl border border-border/60 bg-muted/30 px-3 text-sm font-semibold text-foreground">
+                    <div className="flex min-h-10 items-center rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm font-semibold text-foreground break-words">
                       {season.title} ({season.hijriYear} هـ)
                     </div>
                   )}
                 </div>
 
                 {/* Auto-bound Mosque Field */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="block text-sm font-medium text-foreground">المسجد المرتبط بالحساب</label>
                   {availableMosques.length > 1 ? (
                     <Select
                       value={String(selectedMosque?.id ?? "")}
                       onValueChange={val => setMosqueId(Number(val))}
                     >
-                      <SelectTrigger className="h-10 w-full rounded-xl bg-background font-semibold">
+                      <SelectTrigger className="h-10 w-full min-w-0 rounded-xl bg-background font-semibold [&>span]:truncate">
                         <SelectValue placeholder="اختر المسجد" />
                       </SelectTrigger>
                       <SelectContent>
@@ -248,12 +248,12 @@ export default function MawasimPortal() {
                       </SelectContent>
                     </Select>
                   ) : selectedMosque ? (
-                    <div className="flex h-10 items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 text-sm font-semibold text-foreground">
+                    <div className="flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-sm font-semibold text-foreground">
                       <Building2 className="size-4 shrink-0 text-primary" />
                       <span className="truncate">{selectedMosque.name} · {selectedMosque.city}</span>
                     </div>
                   ) : (
-                    <div className="flex h-10 items-center rounded-xl border border-border/60 bg-muted/30 px-3 text-xs text-muted-foreground">
+                    <div className="flex min-h-10 items-center rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                       {eligible.length > 0 ? "تم تقديم طلب مسبقاً لهذا المسجد في هذا الموسم" : "لا يوجد مسجد معتمد مرتبط"}
                     </div>
                   )}
@@ -294,7 +294,7 @@ export default function MawasimPortal() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto [&>a]:w-full sm:[&>a]:w-auto [&_button]:w-full sm:[&_button]:w-auto">
                     <Link href="/requester/mosques/new">
                       <Button size="sm" className="rounded-xl font-bold cursor-pointer">
                         إضافة مسجد
@@ -317,7 +317,7 @@ export default function MawasimPortal() {
                   <AlertTitle className="text-base sm:text-lg font-bold">
                     لا يمكن تقديم طلب مواسم جديد حالياً
                   </AlertTitle>
-                  <AlertDescription className="text-xs sm:text-sm leading-relaxed mt-1.5 space-y-3">
+                  <AlertDescription className="min-w-0 text-xs sm:text-sm leading-relaxed mt-1.5 space-y-3">
                     <p>
                       عذراً، لا يمكنك تقديم طلب جديد في برنامج مواسم لوجود طلب مواسم سابق فعال قيد المعالجة ولم يكتمل بعد. يمكنك رفع طلب استثناء خاص ببرنامج مواسم.
                     </p>
@@ -381,7 +381,7 @@ export default function MawasimPortal() {
                 </div>
 
                 <Dialog open={isExceptionModalOpen} onOpenChange={setIsExceptionModalOpen}>
-                  <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto text-right" dir="rtl">
+                  <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 text-right" dir="rtl">
                     <DialogHeader className="text-right sm:text-right ps-8">
                       <DialogTitle className="text-base sm:text-lg font-bold text-right">
                         تقديم طلب استثناء في برنامج مواسم
@@ -428,7 +428,7 @@ export default function MawasimPortal() {
                       </div>
                     </div>
 
-                    <DialogFooter className="flex-row flex-wrap items-center justify-start sm:justify-start gap-2 pt-4 border-t border-border">
+                    <DialogFooter className="flex-col-reverse sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-start sm:justify-start gap-2 pt-4 border-t border-border [&>button]:w-full sm:[&>button]:w-auto">
                       <Button
                         type="button"
                         onClick={() => void handleMawasimExceptionSubmit()}
