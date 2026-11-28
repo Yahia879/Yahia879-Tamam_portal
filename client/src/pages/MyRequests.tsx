@@ -261,7 +261,7 @@ export default function MyRequests() {
       )}
 
       {/* Top Section Tabs: Regular Requests vs Mawasim */}
-      <div className="inline-flex flex-wrap items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 mb-4 sm:mb-6">
+      <div className="flex sm:inline-flex flex-wrap items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 mb-4 sm:mb-6 w-full sm:w-auto">
         <button
           type="button"
           onClick={() => setViewMode("regular")}
@@ -754,7 +754,7 @@ export default function MyRequests() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
@@ -775,8 +775,8 @@ export default function MyRequests() {
                 )}
               </div>
               {mawasimPortal?.hasOpenSeason && (
-                <Link href="/requester/mawasim">
-                  <Button size="sm" className="rounded-xl text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shrink-0">
+                <Link href="/requester/mawasim" className="w-full sm:w-auto shrink-0">
+                  <Button size="sm" className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shrink-0">
                     <MoonStar className="w-3.5 h-3.5" />
                     <span>بوابة مواسم</span>
                   </Button>
@@ -821,7 +821,7 @@ export default function MyRequests() {
                                 <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded-md text-foreground">
                                   #{req.userOrderNumber}
                                 </span>
-                                <p className="font-bold text-sm text-foreground truncate">
+                                <p className="font-bold text-sm text-foreground break-words">
                                   {req.mosqueName}
                                 </p>
                               </div>
