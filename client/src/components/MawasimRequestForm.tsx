@@ -348,6 +348,13 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
       await Promise.all([utils.mawasim.invalidate(), utils.mosques.invalidate()]);
       toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id, {
         description: SEASONAL_SUBMISSION_NOTICE,
+        duration: 10000,
+        classNames: {
+          toast: "!border-2 !border-emerald-500 !bg-emerald-50 !text-emerald-950 !shadow-xl dark:!border-emerald-600 dark:!bg-emerald-950 dark:!text-emerald-50",
+          title: "!text-sm !font-extrabold !text-emerald-950 dark:!text-emerald-50",
+          description: "!mt-1 !text-xs sm:!text-sm !font-semibold !leading-relaxed !text-emerald-900 !opacity-100 dark:!text-emerald-100",
+          icon: "!text-emerald-600 dark:!text-emerald-400",
+        },
       });
       setPendingConfirm(null);
       onSubmitted();
@@ -742,44 +749,44 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
           }
         }}
       >
-        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl p-6 text-right">
+        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl border-2 border-border bg-card p-6 text-right shadow-2xl">
           <DialogHeader className="items-start space-y-2 ps-8 text-right sm:text-right">
             <DialogTitle className="flex w-full items-center justify-start gap-2.5 text-right text-base sm:text-lg font-extrabold text-foreground">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
                 <AlertTriangle className="size-5" />
               </span>
               <span>تنبيه وتأكيد قبل إرسال الطلب</span>
             </DialogTitle>
-            <DialogDescription className="w-full text-right text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              يرجى قراءة التنبيه ومراجعة بيانات طلب مسجد <strong className="text-foreground">{mosque.name}</strong> قبل التأكيد النهائي.
+            <DialogDescription className="w-full text-right text-xs sm:text-sm font-medium text-foreground/90 leading-relaxed">
+              يرجى قراءة التنبيه ومراجعة بيانات طلب مسجد <strong className="font-bold text-foreground">{mosque.name}</strong> قبل التأكيد النهائي.
             </DialogDescription>
           </DialogHeader>
 
-          <Alert className="rounded-xl border-amber-300 bg-amber-50/90 text-right text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/35 dark:text-amber-100">
-            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
-            <AlertTitle className="text-right text-sm font-bold text-amber-900 dark:text-amber-200">
+          <Alert className="rounded-xl border-2 border-amber-400 bg-amber-50 text-right text-amber-950 shadow-xs dark:border-amber-600 dark:bg-amber-950/80 dark:text-amber-50">
+            <AlertTriangle className="size-4 text-amber-700 dark:text-amber-300" />
+            <AlertTitle className="text-right text-sm font-extrabold text-amber-950 dark:text-amber-100">
               تنبيه هام حول التسجيل
             </AlertTitle>
-            <AlertDescription className="text-right text-xs sm:text-sm leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+            <AlertDescription className="text-right text-xs sm:text-sm font-semibold leading-relaxed !text-amber-950 dark:!text-amber-100">
               {SEASONAL_PRE_SUBMIT_NOTICE}
             </AlertDescription>
           </Alert>
 
           {pendingConfirm && (pendingConfirm.selectedItems.length > 0 || pendingConfirm.extraItems.length > 0) && (
-            <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3.5 text-right text-xs">
+            <div className="space-y-2 rounded-xl border border-border bg-muted/50 p-3.5 text-right text-xs">
               <p className="font-bold text-foreground">ملخص الخدمات المطلوبة:</p>
               <div className="space-y-1.5">
                 {pendingConfirm.selectedItems.map(item => (
-                  <div key={item.service} className="flex flex-wrap items-center justify-start gap-2 text-right text-muted-foreground">
-                    <span className="font-medium text-foreground">{item.label}:</span>
+                  <div key={item.service} className="flex flex-wrap items-center justify-start gap-2 text-right text-foreground">
+                    <span className="font-semibold text-foreground">{item.label}:</span>
                     <span className="font-bold text-primary tabular-nums">
                       {displayQuantity(item.service, item.requested)} {item.unit}
                     </span>
                   </div>
                 ))}
                 {pendingConfirm.extraItems.map(item => (
-                  <div key={item.id} className="flex flex-wrap items-center justify-start gap-2 text-right text-muted-foreground">
-                    <span className="font-medium text-foreground">خدمة إضافية ({item.title}):</span>
+                  <div key={item.id} className="flex flex-wrap items-center justify-start gap-2 text-right text-foreground">
+                    <span className="font-semibold text-foreground">خدمة إضافية ({item.title}):</span>
                     <span className="font-bold text-primary tabular-nums">
                       {item.quantity} {item.unit}
                     </span>
@@ -790,7 +797,7 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
           )}
 
           {pendingConfirm && pendingConfirm.exceeded.length > 0 && (
-            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-right text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="space-y-2 rounded-xl border-2 border-amber-300 bg-amber-50 p-3.5 text-right text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/70 dark:text-amber-100">
               <p className="font-semibold">
                 علمًا أن الحد الأقصى المسموح به للمسجد للخدمات التالية هو:
               </p>
