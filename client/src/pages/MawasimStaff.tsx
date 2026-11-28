@@ -436,9 +436,9 @@ export default function MawasimStaff() {
 
   return (
     <DashboardLayout tabletNavigation>
-      <div dir="rtl" className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <div dir="rtl" className="mx-auto min-w-0 max-w-7xl max-w-full overflow-x-hidden space-y-6 p-3 sm:p-6">
         {/* Hero Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-teal-700/20 bg-gradient-to-l from-teal-700 via-teal-600 to-emerald-700 p-5 text-white shadow-md sm:p-7">
+        <header className="relative overflow-hidden rounded-2xl border border-teal-700/20 bg-gradient-to-l from-teal-700 via-teal-600 to-emerald-700 p-4 text-white shadow-md sm:p-7">
           <div className="pointer-events-none absolute -left-12 -top-12 size-48 rounded-full bg-white/10 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-16 left-24 size-56 rounded-full bg-amber-300/15 blur-3xl" />
           <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -462,7 +462,7 @@ export default function MawasimStaff() {
               <Button
                 onClick={() => setEdit(edit === "new" ? undefined : "new")}
                 className={cn(
-                  "h-10 gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
+                  "h-10 w-full sm:w-auto justify-center gap-2 rounded-xl px-4 font-bold shadow-sm transition-all cursor-pointer",
                   edit === "new"
                     ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
                     : "bg-white text-teal-900 hover:bg-white/95"
@@ -599,20 +599,20 @@ export default function MawasimStaff() {
                     </Badge>
 
                     {season.managerName && (
-                      <Badge variant="outline" className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium text-muted-foreground">
-                        <User className="size-3.5 text-primary" />
-                        مدير الموسم: {season.managerName}
+                      <Badge variant="outline" className="h-auto min-h-8 max-w-full gap-1.5 rounded-lg px-3 py-1 text-xs font-medium text-muted-foreground">
+                        <User className="size-3.5 shrink-0 text-primary" />
+                        <span className="truncate">مدير الموسم: {season.managerName}</span>
                       </Badge>
                     )}
                   </div>
                 </div>
 
                 {canManage && (
-                  <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:border-t-0 lg:pt-0">
+                  <div className="flex w-full flex-wrap items-center gap-2 border-t pt-3 lg:w-auto lg:border-t-0 lg:pt-0">
                     <Button
                       variant={edit === "saved" ? "default" : "outline"}
                       onClick={() => setEdit(edit === "saved" ? undefined : "saved")}
-                      className="h-9 gap-2 rounded-xl font-semibold cursor-pointer"
+                      className="h-9 w-full sm:w-auto justify-center gap-2 rounded-xl font-semibold cursor-pointer"
                     >
                       {edit === "saved" ? <X className="size-4" /> : <Settings2 className="size-4" />}
                       <span>{edit === "saved" ? "إغلاق الإعدادات" : "إعدادات الموسم"}</span>
@@ -863,8 +863,9 @@ export default function MawasimStaff() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 space-y-4">
-                  <div className="h-72" dir="ltr">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="overflow-x-auto pb-1">
+                    <div className="h-72 min-w-[340px]" dir="ltr">
+                      <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={byLocation} margin={{ top: 10, right: 16, left: 8, bottom: 24 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <XAxis
@@ -893,7 +894,8 @@ export default function MawasimStaff() {
                         />
                         <Bar dataKey="value" name="عدد الطلبات" fill="#10b981" barSize={46} radius={[10, 10, 0, 0]} />
                       </BarChart>
-                    </ResponsiveContainer>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2 pt-3 border-t border-border/50">
                     {byLocation.map((item) => (
@@ -915,7 +917,7 @@ export default function MawasimStaff() {
             {/* Season Requests List */}
             {canViewRequests && (
               <section className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-foreground">
                       طلبات الموسم
@@ -967,7 +969,7 @@ export default function MawasimStaff() {
                       size="sm"
                       disabled={isExporting || totalFilteredItems === 0}
                       onClick={handleExportExcel}
-                      className="h-8 gap-1.5 rounded-xl border-[#1a5f4a]/30 bg-transparent px-3 text-xs font-bold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] cursor-pointer"
+                      className="h-8 w-full sm:w-auto justify-center gap-1.5 rounded-xl border-[#1a5f4a]/30 bg-transparent px-3 text-xs font-bold text-[#1a5f4a] hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] cursor-pointer"
                     >
                       {isExporting ? (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -982,7 +984,7 @@ export default function MawasimStaff() {
 
               {(requestStats.total > 0 || hasActiveFilters) && (
                 <div className="grid gap-2.5 rounded-2xl border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-12">
-                  <div className="relative lg:col-span-4">
+                  <div className="relative sm:col-span-2 lg:col-span-4">
                     <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={searchQuery}
@@ -1050,7 +1052,7 @@ export default function MawasimStaff() {
                   </div>
 
                   {hasActiveFilters && (
-                    <div className="lg:col-span-1 flex items-center justify-end">
+                    <div className="sm:col-span-2 lg:col-span-1 flex items-center justify-end">
                       <Button
                         type="button"
                         variant="ghost"
@@ -1106,16 +1108,16 @@ export default function MawasimStaff() {
                       >
                         <CardContent className="p-4 sm:p-5">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-start gap-3 min-w-0">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
                               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                 <Building2 className="size-5" />
                               </div>
-                              <div className="min-w-0 space-y-1">
+                              <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-bold text-muted-foreground">
                                     #{request.id}
                                   </span>
-                                  <h3 className="truncate text-base font-bold text-foreground">
+                                  <h3 className="break-words text-base font-bold text-foreground">
                                     {request.mosqueName}
                                   </h3>
                                   <Badge variant="outline" className={cn("gap-1.5 rounded-full text-xs font-semibold", statusStyle.badge)}>
@@ -1158,7 +1160,7 @@ export default function MawasimStaff() {
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-center">
+                            <div className="flex w-full sm:w-auto flex-wrap items-center justify-end sm:justify-start gap-2 shrink-0 self-stretch sm:self-center">
                               {request.scheduledFor && (
                                 <Button
                                   asChild
@@ -1404,7 +1406,7 @@ export function SeasonEditor({
 
             <div
               className={cn(
-                "flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors",
+                "flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 rounded-xl border p-4 transition-colors",
                 open
                   ? "border-emerald-300 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/30"
                   : "border-border/70 bg-muted/30"
@@ -1571,7 +1573,7 @@ export function SeasonEditor({
                 ? "فعّل خدمة واحدة على الأقل قبل فتح التسجيل."
                 : `جاهز للحفظ مع ${enabledCount} ${enabledCount === 1 ? "خدمة مفعّلة" : "خدمات مفعّلة"}.`}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full sm:w-auto flex-wrap items-center justify-end gap-2 [&>button]:flex-1 sm:[&>button]:flex-initial">
               <Button
                 type="button"
                 variant="outline"
@@ -1699,7 +1701,7 @@ export function RequestDetails({
             <MapPin className="size-4 text-primary" />
             <span>بيانات الموقع والقياسات</span>
           </div>
-          <p className="text-muted-foreground">
+          <p className="break-words text-muted-foreground">
             {[requestGovernorate(request), requestCity(request), request.snapshot.district, request.snapshot.address].filter(Boolean).join(" · ")} · {request.snapshot.worshippers.toLocaleString("ar-SA")} مصلٍ
           </p>
           {men && (
@@ -1747,7 +1749,7 @@ export function RequestDetails({
                 {request.contact.phone}
               </span>
             )}
-            {request.contact.email && <span>{request.contact.email}</span>}
+            {request.contact.email && <span className="break-all">{request.contact.email}</span>}
           </div>
           {request.contact.reason && (
             <p className="text-xs text-muted-foreground">
@@ -1938,8 +1940,8 @@ export function RequestDetails({
 
       {/* Modal جدولة موعد التنفيذ عند الضغط على اعتماد الكميات */}
       <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
-        <DialogContent dir="rtl" className="sm:max-w-lg rounded-2xl">
-          <DialogHeader className="text-right">
+        <DialogContent dir="rtl" className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-4 sm:p-6">
+          <DialogHeader className="ps-8 text-right">
             <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
               <Calendar className="size-4 text-primary" />
               <span>1. جدولة موعد التنفيذ (مطلوبة قبل الاعتماد)</span>
@@ -1980,7 +1982,7 @@ export function RequestDetails({
             </MawasimField>
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-start">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-start [&>button]:w-full sm:[&>button]:w-auto">
             <Button
               type="button"
               disabled={!scheduledFor || review.isPending}
