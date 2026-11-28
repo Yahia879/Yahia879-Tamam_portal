@@ -1,3 +1,4 @@
+import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -6,186 +7,200 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DocumentTitleProvider } from "./contexts/DocumentTitleContext";
 
-// الصفحات العامة
-import Home from "./pages/Home";
+// الصفحات العامة الأولية (تحميل مباشر لتسريع عرض نقطة الدخول)
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
-import Register from "./pages/Register";
+import Unauthorized from "./pages/Unauthorized";
+
+const Register = lazy(() => import("./pages/Register"));
 
 // لوحات التحكم
-import Dashboard from "./pages/Dashboard";
-import InformationDashboard from "./pages/InformationDashboard";
-import BoardDashboard from "./pages/BoardDashboard";
-import RequesterDashboard from "./pages/RequesterDashboard";
-import MawasimStaff from "./pages/MawasimStaff";
-import MawasimWorkOrderPrint from "./pages/MawasimWorkOrderPrint";
-import MawasimPortal from "./pages/MawasimPortal";
-import SeasonalRequestCreate from "./pages/SeasonalRequestCreate";
-import RequesterEvaluations from "./pages/RequesterEvaluations";
-import RequesterApprovals from "./pages/RequesterApprovals";
-import RequesterApprovalDetails from "./pages/RequesterApprovalDetails";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const InformationDashboard = lazy(() => import("./pages/InformationDashboard"));
+const BoardDashboard = lazy(() => import("./pages/BoardDashboard"));
+const RequesterDashboard = lazy(() => import("./pages/RequesterDashboard"));
+const MawasimStaff = lazy(() => import("./pages/MawasimStaff"));
+const MawasimWorkOrderPrint = lazy(() => import("./pages/MawasimWorkOrderPrint"));
+const MawasimPortal = lazy(() => import("./pages/MawasimPortal"));
+const SeasonalRequestCreate = lazy(() => import("./pages/SeasonalRequestCreate"));
+const RequesterEvaluations = lazy(() => import("./pages/RequesterEvaluations"));
+const RequesterApprovals = lazy(() => import("./pages/RequesterApprovals"));
+const RequesterApprovalDetails = lazy(() => import("./pages/RequesterApprovalDetails"));
 
 // صفحات المساجد
-import Mosques from "./pages/Mosques";
-import MosqueDetails from "./pages/MosqueDetails";
-import MosqueForm from "./pages/MosqueForm";
-import MosquesMap from "./pages/MosquesMap";
-import MyMosques from "./pages/MyMosques";
-import RequesterMosqueForm from "./pages/RequesterMosqueForm";
-import RequesterMosqueDetails from "./pages/RequesterMosqueDetails";
+const Mosques = lazy(() => import("./pages/Mosques"));
+const MosqueDetails = lazy(() => import("./pages/MosqueDetails"));
+const MosqueForm = lazy(() => import("./pages/MosqueForm"));
+const MosquesMap = lazy(() => import("./pages/MosquesMap"));
+const MyMosques = lazy(() => import("./pages/MyMosques"));
+const RequesterMosqueForm = lazy(() => import("./pages/RequesterMosqueForm"));
+const RequesterMosqueDetails = lazy(() => import("./pages/RequesterMosqueDetails"));
 
-import EditImam from "./pages/EditImam";
+const EditImam = lazy(() => import("./pages/EditImam"));
 
 // صفحات الطلبات
-import Requests from "./pages/Requests";
-import RequestDetails from "./pages/RequestDetailsNew";
-import SedanaEvaluationPage from "./pages/SedanaEvaluationPage";
-import SedanaProcurementPage from "./pages/SedanaProcurementPage";
-import SedanaCsrLetterPrint from "./pages/SedanaCsrLetterPrint";
-import SedanaPurchaseOrderPrint from "./pages/SedanaPurchaseOrderPrint";
-import SedanaExecutionPage from "./pages/SedanaExecutionPage";
-import NewSedanaInwardOrderPage from "./pages/NewSedanaInwardOrderPage";
-import NewSedanaOutboundOrderPage from "./pages/NewSedanaOutboundOrderPage";
-import SedanaDeliveryOrderPrint from "./pages/SedanaDeliveryOrderPrint";
-import SedanaBulkPurchasingPage from "./pages/SedanaBulkPurchasingPage";
-import PurchaseOrdersList from "./pages/PurchaseOrdersList";
-import CreatePurchaseOrderPage from "./pages/CreatePurchaseOrderPage";
-import CsrLettersList from "./pages/CsrLettersList";
-import CreateCsrLetterPage from "./pages/CreateCsrLetterPage";
-import OrdersAndLettersReview from "./pages/OrdersAndLettersReview";
-import RequestForm from "./pages/RequestForm";
-import TrackRequest from "./pages/TrackRequest";
-import MosqueServiceRequest from "./pages/MosqueServiceRequest";
-import MyRequests from "./pages/MyRequests";
-import { DynamicServiceRequestForm } from "./pages/DynamicServiceRequestForm";
+const Requests = lazy(() => import("./pages/Requests"));
+const RequestDetails = lazy(() => import("./pages/RequestDetailsNew"));
+const SedanaEvaluationPage = lazy(() => import("./pages/SedanaEvaluationPage"));
+const SedanaProcurementPage = lazy(() => import("./pages/SedanaProcurementPage"));
+const SedanaCsrLetterPrint = lazy(() => import("./pages/SedanaCsrLetterPrint"));
+const SedanaPurchaseOrderPrint = lazy(() => import("./pages/SedanaPurchaseOrderPrint"));
+const SedanaExecutionPage = lazy(() => import("./pages/SedanaExecutionPage"));
+const NewSedanaInwardOrderPage = lazy(() => import("./pages/NewSedanaInwardOrderPage"));
+const NewSedanaOutboundOrderPage = lazy(() => import("./pages/NewSedanaOutboundOrderPage"));
+const SedanaDeliveryOrderPrint = lazy(() => import("./pages/SedanaDeliveryOrderPrint"));
+const SedanaBulkPurchasingPage = lazy(() => import("./pages/SedanaBulkPurchasingPage"));
+const PurchaseOrdersList = lazy(() => import("./pages/PurchaseOrdersList"));
+const CreatePurchaseOrderPage = lazy(() => import("./pages/CreatePurchaseOrderPage"));
+const CsrLettersList = lazy(() => import("./pages/CsrLettersList"));
+const CreateCsrLetterPage = lazy(() => import("./pages/CreateCsrLetterPage"));
+const OrdersAndLettersReview = lazy(() => import("./pages/OrdersAndLettersReview"));
+const RequestForm = lazy(() => import("./pages/RequestForm"));
+const TrackRequest = lazy(() => import("./pages/TrackRequest"));
+const MosqueServiceRequest = lazy(() => import("./pages/MosqueServiceRequest"));
+const MyRequests = lazy(() => import("./pages/MyRequests"));
+const DynamicServiceRequestForm = lazy(() =>
+  import("./pages/DynamicServiceRequestForm").then((m) => ({
+    default: m.DynamicServiceRequestForm,
+  }))
+);
 
 // صفحات المستخدمين
-import UsersManagement from "./pages/UsersManagement";
-import UserDetails from "./pages/UserDetails";
-import UserEdit from "./pages/UserEdit";
+const UsersManagement = lazy(() => import("./pages/UsersManagement"));
+const UserDetails = lazy(() => import("./pages/UserDetails"));
+const UserEdit = lazy(() => import("./pages/UserEdit"));
 
 // صفحات المشاريع
-import Projects from "./pages/Projects";
-import ProjectDetails from "./pages/ProjectDetails";
-import ProjectManagement from "./pages/ProjectManagement";
-import ProjectDetailsPage from "./pages/ProjectDetailsPage";
-import NewMultiMosqueProjectPage from "./pages/NewMultiMosqueProjectPage";
-import ProjectReportsHubPage from "./pages/ProjectReportsHubPage";
-import NewProjectReportPage from "./pages/NewProjectReportPage";
-import FollowUpReportPage from "./pages/FollowUpReportPage";
-import ProjectReportPrintPage from "./pages/ProjectReportPrintPage";
-import SemiMonthlyReportPage from "./pages/SemiMonthlyReportPage";
-import MonthlyReportPage from "./pages/MonthlyReportPage";
-import QuarterlyReportPage from "./pages/QuarterlyReportPage";
-import VisitReportPage from "./pages/VisitReportPage";
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectManagement = lazy(() => import("./pages/ProjectManagement"));
+const ProjectDetailsPage = lazy(() => import("./pages/ProjectDetailsPage"));
+const NewMultiMosqueProjectPage = lazy(() => import("./pages/NewMultiMosqueProjectPage"));
+const ProjectReportsHubPage = lazy(() => import("./pages/ProjectReportsHubPage"));
+const NewProjectReportPage = lazy(() => import("./pages/NewProjectReportPage"));
+const FollowUpReportPage = lazy(() => import("./pages/FollowUpReportPage"));
+const ProjectReportPrintPage = lazy(() => import("./pages/ProjectReportPrintPage"));
+const SemiMonthlyReportPage = lazy(() => import("./pages/SemiMonthlyReportPage"));
+const MonthlyReportPage = lazy(() => import("./pages/MonthlyReportPage"));
+const QuarterlyReportPage = lazy(() => import("./pages/QuarterlyReportPage"));
+const VisitReportPage = lazy(() => import("./pages/VisitReportPage"));
 
 // صفحات أخرى
-import Partners from "./pages/Partners";
-import Branding from "./pages/Branding";
-import Settings from "./pages/Settings";
-import Profile from "./pages/Profile";
-import Notifications from "./pages/Notifications";
-import NotificationCustomization from "./pages/NotificationCustomization";
-import NotificationCenter from "./pages/NotificationCenter";
-import RequestEvaluation from "./pages/RequestEvaluation";
-import PublicEvaluation from "./pages/PublicEvaluation";
-import BeneficiarySatisfaction from "./pages/BeneficiarySatisfaction";
-import Reports from "./pages/Reports";
-import PendingReports from "./pages/PendingReports";
-import AnalyticsHub from "./pages/AnalyticsHub";
+const Partners = lazy(() => import("./pages/Partners"));
+const Branding = lazy(() => import("./pages/Branding"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const NotificationCustomization = lazy(() => import("./pages/NotificationCustomization"));
+const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
+const RequestEvaluation = lazy(() => import("./pages/RequestEvaluation"));
+const PublicEvaluation = lazy(() => import("./pages/PublicEvaluation"));
+const BeneficiarySatisfaction = lazy(() => import("./pages/BeneficiarySatisfaction"));
+const Reports = lazy(() => import("./pages/Reports"));
+const PendingReports = lazy(() => import("./pages/PendingReports"));
+const AnalyticsHub = lazy(() => import("./pages/AnalyticsHub"));
 
-// صفحات الموردين
-import SupplierRegistration from "./pages/SupplierRegistration";
-import ModernSupplierRegistration from "./pages/ModernSupplierRegistration";
-import SuppliersManagement from "./pages/SuppliersManagement";
-import SupplierDetails from "./pages/SupplierDetails";
-import AddSupplier from "./pages/AddSupplier";
-import EditSupplier from "./pages/EditSupplier";
-import OrganizationSettings from "./pages/OrganizationSettings";
-import ContractForm from "./pages/ContractForm";
-import ContractPreview from "./pages/ContractPreview";
-import ContractPrint from "./pages/ContractPrint";
-import FieldInspectionForm from "./pages/FieldInspectionForm";
-import FieldVisitSchedule from "./pages/FieldVisitSchedule";
-import FieldVisitsCalendar from "./pages/FieldVisitsCalendar";
-import QuickResponseReportForm from "./pages/QuickResponseReportForm";
-import QuickRequestCreate from "./pages/QuickRequestCreate";
-import BOQ from "./pages/BOQ";
-import Quotations from "./pages/Quotations";
-import SedanaQuotations from "./pages/SedanaQuotations";
-import FinancialApproval from "./pages/FinancialApproval";
-import CategoriesManagement from "./pages/CategoriesManagement";
-import ContractTemplates from "./pages/ContractTemplates";
-import TemplatePreview from "./pages/TemplatePreview";
-import TemplatePrint from "./pages/TemplatePrint";
-import ContractsList from "./pages/ContractsList";
-import DisbursementRequests from "./pages/DisbursementRequests";
-import Handovers from "./pages/Handovers";
-import FinalReportForm from "./pages/FinalReportForm";
-import FinalReportView from "./pages/FinalReportView";
-import AssignFinalReport from "./pages/AssignFinalReport";
-import KPIDashboard from "./pages/KPIDashboard";
-import NewDisbursementRequest from "./pages/NewDisbursementRequest";
-import NewMilestoneRequest from "./pages/NewMilestoneRequest";
-import EditMilestonePage from "./pages/EditMilestonePage";
-import NewLinkedDisbursementRequest from "./pages/NewLinkedDisbursementRequest";
-import EditLinkedDisbursementRequest from "./pages/EditLinkedDisbursementRequest";
-import NewDisbursementOrder from "./pages/NewDisbursementOrder";
-import NewDirectDisbursementOrder from "./pages/NewDirectDisbursementOrder";
-import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
-import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
-import ReceiptVoucherPrint from "./pages/ReceiptVoucherPrint";
-import ReceiptVouchers from "./pages/ReceiptVouchers";
-import NewReceiptVoucherPage from "./pages/NewReceiptVoucherPage";
-import FundPage from "./pages/FundPage";
-import NewFundTransferPage from "./pages/NewFundTransferPage";
-import CustodyRequests from "./pages/CustodyRequests";
-import NewCustodyRequest from "./pages/NewCustodyRequest";
-import CustodyRequestPrint from "./pages/CustodyRequestPrint";
-import ProgressReports from "./pages/ProgressReports";
-import ProgressReportPrint from "./pages/ProgressReportPrint";
-import FieldVisitReportPrint from "./pages/FieldVisitReportPrint";
-import QuickResponseReportPrint from "./pages/QuickResponseReportPrint";
-import QuickRequestReportPrint from "./pages/QuickRequestReportPrint";
-import DisbursementOrders from "./pages/DisbursementOrders";
-import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
-import EditPaymentPage from "./pages/EditPaymentPage";
-import FinancialDashboard from "./pages/FinancialDashboard";
-import FinancialReport from "./pages/FinancialReport";
-import StageSettings from "./pages/StageSettings";
-import ActionSettings from "./pages/ActionSettings";
-import Escalation from "./pages/Escalation";
-import Roles from "./pages/Roles";
-import RoleEdit from "./pages/RoleEdit";
-import RolePermissions from "./pages/RolePermissions";
-import UserPermissions from "./pages/UserPermissions";
-import PermissionsAuditLog from "./pages/PermissionsAuditLog";
-import JobPositions from "./pages/JobPositions";
-import StaffManagement from "./pages/StaffManagement";
-import ProgramCustomization from "./pages/ProgramCustomization";
-import FormsCustomization from "./pages/FormsCustomization";
-import FormsCustomizationEvaluation from "./pages/FormsCustomizationEvaluation";
-import FormsCustomizationServices from "./pages/FormsCustomizationServices";
-import FormsCustomizationServiceDetail from "./pages/FormsCustomizationServiceDetail";
-import FormsCustomizationRegistration from "./pages/FormsCustomizationRegistration";
-import FormsCustomizationRegistrationDetail from "./pages/FormsCustomizationRegistrationDetail";
-import FormsCustomizationDashboard from "./pages/FormsCustomizationDashboard";
-import FormsCustomizationAnalytics from "./pages/FormsCustomizationAnalytics";
-import FormsCustomizationOption2 from "./pages/FormsCustomizationOption2";
-import FormsCustomizationEscalation from "./pages/FormsCustomizationEscalation";
-import SupportTickets from "./pages/SupportTickets";
+// صفحات الموردين والعقود والصرف
+const SupplierRegistration = lazy(() => import("./pages/SupplierRegistration"));
+const ModernSupplierRegistration = lazy(() => import("./pages/ModernSupplierRegistration"));
+const SuppliersManagement = lazy(() => import("./pages/SuppliersManagement"));
+const SupplierDetails = lazy(() => import("./pages/SupplierDetails"));
+const AddSupplier = lazy(() => import("./pages/AddSupplier"));
+const EditSupplier = lazy(() => import("./pages/EditSupplier"));
+const OrganizationSettings = lazy(() => import("./pages/OrganizationSettings"));
+const ContractForm = lazy(() => import("./pages/ContractForm"));
+const ContractPreview = lazy(() => import("./pages/ContractPreview"));
+const ContractPrint = lazy(() => import("./pages/ContractPrint"));
+const FieldInspectionForm = lazy(() => import("./pages/FieldInspectionForm"));
+const FieldVisitSchedule = lazy(() => import("./pages/FieldVisitSchedule"));
+const FieldVisitsCalendar = lazy(() => import("./pages/FieldVisitsCalendar"));
+const QuickResponseReportForm = lazy(() => import("./pages/QuickResponseReportForm"));
+const QuickRequestCreate = lazy(() => import("./pages/QuickRequestCreate"));
+const BOQ = lazy(() => import("./pages/BOQ"));
+const Quotations = lazy(() => import("./pages/Quotations"));
+const SedanaQuotations = lazy(() => import("./pages/SedanaQuotations"));
+const FinancialApproval = lazy(() => import("./pages/FinancialApproval"));
+const CategoriesManagement = lazy(() => import("./pages/CategoriesManagement"));
+const ContractTemplates = lazy(() => import("./pages/ContractTemplates"));
+const TemplatePreview = lazy(() => import("./pages/TemplatePreview"));
+const TemplatePrint = lazy(() => import("./pages/TemplatePrint"));
+const ContractsList = lazy(() => import("./pages/ContractsList"));
+const DisbursementRequests = lazy(() => import("./pages/DisbursementRequests"));
+const Handovers = lazy(() => import("./pages/Handovers"));
+const FinalReportForm = lazy(() => import("./pages/FinalReportForm"));
+const FinalReportView = lazy(() => import("./pages/FinalReportView"));
+const AssignFinalReport = lazy(() => import("./pages/AssignFinalReport"));
+const KPIDashboard = lazy(() => import("./pages/KPIDashboard"));
+const NewDisbursementRequest = lazy(() => import("./pages/NewDisbursementRequest"));
+const NewMilestoneRequest = lazy(() => import("./pages/NewMilestoneRequest"));
+const EditMilestonePage = lazy(() => import("./pages/EditMilestonePage"));
+const NewLinkedDisbursementRequest = lazy(() => import("./pages/NewLinkedDisbursementRequest"));
+const EditLinkedDisbursementRequest = lazy(() => import("./pages/EditLinkedDisbursementRequest"));
+const NewDisbursementOrder = lazy(() => import("./pages/NewDisbursementOrder"));
+const NewDirectDisbursementOrder = lazy(() => import("./pages/NewDirectDisbursementOrder"));
+const DisbursementOrderPrint = lazy(() => import("./pages/DisbursementOrderPrint"));
+const DisbursementRequestPrint = lazy(() => import("./pages/DisbursementRequestPrint"));
+const ReceiptVoucherPrint = lazy(() => import("./pages/ReceiptVoucherPrint"));
+const ReceiptVouchers = lazy(() => import("./pages/ReceiptVouchers"));
+const NewReceiptVoucherPage = lazy(() => import("./pages/NewReceiptVoucherPage"));
+const FundPage = lazy(() => import("./pages/FundPage"));
+const NewFundTransferPage = lazy(() => import("./pages/NewFundTransferPage"));
+const CustodyRequests = lazy(() => import("./pages/CustodyRequests"));
+const NewCustodyRequest = lazy(() => import("./pages/NewCustodyRequest"));
+const CustodyRequestPrint = lazy(() => import("./pages/CustodyRequestPrint"));
+const ProgressReports = lazy(() => import("./pages/ProgressReports"));
+const ProgressReportPrint = lazy(() => import("./pages/ProgressReportPrint"));
+const FieldVisitReportPrint = lazy(() => import("./pages/FieldVisitReportPrint"));
+const QuickResponseReportPrint = lazy(() => import("./pages/QuickResponseReportPrint"));
+const QuickRequestReportPrint = lazy(() => import("./pages/QuickRequestReportPrint"));
+const DisbursementOrders = lazy(() => import("./pages/DisbursementOrders"));
+const DisbursementOrderDetails = lazy(() => import("./pages/DisbursementOrderDetails"));
+const EditPaymentPage = lazy(() => import("./pages/EditPaymentPage"));
+const FinancialDashboard = lazy(() => import("./pages/FinancialDashboard"));
+const FinancialReport = lazy(() => import("./pages/FinancialReport"));
+const StageSettings = lazy(() => import("./pages/StageSettings"));
+const ActionSettings = lazy(() => import("./pages/ActionSettings"));
+const Escalation = lazy(() => import("./pages/Escalation"));
+const Roles = lazy(() => import("./pages/Roles"));
+const RoleEdit = lazy(() => import("./pages/RoleEdit"));
+const RolePermissions = lazy(() => import("./pages/RolePermissions"));
+const UserPermissions = lazy(() => import("./pages/UserPermissions"));
+const PermissionsAuditLog = lazy(() => import("./pages/PermissionsAuditLog"));
+const JobPositions = lazy(() => import("./pages/JobPositions"));
+const StaffManagement = lazy(() => import("./pages/StaffManagement"));
+const ProgramCustomization = lazy(() => import("./pages/ProgramCustomization"));
+const FormsCustomization = lazy(() => import("./pages/FormsCustomization"));
+const FormsCustomizationEvaluation = lazy(() => import("./pages/FormsCustomizationEvaluation"));
+const FormsCustomizationServices = lazy(() => import("./pages/FormsCustomizationServices"));
+const FormsCustomizationServiceDetail = lazy(() => import("./pages/FormsCustomizationServiceDetail"));
+const FormsCustomizationRegistration = lazy(() => import("./pages/FormsCustomizationRegistration"));
+const FormsCustomizationRegistrationDetail = lazy(() => import("./pages/FormsCustomizationRegistrationDetail"));
+const FormsCustomizationDashboard = lazy(() => import("./pages/FormsCustomizationDashboard"));
+const FormsCustomizationAnalytics = lazy(() => import("./pages/FormsCustomizationAnalytics"));
+const FormsCustomizationOption2 = lazy(() => import("./pages/FormsCustomizationOption2"));
+const FormsCustomizationEscalation = lazy(() => import("./pages/FormsCustomizationEscalation"));
+const SupportTickets = lazy(() => import("./pages/SupportTickets"));
+const DebugUser = lazy(() => import("./pages/DebugUser"));
+
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PermissionRouteGuard from "./components/PermissionRouteGuard";
-import Unauthorized from "./pages/Unauthorized";
-import DebugUser from "./pages/DebugUser";
-import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "./_core/hooks/useAuth";
 import { consumeSuspensionMessage } from "@/lib/authGuard";
 import { toast } from "sonner";
+
+function RouteFallback() {
+  return (
+    <div dir="rtl" className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-3 text-sm text-muted-foreground">جاري التحميل...</p>
+      </div>
+    </div>
+  );
+}
 
 // مكوّن يطبّق ألوان الهوية البصرية على متغيرات CSS عند تحميل التطبيق
 function BrandColorApplier() {
@@ -228,21 +243,21 @@ function SuspensionNotifier() {
 }
 
 // مكون لحماية المسارات الإدارية
-const AdminRoute = ({ component: Component }: { component: React.ComponentType }) => (
+const AdminRoute = ({ component: Component }: { component: ComponentType<any> }) => (
   <AdminGuard>
     <Component />
   </AdminGuard>
 );
 
 // مكون لحماية مسارات الضيوف (يمنع المسجلين من الدخول لصفحات تسجيل الدخول)
-const GuestRoute = ({ component: Component }: { component: React.ComponentType }) => (
+const GuestRoute = ({ component: Component }: { component: ComponentType<any> }) => (
   <GuestGuard>
     <Component />
   </GuestGuard>
 );
 
 // مكون لحماية مسارات طالبي الخدمة
-const RequesterRoute = ({ component: Component }: { component: React.ComponentType }) => (
+const RequesterRoute = ({ component: Component }: { component: ComponentType<any> }) => (
   <ProtectedRoute allowedRoles={["service_requester"]}>
     <Component />
   </ProtectedRoute>
@@ -265,6 +280,7 @@ const MosqueDetailsWrapper = () => {
 function Router() {
   return (
     <PermissionRouteGuard>
+    <Suspense fallback={<RouteFallback />}>
     <Switch>
       {/* صفحة 403 - غير مصرح */}
       <Route path="/403" component={Unauthorized} />
@@ -548,11 +564,12 @@ function Router() {
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
     </PermissionRouteGuard>
   );
 }
 
-function LegacyProjectReport({ component }: { component: typeof SemiMonthlyReportPage }) {
+function LegacyProjectReport({ component }: { component: ComponentType<any> }) {
   const search = useSearch();
   return Number(new URLSearchParams(search).get("editId")) > 0
     ? <AdminRoute component={component} />
