@@ -1621,6 +1621,19 @@ export default function NotificationCustomization() {
         { placeholder: "{اسم_الموسم}", nameAr: "اسم الموسم" },
         { placeholder: "{اسم_المستفيد}", nameAr: "اسم مقدم الطلب / المستفيد" }
       ]
+    },
+    {
+      id: "mawasim_season_manager_request_submitted",
+      category: "mawasim",
+      nameAr: "إشعار مدير الموسم بوصول طلب جديد",
+      description: "تنبيه مخصص يُرسل حصرياً إلى مدير الموسم المعين عند وصول طلب جديد في الموسم",
+      defaultTemplate: "وصل طلب جديد في الموسم المسند إليك ({اسم_الموسم}) رقم #{رقم_الطلب} لمسجد {اسم_المسجد} من {اسم_المستفيد} وهو بانتظار المراجعة.",
+      variables: [
+        { placeholder: "{اسم_الموسم}", nameAr: "اسم الموسم" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم مقدم الطلب / المستفيد" }
+      ]
     }
   ];
 
@@ -2199,6 +2212,11 @@ export default function NotificationCustomization() {
         if (channel === 'whatsapp') inherited = !!roleObj?.receiveFinancialWhatsapp;
         if (channel === 'sms') inherited = !!roleObj?.receiveFinancialSms;
       }
+    } else if (triggerId === "mawasim_season_manager_request_submitted") {
+      if (channel === 'in_app') inherited = true;
+      if (channel === 'email') inherited = !!roleObj?.receiveRequestEmail;
+      if (channel === 'whatsapp') inherited = !!roleObj?.receiveRequestWhatsapp;
+      if (channel === 'sms') inherited = !!roleObj?.receiveRequestSms;
     } else if (isFinancial) {
       if (channel === 'in_app') inherited = !!roleObj?.receiveFinancialAndContractNotifications;
       if (channel === 'email') inherited = !!roleObj?.receiveFinancialEmail;
