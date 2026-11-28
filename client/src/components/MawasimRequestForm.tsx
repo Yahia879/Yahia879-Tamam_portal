@@ -348,12 +348,10 @@ export default function MawasimRequestForm({ season, mosque, capacity, allowExtr
       await Promise.all([utils.mawasim.invalidate(), utils.mosques.invalidate()]);
       toast.success("تم تسجيل طلب برنامج مواسم رقم " + result.id, {
         description: SEASONAL_SUBMISSION_NOTICE,
-        duration: 10000,
+        duration: 8000,
         classNames: {
-          toast: "!border-2 !border-emerald-500 !bg-emerald-50 !text-emerald-950 !shadow-xl dark:!border-emerald-600 dark:!bg-emerald-950 dark:!text-emerald-50",
-          title: "!text-sm !font-extrabold !text-emerald-950 dark:!text-emerald-50",
-          description: "!mt-1 !text-xs sm:!text-sm !font-semibold !leading-relaxed !text-emerald-900 !opacity-100 dark:!text-emerald-100",
-          icon: "!text-emerald-600 dark:!text-emerald-400",
+          title: "!text-sm !font-bold !text-foreground",
+          description: "!mt-1 !text-xs sm:!text-sm !font-medium !leading-relaxed !text-foreground !opacity-100",
         },
       });
       setPendingConfirm(null);
