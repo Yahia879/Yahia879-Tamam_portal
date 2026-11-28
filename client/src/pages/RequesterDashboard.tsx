@@ -147,16 +147,16 @@ export default function RequesterDashboard() {
       {mawasimPortal?.hasOpenSeason && (
         <div className="mb-6 sm:mb-8 dir-rtl">
           <div className="rounded-2xl p-4 sm:p-5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-            <div className="flex items-start gap-3.5">
+            <div className="flex items-start gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                 <MoonStar className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
                     متاح للتسجيل
                   </span>
-                  <h3 className="font-bold text-sm sm:text-base text-foreground">
+                  <h3 className="font-bold text-sm sm:text-base text-foreground break-words">
                     {mawasimPortal.season?.isOpen ? mawasimPortal.season.title : "برنامج مواسم"}
                   </h3>
                 </div>
@@ -165,7 +165,7 @@ export default function RequesterDashboard() {
                 </p>
               </div>
             </div>
-            <Link href="/requester/mawasim">
+            <Link href="/requester/mawasim" className="w-full sm:w-auto shrink-0">
               <Button className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-xs shrink-0">
                 <MoonStar className="w-4 h-4" />
                 <span>برنامج مواسم</span>
