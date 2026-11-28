@@ -824,7 +824,7 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     }
   });
 
-  it("dispatches Mawasim beneficiary and role arrival notifications on submit and review", async () => {
+  it("dispatches Mawasim beneficiary, general role, and exclusive season manager arrival notifications on submit and review", async () => {
     notifMocks.createNotification.mockClear();
     state.allowAdmin = true;
     state.allRequests = [];
@@ -832,9 +832,11 @@ describe("Mawasim requester portal & submit server enforcement", () => {
     state.mawasimExceptions = [];
     state.seasons = [
       { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: 25, isOpen: true, settings: buildSettings() },
+      { id: 11, hijriYear: 1449, title: "رمضان 1449", managerId: 99, isOpen: true, settings: buildSettings() },
     ];
     state.candidateUsers = [
       { id: 25, name: "أحمد المالكي", role: "project_manager" },
+      { id: 99, name: "مدير موسم آخر", role: "project_manager" },
     ];
 
     const reqApi = callerFor({ id: 42, role: "service_requester", requesterType: "imam" });
@@ -853,6 +855,44 @@ describe("Mawasim requester portal & submit server enforcement", () => {
         userId: 25,
         triggerId: "mawasim_request_submitted",
         relatedType: "mawasim_request",
+        relatedId: 700,
+      }),
+    );
+    expect(notifMocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 99,
+        triggerId: "mawasim_request_submitted",
+        relatedType: "mawasim_request",
+        relatedId: 700,
+      }),
+    );
+    const managerSpecificCalls = notifMocks.createNotification.mock.calls
+      .map(args => args[0])
+      .filter((call: any) => call.triggerId === "mawasim_season_manager_request_submitted");
+    expect(managerSpecificCalls).toHaveLength(1);
+    expect(managerSpecificCalls[0]).toEqual(
+      expect.objectContaining({
+        userId: 25,
+        triggerId: "mawasim_season_manager_request_submitted",
+        relatedType: "mawasim_request",
+        relatedId: 700,
+      }),
+    );
+
+    notifMocks.createNotification.mockClear();
+    state.seasons = [
+      { id: 10, hijriYear: 1448, title: "رمضان 1448", managerId: null, isOpen: true, settings: buildSettings() },
+    ];
+    await reqApi.submit(baseSubmission);
+    expect(
+      notifMocks.createNotification.mock.calls.some(
+        (args: any[]) => args[0]?.triggerId === "mawasim_season_manager_request_submitted",
+      ),
+    ).toBe(false);
+    expect(notifMocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 25,
+        triggerId: "mawasim_request_submitted",
         relatedId: 700,
       }),
     );
