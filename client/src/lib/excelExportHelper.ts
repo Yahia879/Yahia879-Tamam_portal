@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 
 export interface ExcelColumnDef {
   header: string;
@@ -31,7 +31,9 @@ export async function exportStyledExcel(options: ExportStyledExcelOptions) {
     showTotalRow = true,
   } = options;
 
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJSModule = await import("exceljs");
+  const ExcelJSCtor = (ExcelJSModule.default ?? ExcelJSModule) as typeof ExcelJS;
+  const workbook = new ExcelJSCtor.Workbook();
   workbook.creator = "منصة تمام";
   workbook.lastModifiedBy = "منصة تمام";
   workbook.created = new Date();

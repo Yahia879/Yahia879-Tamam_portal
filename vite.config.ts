@@ -51,6 +51,36 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const normalized = id.replace(/\\/g, "/");
+          if (!normalized.includes("/node_modules/")) return;
+
+          if (
+            normalized.includes("/node_modules/react/") ||
+            normalized.includes("/node_modules/react-dom/") ||
+            normalized.includes("/node_modules/scheduler/")
+          ) {
+            return "vendor-react";
+          }
+          if (
+            normalized.includes("/node_modules/@tanstack/") ||
+            normalized.includes("/node_modules/@trpc/") ||
+            normalized.includes("/node_modules/superjson/") ||
+            normalized.includes("/node_modules/wouter/")
+          ) {
+            return "vendor-trpc";
+          }
+          if (normalized.includes("/node_modules/@radix-ui/")) {
+            return "vendor-radix";
+          }
+          if (normalized.includes("/node_modules/lucide-react/")) {
+            return "vendor-icons";
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,
