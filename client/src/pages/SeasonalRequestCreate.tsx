@@ -50,17 +50,17 @@ export function LinkedRequesterSummary({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-foreground">
-        <span className="font-semibold">{linkedRequester.name}</span>
+        <span className="font-semibold break-words">{linkedRequester.name}</span>
         {linkedRequester.phone && (
           <span className="inline-flex items-center gap-1 text-muted-foreground" dir="ltr">
-            <Phone className="size-3.5 text-emerald-700/80 dark:text-emerald-400" />
+            <Phone className="size-3.5 shrink-0 text-emerald-700/80 dark:text-emerald-400" />
             {linkedRequester.phone}
           </span>
         )}
         {linkedRequester.email && (
-          <span className="inline-flex items-center gap-1 text-muted-foreground" dir="ltr">
-            <Mail className="size-3.5 text-emerald-700/80 dark:text-emerald-400" />
-            {linkedRequester.email}
+          <span className="inline-flex min-w-0 max-w-full items-center gap-1 text-muted-foreground break-all" dir="ltr">
+            <Mail className="size-3.5 shrink-0 text-emerald-700/80 dark:text-emerald-400" />
+            <span className="break-all">{linkedRequester.email}</span>
           </span>
         )}
       </div>
@@ -124,7 +124,7 @@ export default function SeasonalRequestCreate() {
 
   return (
     <DashboardLayout tabletNavigation>
-      <div dir="rtl" className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+      <div dir="rtl" className="mx-auto min-w-0 max-w-5xl max-w-full overflow-x-hidden space-y-6 p-3 sm:p-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -203,8 +203,8 @@ export default function SeasonalRequestCreate() {
         {!staffQuery.isLoading && activeSeason && (
           <>
             <Card className="border-border/60 shadow-xs">
-              <CardHeader className="border-b border-border/50 bg-muted/20 px-5 py-4">
-                <div className="flex items-center gap-3">
+              <CardHeader className="border-b border-border/50 bg-muted/20 px-4 py-4 sm:px-5">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300">
                     <Building2 className="size-5" />
                   </div>
@@ -216,9 +216,9 @@ export default function SeasonalRequestCreate() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
+              <CardContent className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
                 {/* Season Dropdown */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="block text-sm font-medium text-foreground">الموسم</label>
                   <Select
                     value={String(activeSeason.id)}
@@ -227,7 +227,7 @@ export default function SeasonalRequestCreate() {
                       setSelectedMosqueId(undefined);
                     }}
                   >
-                    <SelectTrigger className="h-10 w-full rounded-xl bg-background font-semibold">
+                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl bg-background font-semibold [&>span]:truncate">
                       <SelectValue placeholder="اختر الموسم" />
                     </SelectTrigger>
                     <SelectContent>
@@ -241,7 +241,7 @@ export default function SeasonalRequestCreate() {
                 </div>
 
                 {/* Searchable Mosque Dropdown */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="block text-sm font-medium text-foreground">
                     المسجد المعتمد ({mosques.length.toLocaleString("ar-SA")})
                   </label>
@@ -254,7 +254,7 @@ export default function SeasonalRequestCreate() {
                         aria-expanded={mosqueOpen}
                         aria-required="true"
                         aria-describedby={selectedMosque ? undefined : mosqueHintId}
-                        className="h-10 w-full justify-between rounded-xl bg-background px-3 font-normal cursor-pointer"
+                        className="h-10 w-full min-w-0 justify-between rounded-xl bg-background px-3 font-normal cursor-pointer"
                       >
                         <span className="truncate">
                           {selectedMosque
@@ -264,7 +264,7 @@ export default function SeasonalRequestCreate() {
                         <ChevronsUpDown className="mr-2 size-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" dir="rtl">
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0" align="start" dir="rtl">
                       <Command>
                         <CommandInput placeholder="ابحث باسم المسجد أو المدينة أو الحي..." className="h-10" />
                         <CommandList className="max-h-72">
