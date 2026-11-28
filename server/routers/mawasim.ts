@@ -974,6 +974,7 @@ export const mawasimRouter = router({
         return {
           created,
           applicantId,
+          seasonManagerId: season.managerId ?? null,
           mosqueName: mosque.name,
           seasonTitle: season.title,
           applicantDisplayName: contactInfo.name?.trim() || ctx.user.name || "طالب الخدمة",
@@ -990,6 +991,17 @@ export const mawasimRouter = router({
             relatedType: "mawasim_request",
             relatedId: txResult.created.id,
             triggerId: "beneficiary_mawasim_request_submitted",
+          });
+        }
+        if (txResult.seasonManagerId != null) {
+          await createNotification({
+            userId: txResult.seasonManagerId,
+            type: "request",
+            title: "إشعار مدير الموسم: طلب جديد",
+            message: `وصل طلب جديد في الموسم المسند إليك (${txResult.seasonTitle}) رقم #${txResult.created.id} لمسجد ${txResult.mosqueName} من ${txResult.applicantDisplayName} وهو بانتظار المراجعة.`,
+            relatedType: "mawasim_request",
+            relatedId: txResult.created.id,
+            triggerId: "mawasim_season_manager_request_submitted",
           });
         }
         const staffTargets = await listCompanyEmployees(db);
